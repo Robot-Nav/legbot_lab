@@ -1,4 +1,4 @@
-# VBot MuJoCo Sim2Real 四足机器人强化学习平台
+# VBot Lab/MuJoCo Sim2Real 四足机器人强化学习平台
 
 > 基于 NVIDIA Isaac Lab / Isaac Sim 与 MuJoCo 的 VBot 四足机器人 **Sim2Real** 研究与部署平台。
 > 本项目覆盖从大规模并行仿真训练、策略推理与模型导出，到 MuJoCo 仿真验证、再到 RobStride 实机部署的完整闭环。
