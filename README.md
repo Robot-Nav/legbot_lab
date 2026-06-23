@@ -7,7 +7,7 @@
 [![Isaac Lab 2.2.0](https://img.shields.io/badge/Isaac%20Lab-2.2.0-green.svg)](https://isaac-sim.github.io/IsaacLab/main/index.html)
 [![C++17](https://img.shields.io/badge/C++-17-orange.svg)](https://isocpp.org/)
 [![MuJoCo](https://img.shields.io/badge/MuJoCo-2.3.3-blueviolet.svg)](https://mujoco.org/)
-[![Robot-Nav](https://img.shields.io/badge/Robot--Nav-Integration-brightgreen.svg)](https://github.com/your-repo-link)
+[![Robot-Nav](https://img.shields.io/badge/Robot--Nav-Integration-brightgreen.svg)](https://blog.csdn.net/qq_56908984?spm=1010.2135.3001.5343)
 
 ---
 
