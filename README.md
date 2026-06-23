@@ -29,6 +29,19 @@
 
 ---
 
+演示：
+
+
+https://github.com/user-attachments/assets/229b4f40-bd35-47e3-a2bd-81c5a3710f71
+
+
+
+https://github.com/user-attachments/assets/86f6ec8c-f933-436e-ba22-2dc1b9986bbd
+
+
+
+---
+
 ## 1. 项目简介
 
 VBot 是一款面向研究与教育的四足机器人平台，具备 12 个主动关节（3×4 腿），全身采用 RobStride（灵足）系列电机驱动。
