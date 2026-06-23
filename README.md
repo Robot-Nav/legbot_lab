@@ -2,10 +2,12 @@
 
 > 基于 NVIDIA Isaac Lab / Isaac Sim 与 MuJoCo 的 VBot 四足机器人 **Sim2Real** 研究与部署平台。
 > 本项目覆盖从大规模并行仿真训练、策略推理与模型导出，到 MuJoCo 仿真验证、再到 RobStride 实机部署的完整闭环。
-
+> 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![Isaac Lab 2.2.0](https://img.shields.io/badge/Isaac%20Lab-2.2.0-green.svg)](https://isaac-sim.github.io/IsaacLab/main/index.html)
 [![C++17](https://img.shields.io/badge/C++-17-orange.svg)](https://isocpp.org/)
+[![MuJoCo](https://img.shields.io/badge/MuJoCo-2.3.3-blueviolet.svg)](https://mujoco.org/)
+[![Robot-Nav](https://img.shields.io/badge/Robot--Nav-Integration-brightgreen.svg)](https://github.com/your-repo-link)
 
 ---
 
