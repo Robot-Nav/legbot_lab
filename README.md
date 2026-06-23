@@ -118,7 +118,7 @@ $$
 -\mathbb{E}_t\left[
 \min\left(
 r_t(\theta)A_t,\;
-\operatorname{clip}\left(r_t(\theta),1-\varepsilon,1+\varepsilon\right)A_t
+\text{clip}\left(r_t(\theta),1-\varepsilon,1+\varepsilon\right)A_t
 \right)
 \right]
 $$
@@ -133,7 +133,7 @@ $$
 带剪裁的值函数损失：
 
 $$
-V_\theta^{\text{clip}}(s)=V_{\text{old}}(s)+\operatorname{clip}\left(V_\theta(s)-V_{\text{old}}(s),-\varepsilon,\varepsilon\right)
+V_\theta^{\text{clip}}(s)=V_{\text{old}}(s)+\text{clip}\left(V_\theta(s)-V_{\text{old}}(s),-\varepsilon,\varepsilon\right)
 $$
 
 $$
@@ -168,15 +168,15 @@ MoE+CTS 参考 [Concurrent Teacher-Student (CTS)](https://arxiv.org/abs/2405.108
 
 - **教师编码器** $f_T$：输入 Critic/特权观测 $o^{\text{priv}}$，输出潜向量 $z_T\in\mathbb{R}^{d_z}$。
 - **学生 MoE 编码器** $f_S^{\text{MoE}}$：输入历史观测序列 $h_t=[o_{t-H+1},\dots,o_t]$，输出潜向量 $z_S$。
-- **策略网络** $\mu_\theta$：输入 $\operatorname{concat}(z, o_t)$，输出关节目标位置均值。
-- **价值网络** $V_\phi$：输入 $\operatorname{concat}(z, o^{\text{priv}})$，输出状态价值。
+- **策略网络** $\mu_\theta$：输入 $\text{concat}(z, o_t)$，输出关节目标位置均值。
+- **价值网络** $V_\phi$：输入 $\text{concat}(z, o^{\text{priv}})$，输出状态价值。
 
 #### Mixture of Experts
 
 门控网络输出专家权重：
 
 $$
-g(x)=\operatorname{softmax}\left(W_g x\right),\qquad
+g(x)=\text{softmax}\left(W_g x\right),\qquad
 g_i(x)\in[0,1],\; \sum_i g_i=1
 $$
 
