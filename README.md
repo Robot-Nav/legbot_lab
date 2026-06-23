@@ -31,14 +31,9 @@
 
 演示：
 
-
 https://github.com/user-attachments/assets/229b4f40-bd35-47e3-a2bd-81c5a3710f71
 
-
-
 https://github.com/user-attachments/assets/86f6ec8c-f933-436e-ba22-2dc1b9986bbd
-
-
 
 ---
 
@@ -114,14 +109,18 @@ vbot_mujoco (moe+cts)/
 项目中的标准 PPO 实现基于 [RSL-RL](https://github.com/leggedrobotics/rsl_rl)。
 定义重要性采样比：
 
-$$
-r_t(\theta)=\frac{\pi_\theta(a_t\mid s_t)}{\pi_{\text{old}}(a_t\mid s_t)}
-$$
+$$r_t(\theta)=\frac{\pi_\theta(a_t\mid s_t)}{\pi_{\text{old}}(a_t\mid s_t)}$$
 
 带剪裁的替代损失：
 
 $$
-\mathcal{L}^{\text{CLIP}}(\theta)= -\mathbb{E}_t\left[\min\left(r_t(\theta)A_t,\; \operatorname{clip}\left(r_t(\theta),1-\varepsilon,1+\varepsilon\right)A_t\right)\right]
+\mathcal{L}^{\text{CLIP}}(\theta)=
+-\mathbb{E}_t\left[
+\min\left(
+r_t(\theta)A_t,\;
+\operatorname{clip}\left(r_t(\theta),1-\varepsilon,1+\varepsilon\right)A_t
+\right)
+\right]
 $$
 
 其中优势函数 $A_t$ 由 GAE 计算：
@@ -138,13 +137,21 @@ V_\theta^{\text{clip}}(s)=V_{\text{old}}(s)+\operatorname{clip}\left(V_\theta(s)
 $$
 
 $$
-\mathcal{L}^{V}(\theta)=\mathbb{E}_t\left[\max\Bigl(\bigl(V_\theta(s_t)-R_t\bigr)^2,\; \bigl(V_\theta^{\text{clip}}(s_t)-R_t\bigr)^2\Bigr)\right]
+\mathcal{L}^{V}(\theta)=\mathbb{E}_t\left[
+\max\Bigl(
+\bigl(V_\theta(s_t)-R_t\bigr)^2,\;
+\bigl(V_\theta^{\text{clip}}(s_t)-R_t\bigr)^2
+\Bigr)
+\right]
 $$
 
 总损失：
 
 $$
-\mathcal{L}^{\text{PPO}}=\mathcal{L}^{\text{CLIP}}+c_1\mathcal{L}^{V}-c_2\mathcal{L}^{\text{entropy}}
+\mathcal{L}^{\text{PPO}}=
+\mathcal{L}^{\text{CLIP}}+
+c_1\mathcal{L}^{V}-
+c_2\mathcal{L}^{\text{entropy}}
 $$
 
 当 KL 散度超过阈值时，学习率会自适应调整：
@@ -169,7 +176,8 @@ MoE+CTS 参考 [Concurrent Teacher-Student (CTS)](https://arxiv.org/abs/2405.108
 门控网络输出专家权重：
 
 $$
-g(x)=\operatorname{softmax}\left(W_g x\right),\qquad g_i(x)\in[0,1],\; \sum_i g_i=1
+g(x)=\operatorname{softmax}\left(W_g x\right),\qquad
+g_i(x)\in[0,1],\; \sum_i g_i=1
 $$
 
 专家输出加权求和：
@@ -376,10 +384,14 @@ cd vbot_rl_lab/deploy/robots/vbot/build
 ---
 
 ## 9. 致谢
-感谢开源项目https://github.com/wty-yy/go2_rl_gym，为本项目提供了算法思路以及引导。
+
+感谢开源项目 https://github.com/wty-yy/go2_rl_gym，为本项目提供了算法思路以及引导。
+
+```bibtex
 @inproceedings{wu2026robogauge,
     title={Toward Reliable Sim-to-Real Predictability for MoE-based Robust Quadrupedal Locomotion},
     author={Tianyang Wu and Hanwei Guo and Yuhang Wang and Junshu Yang and Xinyang Sui and Jiayi Xie and Xingyu Chen and Zeyang Liu and Xuguang Lan},
     booktitle={Proceedings of Robotics: Science and Systems},
     year={2026}
 }
+```
