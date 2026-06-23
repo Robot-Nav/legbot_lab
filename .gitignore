@@ -1,0 +1,40 @@
+# IDE / editor
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+*.log
+
+# Build artifacts
+build/
+*/build/
+cmake-build-*/
+
+# Keep third-party prebuilt libraries (e.g. ONNX Runtime)
+!deploy/thirdparty/**/*.so
+!deploy/thirdparty/**/*.a
+
+# Training outputs / logs
+outputs/
+logs/
+runs/
+*.pt
+*.onnx
+
+# Large generated files
+MJMODEL.TXT
+
+# Local symlinks to system MuJoCo
+/mujoco
+simulate/mujoco
+
+# Misc
+*.bak
+*.tmp

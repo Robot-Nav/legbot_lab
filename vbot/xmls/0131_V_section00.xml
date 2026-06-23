@@ -1,0 +1,104 @@
+<mujoco>
+  <compiler angle="radian" assetdir="assets" autolimits="true"/>
+
+  <asset>
+
+    <!-- Textures -->
+    <texture type="2d" colorspace="sRGB" name="BAKE_INSIDE_Bake1_CyclesBake_COMBINED" file="BAKE_INSIDE_Bake1_CyclesBake_COMBINED.png"/>
+    <texture type="2d" colorspace="linear" name="BAKE_INSIDE_Bake1_CyclesBake_COMBINED_ro" file="BAKE_INSIDE_Bake1_CyclesBake_COMBINED_ro.png"/>
+    <texture type="2d" colorspace="sRGB" name="BAKE_OUTSIDE_A_Bake1_CyclesBake_COMBINED" file="BAKE_OUTSIDE_A_Bake1_CyclesBake_COMBINED.png"/>
+    <texture type="2d" colorspace="sRGB" name="BAKE_OUTSIDE_B_Bake1_CyclesBake_COMBINED" file="BAKE_OUTSIDE_B_Bake1_CyclesBake_COMBINED.png"/>
+    <texture type="2d" colorspace="sRGB" name="ENDPOINT_Bake1_CyclesBake_COMBINED" file="ENDPOINT_Bake1_CyclesBake_COMBINED.png"/>
+    <texture type="2d" colorspace="sRGB" name="LANTERN_BODY_BK_Bake1_CyclesBake_COMBINED" file="LANTERN_BODY_BK_Bake1_CyclesBake_COMBINED.png"/>
+    <texture type="2d" colorspace="sRGB" name="LANTERN_CLOUR_BK_Bake1_CyclesBake_COMBINED" file="LANTERN_CLOUR_BK_Bake1_CyclesBake_COMBINED.png"/>
+    <texture type="2d" colorspace="sRGB" name="LANTERN_EMMI" file="LANTERN_BODY_emmi.png"/>
+    <texture type="2d" colorspace="sRGB" name="LANTERN_CLOUD_EMMI" file="LANTERN_CLOUR_emmi.png"/>
+
+    <texture type="2d" colorspace="sRGB" name="LOGO_03_BK_Bake1_CyclesBake_COMBINED" file="LOGO_03_BK_Bake1_CyclesBake_COMBINED.png"/>
+
+    <!-- Materials -->
+    <material name="MI_ARRO_WHITE"
+             emission="1.0 1.0 1.0 1.0"
+             emissionintensity="10.0"/>
+    <material name="MI_ground1_BK" rgba="1 1 1 1" reflectance="0.5" metallic="0.0" roughness="1.0">
+      <layer texture="BAKE_INSIDE_Bake1_CyclesBake_COMBINED" role="rgb"/>
+      <layer texture="BAKE_INSIDE_Bake1_CyclesBake_COMBINED_ro" role="orm"/>
+    </material>
+    <material name="MI_BAKE_OUTSIDE_A" rgba="1 1 1 1" reflectance="0.5" metallic="0.0" roughness="0.5">
+      <layer texture="BAKE_OUTSIDE_A_Bake1_CyclesBake_COMBINED" role="rgb"/>
+    </material>
+    <material name="MI_BAKE_OUTSIDE_B" rgba="1 1 1 1" reflectance="0.5" metallic="0.0" roughness="1.0">
+      <layer texture="BAKE_OUTSIDE_B_Bake1_CyclesBake_COMBINED" role="rgb"/>
+    </material>
+    <material name="MI_ENDPOINT" rgba="1 1 1 1" reflectance="0.5" metallic="0.0" roughness="0.20000000298023224">
+      <layer texture="ENDPOINT_Bake1_CyclesBake_COMBINED" role="rgb"/>
+    </material>
+    <material name="bluelight.001"
+             rgba="0.0 0.0 1.0 1.0"
+             emission="1 1 1 1.0"
+             emissionintensity="10.0"/>
+    <material name="bluelight"
+             rgba="0.0 0.0 1.0 1.0"
+             emission="1 1 1 1.0"
+             emissionintensity="10.0"/>
+    <material name="MI_LANTERN_BODY_BK" rgba="1 1 1 1" emission="0.5 0.5 0.5 1.0" emissionintensity="0.2">
+      <layer texture="LANTERN_BODY_BK_Bake1_CyclesBake_COMBINED" role="rgb"/>
+      <layer texture="LANTERN_EMMI" role="emissive"/>
+    </material>
+    <material name="MI_LANTERN_CLOUR_BK" rgba="1 1 1 1" emission="0.5 0.5 0.5 1.0" emissionintensity="0.2">
+      <layer texture="LANTERN_CLOUR_BK_Bake1_CyclesBake_COMBINED" role="rgb"/>
+      <layer texture="LANTERN_CLOUD_EMMI" role="emissive"/>
+    </material>
+    <material name="MI_LOGO_03_BK" rgba="1 1 1 1" reflectance="0.5" metallic="0.0" roughness="0.0">
+      <layer texture="LOGO_03_BK_Bake1_CyclesBake_COMBINED" role="rgb"/>
+    </material>
+
+    <!-- Visual meshes -->
+    <mesh class="visual" name="V_ARRO" file="V_ARRO.obj"/>
+    <mesh class="visual" name="V_BAKE_INSIDE" file="V_BAKE_INSIDE.obj"/>
+    <mesh class="visual" name="V_BAKE_OUTSIDE_A" file="V_BAKE_OUTSIDE_A.obj"/>
+    <mesh class="visual" name="V_BAKE_OUTSIDE_B" file="V_BAKE_OUTSIDE_B.obj"/>
+    <mesh class="visual" name="V_ENDPOINT" file="V_ENDPOINT.obj"/>
+    <mesh class="visual" name="V_ENDPOINT_LIGHT" file="V_ENDPOINT_LIGHT.obj"/>
+    <mesh class="visual" name="V_END_light" file="V_END_light.obj"/>
+    <mesh class="visual" name="V_LANTERN_BODY_BK" file="V_LANTERN_BODY_BK.obj"/>
+    <mesh class="visual" name="V_LANTERN_CLOUR_BK" file="V_LANTERN_CLOUR_BK.obj"/>
+    <mesh class="visual" name="V_LOGO_03_BK" file="V_LOGO_03_BK.obj"/>
+    <mesh class="visual" name="V_LOGO_03_light" file="V_LOGO_03_light.obj"/>
+
+    <!-- Collision meshes -->
+  </asset>
+
+  <default>
+      <default class="visual">
+        <geom type="mesh" contype="0" conaffinity="0" group="2" density="0"/>
+      </default>
+      <default class="collision">
+        <geom type="mesh" rgba="1 1 1 1" group="3" contype="1" conaffinity="1"/>
+      </default>
+  </default>
+
+  <worldbody>
+
+    <body name="B_body" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="visual" mesh="V_ARRO" pos="0.0 0.0 0.05000000074505806" quat="1.0 0.0 0.0 0.0" material="MI_ARRO_WHITE"/>
+      <geom class="visual" mesh="V_BAKE_INSIDE" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="MI_ground1_BK"/>
+      <geom class="visual" mesh="V_BAKE_OUTSIDE_A" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="MI_BAKE_OUTSIDE_A"/>
+      <geom class="visual" mesh="V_BAKE_OUTSIDE_B" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="MI_BAKE_OUTSIDE_B"/>
+      <geom class="visual" mesh="V_END_light" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="bluelight"/>
+      <geom class="visual" mesh="V_ENDPOINT" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="MI_ENDPOINT"/>
+      <geom class="visual" mesh="V_ENDPOINT_LIGHT" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="bluelight.001"/>
+      <geom class="visual" mesh="V_LANTERN_BODY_BK" pos="-9.5367431640625e-07 -2.384185791015625e-07 2.134159564971924" quat="1.0 0.0 0.0 0.0" material="MI_LANTERN_BODY_BK"/>
+      <geom class="visual" mesh="V_LANTERN_CLOUR_BK" pos="-9.5367431640625e-07 -2.384185791015625e-07 2.6220006942749023" quat="1.0 0.0 0.0 0.0" material="MI_LANTERN_CLOUR_BK"/>
+      <geom class="visual" mesh="V_LOGO_03_BK" pos="0.0 0.0 0.0" quat="0.70710688829422 0.0 0.0 -0.7071066498756409" material="MI_LOGO_03_BK"/>
+      <geom class="visual" mesh="V_LOGO_03_light" pos="0.0 0.0 0.0" quat="0.70710688829422 0.0 0.0 -0.7071066498756409" material="bluelight"/>
+<!--      <light name="EL_midlight" pos="1.0 0.0 2.198528289794922" dir="-0.0 -0.0 -1.0" diffuse="0.04 0.01 0.0"  directional="true" castshadow="false" type="point"/>-->
+<!--      <light name="EL_midlight2" pos="-1.0 0.0 2.198528289794922" dir="-0.0 -0.0 -1.0" diffuse="0.04 0.01 0.0"  directional="true" castshadow="false" type="point"/>-->
+      <light name="EL_Point" pos="0.0 0.0 0.6180826425552368" dir="-0.0 -0.0 -1.0" diffuse="0.33 0.0 0.0"   castshadow="false" type="point"/>
+      <light name="EL_PointA" pos="2.9118306636810303 5.823660850524902 1.7401131391525269" dir="-0.0 -0.0 -1.0" diffuse="0.67 0.0 0.0"   castshadow="false" type="point"/>
+      <light name="EL_PointB" pos="-3.242720365524292 -5.558948516845703 1.7401131391525269" dir="-0.0 -0.0 -1.0" diffuse="0.67 0.0 0.0"   castshadow="false" type="point"/>
+<!--      <light name="EL_TOPlight" pos="0.0 0.0 10.0" dir="-0.0 -0.0 -1.0" diffuse="0.2 0.2 0.2"  directional="true" castshadow="true" type="directional"/>-->
+    </body>
+  </worldbody>
+
+</mujoco>

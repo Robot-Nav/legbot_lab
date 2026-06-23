@@ -1,0 +1,500 @@
+<mujoco>
+
+  <asset>
+
+    <!-- Textures -->
+    <hfield name="hfield_terrain" file="assets/H_section_02_0122.png" size="5 1.5 0.1 0" />
+
+    <!-- 蓝色半透明材质 -->
+    <material name="CollisionBlue2" rgba="0.1 0.1 1.0 0.8" specular="0.3" shininess="0.5"/>
+
+    <!-- Collision meshes -->
+    <mesh class="collision" name="C_cone_mesh_001" file="assets/C_cone_mesh_001.stl"/>
+    <mesh class="collision" name="C_cone_mesh_002" file="assets/C_cone_mesh_002.stl"/>
+    <mesh class="collision" name="C_cone_mesh_003" file="assets/C_cone_mesh_003.stl"/>
+    <mesh class="collision" name="C_cone_mesh_004" file="assets/C_cone_mesh_004.stl"/>
+    <mesh class="collision" name="C_cone_mesh_005" file="assets/C_cone_mesh_005.stl"/>
+    <mesh class="collision" name="C_cone_mesh_006" file="assets/C_cone_mesh_006.stl"/>
+    <mesh class="collision" name="C_cone_mesh_007" file="assets/C_cone_mesh_007.stl"/>
+    <mesh class="collision" name="C_cone_mesh_008" file="assets/C_cone_mesh_008.stl"/>
+    <mesh class="collision" name="C_Bpo" file="assets/C_Bpo.stl"/>
+    <mesh class="collision" name="C_logo_mesh_001" file="assets/C_logo_mesh_001.stl"/>
+    <mesh class="collision" name="C_logo_mesh_002" file="assets/C_logo_mesh_002.stl"/>
+  </asset>
+
+  <default>
+      <default class="collision">
+        <geom type="mesh" material="CollisionBlue2" group="1" contype="1" conaffinity="1"/>
+          <default class="C_Adiban_001">
+            <geom type="box" rgba="0.2 0.4 1.0 0.6" size="5.0 1.0 0.25" quat="1.0 0.0 0.0 0.0" pos="0.0 -2.5 -0.25" density="1000.0"/>
+          </default>
+          <default class="C_Adiban_002">
+            <geom type="box" rgba="0.2 0.4 1.0 0.6" size="5.0 0.25 0.25" quat="1.0 0.0 0.0 0.0" pos="0.0 1.75 -0.25" density="1000.0"/>
+          </default>
+          <default class="C_Adiban_003">
+            <geom type="box" rgba="0.2 0.4 1.0 0.6" size="5.0 2.5 0.25" quat="0.9914449 0.1305262 0.0 0.0" pos="0.0 4.479518890380859 0.4055659770965576" density="1000.0"/>
+          </default>
+          <default class="C_Adiban_004">
+            <geom type="box" rgba="0.2 0.4 1.0 0.6" size="5.0 1.0 0.25" quat="1.0 0.0 0.0 0.0" pos="0.0 7.8296284675598145 1.0440951585769653" density="1000.0"/>
+            <!-- <geom type="box" rgba="0.2 0.4 1.0 0.6" size="5.0 2.0 0.25" quat="1.0 0.0 0.0 0.0" pos="0.0 6.8296284675598145 1.0440951585769653" density="1000.0"/> -->
+          </default>
+          <default class="C_Adiban_005">
+            <geom type="box" rgba="0.2 0.4 1.0 0.6" size="5.0 1.5 0.25" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 -0.25" density="1000.0"/>
+          </default>
+
+
+          <default class="C_cone_mesh_001">
+            <geom type="mesh" material="CollisionBlue2" mesh="C_cone_mesh_001" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_002">
+            <geom type="mesh" material="CollisionBlue2" mesh="C_cone_mesh_002" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_003">
+            <geom type="mesh" material="CollisionBlue2" mesh="C_cone_mesh_003" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_004">
+            <geom type="mesh" material="CollisionBlue2" mesh="C_cone_mesh_004" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_005">
+            <geom type="mesh" material="CollisionBlue2" mesh="C_cone_mesh_005" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_006">
+            <geom type="mesh" material="CollisionBlue2" mesh="C_cone_mesh_006" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_007">
+            <geom type="mesh" material="CollisionBlue2" mesh="C_cone_mesh_007" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_008">
+            <geom type="mesh" material="CollisionBlue2" mesh="C_cone_mesh_008" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bbianjie_001">
+            <geom type="box" material="CollisionBlue2" size="0.25 1.0 0.6000000834465027" quat="1.0 0.0 0.0 0.0" pos="5.250001430511475 24.329627990722656 1.8940951824188232" density="1000.0"/>
+          </default>
+          <default class="C_Bbianjie_002">
+            <geom type="box" material="CollisionBlue2" size="0.25 1.0 0.6000000834465027" quat="1.0 0.0 0.0 0.0" pos="-5.25 24.329627990722656 1.8940951824188232" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cube_001">
+            <geom type="box" material="CollisionBlue2" size="1.5999999046325684 0.19999980926513672 0.5" quat="1.0 0.0 0.0 0.0" pos="-2.9999992847442627 15.129627227783203 2.294095754623413" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cube_002">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.3000001907348633 0.5" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 14.629627227783203 2.294095754623413" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cube_003">
+            <geom type="box" material="CollisionBlue2" size="1.600000262260437 0.20000076293945312 0.5" quat="1.0 0.0 0.0 0.0" pos="-3.0 20.52962875366211 2.2940943241119385" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cube_004">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.3000011444091797 0.5" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 21.029624938964844 2.2940943241119385" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cylinder_001">
+            <geom type="cylinder" material="CollisionBlue2" size="0.3999999761581421 0.5" quat="1.0 0.0 0.0 0.0" pos="-1.399999737739563 14.929628372192383 2.2940964698791504" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cylinder_002">
+            <geom type="cylinder" material="CollisionBlue2" size="0.40000009536743164 0.5" quat="1.0 0.0 0.0 0.0" pos="-4.59999942779541 14.929628372192383 2.2940964698791504" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cylinder_003">
+            <geom type="cylinder" material="CollisionBlue2" size="0.40000009536743164 0.5" quat="1.0 0.0 0.0 0.0" pos="-4.600000858306885 20.72962760925293 2.2940962314605713" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cylinder_004">
+            <geom type="cylinder" material="CollisionBlue2" size="0.3999999761581421 0.5" quat="1.0 0.0 0.0 0.0" pos="-1.399999737739563 20.72962760925293 2.2940962314605713" density="1000.0"/>
+          </default>
+          <default class="C_Bdiban_001">
+            <geom type="box" material="CollisionBlue2" size="5.0 0.25 0.25" quat="1.0 0.0 0.0 0.0" pos="0.0 12.079628944396973 1.0440951585769653" density="1000.0"/>
+          </default>
+          <default class="C_Bdiban_002">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.125 0.09999990463256836" quat="1.0 0.0 0.0 0.0" pos="2.000000476837158 14.454627990722656 2.1940953731536865" density="1000.0"/>
+          </default>
+          <default class="C_Bdiban_003">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.125 0.09999990463256836" quat="1.0 0.0 0.0 0.0" pos="2.000000476837158 21.204627990722656 2.1940953731536865" density="1000.0"/>
+          </default>
+          <default class="C_Bdiban_004">
+            <geom type="box" material="CollisionBlue2" size="5.0 1.0 0.10000002384185791" quat="1.0 0.0 0.0 0.0" pos="0.0 24.329627990722656 1.1940953731536865" density="1000.0"/>
+          </default>
+          <default class="C_Bdiban_005">
+            <geom type="box" material="CollisionBlue2" size="5.0 1.5 0.25" quat="1.0 0.0 0.0 0.0" pos="0.0 10.329627990722656 1.0440951585769653" density="1000.0"/>
+          </default>
+          <default class="C_Bpo">
+            <geom type="mesh" material="CollisionBlue2" mesh="C_Bpo" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bpo_sphere_001">
+            <geom type="sphere" material="CollisionBlue2" size="0.75" quat="1.0 0.0 0.0 0.0" pos="3.500000238418579 15.839910507202148 1.1999996900558472" density="1000.0"/>
+          </default>
+          <default class="C_Bpo_sphere_002">
+            <geom type="sphere" material="CollisionBlue2" size="0.75" quat="1.0 0.0 0.0 0.0" pos="0.3594469726085663 15.839910507202148 1.1999996900558472" density="1000.0"/>
+          </default>
+          <default class="C_Bpo_sphere_003">
+            <geom type="sphere" material="CollisionBlue2" size="0.75" quat="1.0 0.0 0.0 0.0" pos="1.999999761581421 17.82960319519043 0.8000001907348633" density="1000.0"/>
+          </default>
+          <default class="C_Bpo_sphere_004">
+            <geom type="sphere" material="CollisionBlue2" size="0.75" quat="1.0 0.0 0.0 0.0" pos="3.500000238418579 19.716203689575195 1.1999996900558472" density="1000.0"/>
+          </default>
+          <default class="C_Bpo_sphere_005">
+            <geom type="sphere" material="CollisionBlue2" size="0.75" quat="1.0 0.0 0.0 0.0" pos="0.3594469726085663 19.716203689575195 1.1999996900558472" density="1000.0"/>
+          </default>
+          <default class="C_logo_mesh_001">
+            <geom type="mesh" material="CollisionBlue2" mesh="C_logo_mesh_001" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_logo_mesh_002">
+            <geom type="mesh" material="CollisionBlue2" mesh="C_logo_mesh_002" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_cube_001">
+            <geom type="box" material="CollisionBlue2" size="0.030001044273376465 2.5300002098083496 0.29053306579589844" quat="1.0 0.0 0.0 0.0" pos="-1.6806058883666992 17.829627990722656 2.85719895362854" density="1000.0"/>
+          </default>
+          <default class="C_bridge_cube_002">
+            <geom type="box" material="CollisionBlue2" size="0.030001163482666016 2.5300002098083496 0.29053306579589844" quat="1.0 0.0 0.0 0.0" pos="-4.319394111633301 17.829627990722656 2.85719895362854" density="1000.0"/>
+          </default>
+          <default class="C_bridge_cylinder_001">
+            <geom type="cylinder" material="CollisionBlue2" size="0.20000004768371582 1.1000001430511475" quat="1.0 0.0 0.0 0.0" pos="-1.6806052923202515 15.201314926147461 2.1411428451538086" density="1000.0"/>
+          </default>
+          <default class="C_bridge_cylinder_002">
+            <geom type="cylinder" material="CollisionBlue2" size="0.19999980926513672 1.1000001430511475" quat="1.0 0.0 0.0 0.0" pos="-4.319393634796143 15.201314926147461 2.1411428451538086" density="1000.0"/>
+          </default>
+          <default class="C_bridge_cylinder_003">
+            <geom type="cylinder" material="CollisionBlue2" size="0.20000004768371582 1.1000001430511475" quat="1.0 0.0 0.0 0.0" pos="-1.6806052923202515 20.441274642944336 2.1411428451538086" density="1000.0"/>
+          </default>
+          <default class="C_bridge_cylinder_004">
+            <geom type="cylinder" material="CollisionBlue2" size="0.19999980926513672 1.1000001430511475" quat="1.0 0.0 0.0 0.0" pos="-4.319393634796143 20.441274642944336 2.1411428451538086" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_001">
+            <geom type="box" material="CollisionBlue2" size="1.3193939924240112 0.11189079284667969 0.09729790687561035" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 15.312944412231445 2.7066943645477295" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_002">
+            <geom type="box" material="CollisionBlue2" size="1.3193937540054321 0.11171483993530273 0.09758853912353516" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 15.538965225219727 2.669889450073242" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_003">
+            <geom type="box" material="CollisionBlue2" size="1.3193937540054321 0.11034250259399414 0.09519779682159424" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 15.765406608581543 2.6358859539031982" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_004">
+            <geom type="box" material="CollisionBlue2" size="1.3193938732147217 0.10861635208129883 0.09309220314025879" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 15.992637634277344 2.6076130867004395" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_005">
+            <geom type="box" material="CollisionBlue2" size="1.3193937540054321 0.10734176635742188 0.09155929088592529" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 16.220415115356445 2.5840914249420166" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_006">
+            <geom type="box" material="CollisionBlue2" size="1.3193936347961426 0.10618400573730469 0.09009170532226562" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 16.44853973388672 2.5641746520996094" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_007">
+            <geom type="box" material="CollisionBlue2" size="1.3193936347961426 0.10503578186035156 0.08857667446136475" quat="1.0 0.0 0.0 0.0" pos="-2.999999523162842 16.676959991455078 2.548008441925049" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_008">
+            <geom type="box" material="CollisionBlue2" size="1.3193937540054321 0.10407161712646484 0.08752429485321045" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 16.90557861328125 2.534862518310547" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_009">
+            <geom type="box" material="CollisionBlue2" size="1.3193937540054321 0.10293388366699219 0.08595895767211914" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 17.134353637695312 2.524902582168579" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_010">
+            <geom type="box" material="CollisionBlue2" size="1.3193941116333008 0.10206031799316406 0.08504843711853027" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 17.363243103027344 2.517859935760498" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_011">
+            <geom type="box" material="CollisionBlue2" size="1.3193937540054321 0.10099124908447266 0.08363378047943115" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 17.592193603515625 2.5134973526000977" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_012">
+            <geom type="box" material="CollisionBlue2" size="1.3193939924240112 0.10028553009033203 0.0824899673461914" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 17.821186065673828 2.512158155441284" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_013">
+            <geom type="box" material="CollisionBlue2" size="1.3193938732147217 0.1009073257446289 0.08351147174835205" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 18.05017852783203 2.5132975578308105" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_014">
+            <geom type="box" material="CollisionBlue2" size="1.3193937540054321 0.10199260711669922 0.08496606349945068" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 18.27913475036621 2.517439126968384" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_015">
+            <geom type="box" material="CollisionBlue2" size="1.3193939924240112 0.10286521911621094 0.08586347103118896" quat="1.0 0.0 0.0 0.0" pos="-2.9999992847442627 18.50802993774414 2.524293899536133" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_016">
+            <geom type="box" material="CollisionBlue2" size="1.3193938732147217 0.1039886474609375 0.08740353584289551" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 18.736814498901367 2.5340161323547363" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_017">
+            <geom type="box" material="CollisionBlue2" size="1.3193937540054321 0.1049642562866211 0.08850908279418945" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 18.96544647216797 2.546940565109253" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_018">
+            <geom type="box" material="CollisionBlue2" size="1.3193937540054321 0.10608863830566406 0.08995115756988525" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 19.193883895874023 2.562849998474121" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_019">
+            <geom type="box" material="CollisionBlue2" size="1.3193937540054321 0.1072540283203125 0.09147453308105469" quat="1.0 0.0 0.0 0.0" pos="-2.999999523162842 19.42203140258789 2.582507610321045" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_020">
+            <geom type="box" material="CollisionBlue2" size="1.3193943500518799 0.10851097106933594 0.09292006492614746" quat="1.0 0.0 0.0 0.0" pos="-2.9999992847442627 19.64984130859375 2.605729818344116" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_021">
+            <geom type="box" material="CollisionBlue2" size="1.3193937540054321 0.11019229888916016 0.09504985809326172" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 19.877120971679688 2.6335935592651367" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_022">
+            <geom type="box" material="CollisionBlue2" size="1.3193941116333008 0.1116495132446289 0.09746909141540527" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 20.103614807128906 2.6672356128692627" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_023">
+            <geom type="box" material="CollisionBlue2" size="1.3193939924240112 0.1119232177734375 0.09733760356903076" quat="1.0 0.0 0.0 0.0" pos="-2.9999990463256836 20.329648971557617 2.7039761543273926" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_001">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 12.4296293258667 1.3690952062606812" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_002">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07499998807907104" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 12.629629135131836 1.5190953016281128" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_003">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 12.829628944396973 1.6690952777862549" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_004">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07499998807907104" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 13.02962875366211 1.8190950155258179" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_005">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 13.229629516601562 1.9690953493118286" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_006">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 13.4296293258667 2.1190953254699707" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_007">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 13.629629135131836 2.2690954208374023" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_008">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 13.829628944396973 2.419095277786255" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_009">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 14.02962875366211 2.5690951347351074" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_010">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07499992847442627" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 14.229629516601562 2.7190957069396973" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_001">
+            <geom type="box" material="CollisionBlue2" size="1.9999998807907104 0.10000038146972656 0.07499992847442627" quat="1.0 0.0 0.0 0.0" pos="-2.999999523162842 21.429630279541016 2.7190957069396973" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_002">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 21.629627227783203 2.5690951347351074" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_003">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 21.829627990722656 2.419095277786255" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_004">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 22.029626846313477 2.2690954208374023" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_005">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 22.229625701904297 2.1190953254699707" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_006">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 22.429630279541016 1.9690953493118286" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_007">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07499998807907104" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 22.629627227783203 1.8190950155258179" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_008">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 22.829627990722656 1.6690952777862549" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_009">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07499998807907104" quat="1.0 0.0 0.0 0.0" pos="-2.999999761581421 23.029626846313477 1.5190953016281128" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_010">
+            <geom type="box" material="CollisionBlue2" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="-3.0 23.229625701904297 1.3690952062606812" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_001">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07499998807907104" quat="1.0 0.0 0.0 0.0" pos="2.000000238418579 12.4296293258667 1.3190951347351074" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_002">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000238418579 12.629629135131836 1.4190952777862549" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_003">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000238418579 12.829628944396973 1.5190954208374023" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_004">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000238418579 13.02962875366211 1.6190952062606812" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_005">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000238418579 13.229629516601562 1.7190953493118286" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_006">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000238418579 13.4296293258667 1.8190951347351074" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_007">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000238418579 13.629629135131836 1.9190952777862549" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_008">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000238418579 13.829628944396973 2.0190954208374023" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_009">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000238418579 14.02962875366211 2.1190953254699707" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_010">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000238418579 14.229629516601562 2.219095230102539" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_001">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.0000009536743164 21.429630279541016 2.219095230102539" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_002">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.0000009536743164 21.629627227783203 2.1190953254699707" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_003">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.0000009536743164 21.829627990722656 2.0190954208374023" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_004">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000476837158 22.029626846313477 1.9190952777862549" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_005">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000476837158 22.229625701904297 1.8190951347351074" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_006">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000476837158 22.429630279541016 1.7190953493118286" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_007">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.000000476837158 22.629627227783203 1.6190952062606812" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_008">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.0 22.829627990722656 1.5190954208374023" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_009">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="2.0 23.029626846313477 1.4190952777862549" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_010">
+            <geom type="box" material="CollisionBlue2" size="3.0 0.10000038146972656 0.07499998807907104" quat="1.0 0.0 0.0 0.0" pos="2.0 23.229625701904297 1.3190951347351074" density="1000.0"/>
+          </default>
+          <default class="C_stair_diji_001">
+            <geom type="box" material="CollisionBlue2" size="2.0 1.25 0.25" quat="0.948683298 0.316227766 0.0 0.0" pos="-2.999999761581421 13.479629516601562 1.8440954685211182" density="1000.0"/>
+          </default>
+          <default class="C_stair_diji_002">
+            <geom type="box" material="CollisionBlue2" size="2.0 1.25 0.25" quat="0.948683298 -0.316227766 0.0 0.0" pos="-2.999999761581421 22.17962646484375 1.8440951108932495" density="1000.0"/>
+          </default>
+      </default>
+  </default>
+
+  <worldbody>
+    <body name="ground_root">
+      <body name="B_Adiban" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <!-- <geom name="Adiban_001" class="C_Adiban_001"/> -->
+        <!-- <geom name="Adiban_002" class="C_Adiban_002"/> -->
+        <!-- <geom name="Adiban_003" class="C_Adiban_003"/> -->
+        <geom name="Adiban_004" class="C_Adiban_004"/>
+        <!-- <geom name="Adiban_005" class="C_Adiban_005"/> -->
+      </body>
+
+      <body name="B_BCone" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="BCone_001" class="C_cone_mesh_001"/>
+        <geom name="BCone_002" class="C_cone_mesh_002"/>
+        <geom name="BCone_003" class="C_cone_mesh_003"/>
+        <geom name="BCone_004" class="C_cone_mesh_004"/>
+        <geom name="BCone_005" class="C_cone_mesh_005"/>
+        <geom name="BCone_006" class="C_cone_mesh_006"/>
+        <geom name="BCone_007" class="C_cone_mesh_007"/>
+        <geom name="BCone_008" class="C_cone_mesh_008"/>
+      </body>
+      <body name="B_Bbianjie" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="Bbianjie_001" class="C_Bbianjie_001"/>
+        <geom name="Bbianjie_002" class="C_Bbianjie_002"/>
+      </body>
+      <body name="B_Bbridge_diji" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="Bbridge_diji_001" class="C_bridge_diji_cube_001"/>
+        <geom name="Bbridge_diji_002" class="C_bridge_diji_cube_002"/>
+        <geom name="Bbridge_diji_003" class="C_bridge_diji_cube_003"/>
+        <geom name="Bbridge_diji_004" class="C_bridge_diji_cube_004"/>
+        <geom name="Bbridge_diji_005" class="C_bridge_diji_cylinder_001"/>
+        <geom name="Bbridge_diji_006" class="C_bridge_diji_cylinder_002"/>
+        <geom name="Bbridge_diji_007" class="C_bridge_diji_cylinder_003"/>
+        <geom name="Bbridge_diji_008" class="C_bridge_diji_cylinder_004"/>
+      </body>
+      <body name="B_Bdiban" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="Bdiban_001" class="C_Bdiban_001"/>
+        <geom name="Bdiban_002" class="C_Bdiban_002"/>
+        <geom name="Bdiban_003" class="C_Bdiban_003"/>
+        <geom name="Bdiban_004" class="C_Bdiban_004"/>
+        <geom name="Bdiban_005" class="C_Bdiban_005"/>
+      </body>
+      <body name="B_Bdixing" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="V_Bdixing_Plane" type="hfield" hfield="hfield_terrain"
+              pos="0 10.3296 1.2941" quat="1 0 0 0"
+              material="CollisionBlue2"
+              contype="1" conaffinity="1"
+              friction="0.8" solref="0.02 1" condim="3"/>
+      </body>
+      <body name="B_Bpo" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="Bpo_001" class="C_Bpo"/>
+        <geom name="Bpo_002" class="C_Bpo_sphere_001"/>
+        <geom name="Bpo_003" class="C_Bpo_sphere_002"/>
+        <geom name="Bpo_004" class="C_Bpo_sphere_003"/>
+        <geom name="Bpo_005" class="C_Bpo_sphere_004"/>
+        <geom name="Bpo_006" class="C_Bpo_sphere_005"/>
+      </body>
+      <body name="B_Bstep_logo" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="Bstep_logo_001" class="C_logo_mesh_001"/>
+        <geom name="Bstep_logo_002" class="C_logo_mesh_002"/>
+      </body>
+      <body name="B_bridge" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="bridge_001" class="C_bridge_cube_001"/>
+        <geom name="bridge_002" class="C_bridge_cube_002"/>
+        <geom name="bridge_003" class="C_bridge_cylinder_001"/>
+        <geom name="bridge_004" class="C_bridge_cylinder_002"/>
+        <geom name="bridge_005" class="C_bridge_cylinder_003"/>
+        <geom name="bridge_006" class="C_bridge_cylinder_004"/>
+        <geom name="bridge_007" class="C_bridge_step_001"/>
+        <geom name="bridge_008" class="C_bridge_step_002"/>
+        <geom name="bridge_009" class="C_bridge_step_003"/>
+        <geom name="bridge_010" class="C_bridge_step_004"/>
+        <geom name="bridge_011" class="C_bridge_step_005"/>
+        <geom name="bridge_012" class="C_bridge_step_006"/>
+        <geom name="bridge_013" class="C_bridge_step_007"/>
+        <geom name="bridge_014" class="C_bridge_step_008"/>
+        <geom name="bridge_015" class="C_bridge_step_009"/>
+        <geom name="bridge_016" class="C_bridge_step_010"/>
+        <geom name="bridge_017" class="C_bridge_step_011"/>
+        <geom name="bridge_018" class="C_bridge_step_012"/>
+        <geom name="bridge_019" class="C_bridge_step_013"/>
+        <geom name="bridge_020" class="C_bridge_step_014"/>
+        <geom name="bridge_021" class="C_bridge_step_015"/>
+        <geom name="bridge_022" class="C_bridge_step_016"/>
+        <geom name="bridge_023" class="C_bridge_step_017"/>
+        <geom name="bridge_024" class="C_bridge_step_018"/>
+        <geom name="bridge_025" class="C_bridge_step_019"/>
+        <geom name="bridge_026" class="C_bridge_step_020"/>
+        <geom name="bridge_027" class="C_bridge_step_021"/>
+        <geom name="bridge_028" class="C_bridge_step_022"/>
+        <geom name="bridge_029" class="C_bridge_step_023"/>
+      </body>
+      <body name="B_left_stair1" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="left_stair1_001" class="C_left_stair1_001"/>
+        <geom name="left_stair1_002" class="C_left_stair1_002"/>
+        <geom name="left_stair1_003" class="C_left_stair1_003"/>
+        <geom name="left_stair1_004" class="C_left_stair1_004"/>
+        <geom name="left_stair1_005" class="C_left_stair1_005"/>
+        <geom name="left_stair1_006" class="C_left_stair1_006"/>
+        <geom name="left_stair1_007" class="C_left_stair1_007"/>
+        <geom name="left_stair1_008" class="C_left_stair1_008"/>
+        <geom name="left_stair1_009" class="C_left_stair1_009"/>
+        <geom name="left_stair1_010" class="C_left_stair1_010"/>
+      </body>
+      <body name="B_left_stair2" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="left_stair2_001" class="C_left_stair2_001"/>
+        <geom name="left_stair2_002" class="C_left_stair2_002"/>
+        <geom name="left_stair2_003" class="C_left_stair2_003"/>
+        <geom name="left_stair2_004" class="C_left_stair2_004"/>
+        <geom name="left_stair2_005" class="C_left_stair2_005"/>
+        <geom name="left_stair2_006" class="C_left_stair2_006"/>
+        <geom name="left_stair2_007" class="C_left_stair2_007"/>
+        <geom name="left_stair2_008" class="C_left_stair2_008"/>
+        <geom name="left_stair2_009" class="C_left_stair2_009"/>
+        <geom name="left_stair2_010" class="C_left_stair2_010"/>
+      </body>
+      <body name="B_right_stair1" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="right_stair1_001" class="C_right_stair1_001"/>
+        <geom name="right_stair1_002" class="C_right_stair1_002"/>
+        <geom name="right_stair1_003" class="C_right_stair1_003"/>
+        <geom name="right_stair1_004" class="C_right_stair1_004"/>
+        <geom name="right_stair1_005" class="C_right_stair1_005"/>
+        <geom name="right_stair1_006" class="C_right_stair1_006"/>
+        <geom name="right_stair1_007" class="C_right_stair1_007"/>
+        <geom name="right_stair1_008" class="C_right_stair1_008"/>
+        <geom name="right_stair1_009" class="C_right_stair1_009"/>
+        <geom name="right_stair1_010" class="C_right_stair1_010"/>
+      </body>
+      <body name="B_right_stair2" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="right_stair2_001" class="C_right_stair2_001"/>
+        <geom name="right_stair2_002" class="C_right_stair2_002"/>
+        <geom name="right_stair2_003" class="C_right_stair2_003"/>
+        <geom name="right_stair2_004" class="C_right_stair2_004"/>
+        <geom name="right_stair2_005" class="C_right_stair2_005"/>
+        <geom name="right_stair2_006" class="C_right_stair2_006"/>
+        <geom name="right_stair2_007" class="C_right_stair2_007"/>
+        <geom name="right_stair2_008" class="C_right_stair2_008"/>
+        <geom name="right_stair2_009" class="C_right_stair2_009"/>
+        <geom name="right_stair2_010" class="C_right_stair2_010"/>
+      </body>
+      <body name="B_stair_digi" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+        <geom name="stair_digi_001" class="C_stair_diji_001"/>
+        <geom name="stair_digi_002" class="C_stair_diji_002"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>

@@ -1,0 +1,68 @@
+FSM:                                                        # 有限状态机配置
+  _:                                                          # 状态列表
+    Passive:                                                  # 被动状态（关节阻尼，无控制）
+      id: 1
+    FixStand:                                                 # 固定站立（插值到目标姿态）
+      id: 2
+    Velocity:                                                 # 速度控制（RL 策略控制）
+      id: 3
+      type: RLBase                                            # 使用 RLBase 策略推理
+
+  Passive:                                                    # 被动状态配置
+    transitions:
+      FixStand: LT + A.on_pressed                             # 长按 LT + A 键 → FixStand
+    kp: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]   # 被动状态 PD 刚度（比 go2 小）
+    kd: [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]               # 被动状态 PD 阻尼
+
+  FixStand:                                                   # 固定站立状态配置
+    transitions:
+      Passive: LT + B.on_pressed                              # 长按 LT + B 键 → Passive
+      Velocity: start.on_pressed                              # 按 start 键 → Velocity
+    kp: [40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40]   # 站立状态 PD 刚度（比 go2 小）
+    kd: [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]               # 站立状态 PD 阻尼
+    ts: [0, 1, 2]                                            # 插值时间点（秒）
+    qs: [                                                     # 插值目标关节角度
+      [],                                                     # t=0: 空，保持当前姿态
+      [0.0, 1.0, -1.5, 0.0, 1.0, -1.5, 0.0, 1.0, -1.5, 0.0, 1.0, -1.5],  # t=1: 站立姿态
+      [0., 0.9, -1.8, 0., 0.9, -1.8, 0., 0.9, -1.8, 0., 0.9, -1.8],  # t=2: 正常站立姿态
+    ]
+
+#  索引  关节名称
+#  ─────────────────────────────
+#   0    FR_hip_joint     (右前-髋关节)
+#   1    FR_thigh_joint   (右前-大腿)
+#   2    FR_calf_joint    (右前-小腿)
+#   3    FL_hip_joint     (左前-髋关节)
+#   4    FL_thigh_joint   (左前-大腿)
+#   5    FL_calf_joint    (左前-小腿)
+#   6    RR_hip_joint     (右后-髋关节)
+#   7    RR_thigh_joint   (右后-大腿)
+#   8    RR_calf_joint    (右后-小腿)
+#   9    RL_hip_joint     (左后-髋关节)
+#  10    RL_thigh_joint   (左后-大腿)
+#  11    RL_calf_joint    (左后-小腿)
+
+  Velocity:                                                   # 速度控制状态配置
+    transitions:
+      Passive: LT + B.on_pressed                              # 长按 LT + B 键 → Passive
+    policy_dir: ../../../logs/rsl_rl/unitree_vbot_velocity_moects  # 指定使用该日期的模型目录
+
+sim2real:                                                     # 实机部署硬件配置
+  master_id: 0xFF                                             # CAN 主站 ID
+  actuator_type: 2                                            # 执行器类型（2=RobStride 电机）
+
+  motor_serials:                                              # 电机串口配置
+    - serial_port: "/dev/ttyUSB0"                              # 第 1 路串口
+      channel: 0x00                                            # CAN 通道号
+      baudrate: 921600                                         # 波特率
+      motor_ids: [0x11, 0x21, 0x31, 0x12, 0x22, 0x32]        # 电机 ID 列表（6 个）
+    - serial_port: "/dev/ttyUSB1"                              # 第 2 路串口
+      channel: 0x00
+      baudrate: 921600
+      motor_ids: [0x13, 0x23, 0x33, 0x14, 0x24, 0x34]        # 电机 ID 列表（另外 6 个）
+
+  imu:                                                        # IMU 配置
+    serial_port: "/dev/ttyUSB2"                                # IMU 串口
+    baudrate: 921600                                           # 波特率
+
+  zero_offsets: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # 关节零位偏移

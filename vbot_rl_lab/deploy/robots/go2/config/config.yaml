@@ -1,0 +1,30 @@
+FSM:                                                        # 有限状态机配置
+  _:                                                          # 状态列表（带 id 和类型）
+    Passive:                                                  # 被动状态（关节阻尼，无控制）
+      id: 1
+    FixStand:                                                 # 固定站立（插值到目标姿态）
+      id: 2
+    Velocity:                                                 # 速度控制（RL 策略控制）
+      id: 3
+      type: RLBase                                            # 使用 RLBase 策略推理
+  Passive:                                                    # 被动状态配置
+    transitions:                                              # 状态切换条件
+      FixStand: LT + A.on_pressed                             # 长按 LT + A 键 → FixStand
+    mode: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]             # 关节模式（1=阻尼模式）
+    kd: [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]               # 阻尼系数
+  FixStand:                                                   # 固定站立状态配置
+    transitions:
+      Passive: LT + B.on_pressed                              # 长按 LT + B 键 → Passive
+      Velocity: start.on_pressed                              # 按 start 键 → Velocity
+    kp: [60, 80, 80, 60, 80, 80, 60, 80, 80, 60, 80, 80]   # 站立时 PD 刚度（髋/大腿/小腿不同）
+    kd: [5, 4, 4, 5, 4, 4, 5, 4, 4, 5, 4, 4]               # 站立时 PD 阻尼
+    ts: [0, 1, 2]                                            # 插值时间点（秒）
+    qs: [                                                     # 插值目标关节角度
+      [],                                                     # t=0: 空，保持当前姿态
+      [0.0, 1.36, -2.65, 0.0, 1.36, -2.65, 0.0, 1.36, -2.65, 0.0, 1.36, -2.65],  # t=1: 站立姿态
+      [0., 0.8, -1.5, 0., 0.8, -1.5, 0., 0.8, -1.5, 0., 0.8, -1.5],  # t=2: 蹲下姿态
+    ]
+  Velocity:                                                   # 速度控制状态配置
+    transitions:
+      Passive: LT + B.on_pressed                              # 长按 LT + B 键 → Passive
+    policy_dir: ../../../logs/rsl_rl/unitree_go2_velocity     # RL 策略模型目录路径
