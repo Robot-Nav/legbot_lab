@@ -1,0 +1,35 @@
+FSM:
+  _: # enabled fsms
+    Passive:
+      id: 1
+    FixStand:
+      id: 2
+    Velocity:
+      id: 3
+      type: RLBase
+  Passive:
+    transitions: 
+      FixStand: LT + A.on_pressed
+    kd: [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+  FixStand:
+    transitions: 
+      Passive: LT + B.on_pressed
+      Velocity: start.on_pressed
+    kp: [40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40]
+    kd: [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+    ts: [0, 1, 2]
+    qs: [
+      [],
+      [0.0, 1.0, -1.5, 0.0, 1.0, -1.5, 0.0, 1.0, -1.5, 0.0, 1.0, -1.5],
+      [0., 0.8, -1.5, 0., 0.8, -1.5, 0., 0.8, -1.5, 0., 0.8, -1.5],
+    ]
+  Velocity:
+    transitions: 
+      Passive: LT + B.on_pressed
+    policy_dir: ../../../logs/rsl_rl/unitree_vbot_velocity
+
+sim2real:
+  can_interface: "can0"
+  master_id: 0xFF
+  motor_ids: [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C]
+  actuator_type: 0

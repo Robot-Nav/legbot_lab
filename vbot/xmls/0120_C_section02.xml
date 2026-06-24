@@ -1,0 +1,683 @@
+<mujoco>
+
+  <asset>
+
+    <!-- Textures -->
+    <hfield name="hfield_terrain" file="assets/H_section_02_0122.png" size="5 1.5 0.1 0" />
+    <!-- Materials -->
+    <material name="Material" rgba="0.800000011920929 0.800000011920929 0.800000011920929 1.0" reflectance="0.5" metallic="0.0" roughness="0.5"/>
+
+    <!-- Visual meshes -->
+    <mesh class="visual" name="V_Bbianjie_001" file="assets/V_Bbianjie_001.obj"/>
+    <mesh class="visual" name="V_Bbianjie_002" file="assets/V_Bbianjie_002.obj"/>
+    <mesh class="visual" name="V_Bdiban_001" file="assets/V_Bdiban_001.obj"/>
+    <mesh class="visual" name="V_Bdiban_002" file="assets/V_Bdiban_002.obj"/>
+    <mesh class="visual" name="V_Bdiban_003" file="assets/V_Bdiban_003.obj"/>
+    <mesh class="visual" name="V_Bdiban_004" file="assets/V_Bdiban_004.obj"/>
+    <mesh class="visual" name="V_Bdiban_005" file="assets/V_Bdiban_005.obj"/>
+    <mesh class="visual" name="V_Bdixing_Plane" file="assets/V_Bdixing_Plane.obj"/>
+    <mesh class="visual" name="V_Bpo" file="assets/V_Bpo.obj"/>
+    <mesh class="visual" name="V_Bpo_sphere_001" file="assets/V_Bpo_sphere_001.obj"/>
+    <mesh class="visual" name="V_Bpo_sphere_002" file="assets/V_Bpo_sphere_002.obj"/>
+    <mesh class="visual" name="V_Bpo_sphere_003" file="assets/V_Bpo_sphere_003.obj"/>
+    <mesh class="visual" name="V_Bpo_sphere_004" file="assets/V_Bpo_sphere_004.obj"/>
+    <mesh class="visual" name="V_Bpo_sphere_005" file="assets/V_Bpo_sphere_005.obj"/>
+    <mesh class="visual" name="V_bridge_cube_001" file="assets/V_bridge_cube_001.obj"/>
+    <mesh class="visual" name="V_bridge_cube_002" file="assets/V_bridge_cube_002.obj"/>
+    <mesh class="visual" name="V_bridge_cylinder_001" file="assets/V_bridge_cylinder_001.obj"/>
+    <mesh class="visual" name="V_bridge_cylinder_002" file="assets/V_bridge_cylinder_002.obj"/>
+    <mesh class="visual" name="V_bridge_cylinder_003" file="assets/V_bridge_cylinder_003.obj"/>
+    <mesh class="visual" name="V_bridge_cylinder_004" file="assets/V_bridge_cylinder_004.obj"/>
+    <mesh class="visual" name="V_bridge_diji_cube_001" file="assets/V_bridge_diji_cube_001.obj"/>
+    <mesh class="visual" name="V_bridge_diji_cube_002" file="assets/V_bridge_diji_cube_002.obj"/>
+    <mesh class="visual" name="V_bridge_diji_cube_003" file="assets/V_bridge_diji_cube_003.obj"/>
+    <mesh class="visual" name="V_bridge_diji_cube_004" file="assets/V_bridge_diji_cube_004.obj"/>
+    <mesh class="visual" name="V_bridge_diji_cylinder_001" file="assets/V_bridge_diji_cylinder_001.obj"/>
+    <mesh class="visual" name="V_bridge_diji_cylinder_002" file="assets/V_bridge_diji_cylinder_002.obj"/>
+    <mesh class="visual" name="V_bridge_diji_cylinder_003" file="assets/V_bridge_diji_cylinder_003.obj"/>
+    <mesh class="visual" name="V_bridge_diji_cylinder_004" file="assets/V_bridge_diji_cylinder_004.obj"/>
+    <mesh class="visual" name="V_bridge_step_001" file="assets/V_bridge_step_001.obj"/>
+    <mesh class="visual" name="V_bridge_step_002" file="assets/V_bridge_step_002.obj"/>
+    <mesh class="visual" name="V_bridge_step_003" file="assets/V_bridge_step_003.obj"/>
+    <mesh class="visual" name="V_bridge_step_004" file="assets/V_bridge_step_004.obj"/>
+    <mesh class="visual" name="V_bridge_step_005" file="assets/V_bridge_step_005.obj"/>
+    <mesh class="visual" name="V_bridge_step_006" file="assets/V_bridge_step_006.obj"/>
+    <mesh class="visual" name="V_bridge_step_007" file="assets/V_bridge_step_007.obj"/>
+    <mesh class="visual" name="V_bridge_step_008" file="assets/V_bridge_step_008.obj"/>
+    <mesh class="visual" name="V_bridge_step_009" file="assets/V_bridge_step_009.obj"/>
+    <mesh class="visual" name="V_bridge_step_010" file="assets/V_bridge_step_010.obj"/>
+    <mesh class="visual" name="V_bridge_step_011" file="assets/V_bridge_step_011.obj"/>
+    <mesh class="visual" name="V_bridge_step_012" file="assets/V_bridge_step_012.obj"/>
+    <mesh class="visual" name="V_bridge_step_013" file="assets/V_bridge_step_013.obj"/>
+    <mesh class="visual" name="V_bridge_step_014" file="assets/V_bridge_step_014.obj"/>
+    <mesh class="visual" name="V_bridge_step_015" file="assets/V_bridge_step_015.obj"/>
+    <mesh class="visual" name="V_bridge_step_016" file="assets/V_bridge_step_016.obj"/>
+    <mesh class="visual" name="V_bridge_step_017" file="assets/V_bridge_step_017.obj"/>
+    <mesh class="visual" name="V_bridge_step_018" file="assets/V_bridge_step_018.obj"/>
+    <mesh class="visual" name="V_bridge_step_019" file="assets/V_bridge_step_019.obj"/>
+    <mesh class="visual" name="V_bridge_step_020" file="assets/V_bridge_step_020.obj"/>
+    <mesh class="visual" name="V_bridge_step_021" file="assets/V_bridge_step_021.obj"/>
+    <mesh class="visual" name="V_bridge_step_022" file="assets/V_bridge_step_022.obj"/>
+    <mesh class="visual" name="V_bridge_step_023" file="assets/V_bridge_step_023.obj"/>
+    <mesh class="visual" name="V_cone_mesh_001" file="assets/V_cone_mesh_001.obj"/>
+    <mesh class="visual" name="V_cone_mesh_002" file="assets/V_cone_mesh_002.obj"/>
+    <mesh class="visual" name="V_cone_mesh_003" file="assets/V_cone_mesh_003.obj"/>
+    <mesh class="visual" name="V_cone_mesh_004" file="assets/V_cone_mesh_004.obj"/>
+    <mesh class="visual" name="V_cone_mesh_005" file="assets/V_cone_mesh_005.obj"/>
+    <mesh class="visual" name="V_cone_mesh_006" file="assets/V_cone_mesh_006.obj"/>
+    <mesh class="visual" name="V_cone_mesh_007" file="assets/V_cone_mesh_007.obj"/>
+    <mesh class="visual" name="V_cone_mesh_008" file="assets/V_cone_mesh_008.obj"/>
+    <mesh class="visual" name="V_left_stair1_001" file="assets/V_left_stair1_001.obj"/>
+    <mesh class="visual" name="V_left_stair1_002" file="assets/V_left_stair1_002.obj"/>
+    <mesh class="visual" name="V_left_stair1_003" file="assets/V_left_stair1_003.obj"/>
+    <mesh class="visual" name="V_left_stair1_004" file="assets/V_left_stair1_004.obj"/>
+    <mesh class="visual" name="V_left_stair1_005" file="assets/V_left_stair1_005.obj"/>
+    <mesh class="visual" name="V_left_stair1_006" file="assets/V_left_stair1_006.obj"/>
+    <mesh class="visual" name="V_left_stair1_007" file="assets/V_left_stair1_007.obj"/>
+    <mesh class="visual" name="V_left_stair1_008" file="assets/V_left_stair1_008.obj"/>
+    <mesh class="visual" name="V_left_stair1_009" file="assets/V_left_stair1_009.obj"/>
+    <mesh class="visual" name="V_left_stair1_010" file="assets/V_left_stair1_010.obj"/>
+    <mesh class="visual" name="V_left_stair2_001" file="assets/V_left_stair2_001.obj"/>
+    <mesh class="visual" name="V_left_stair2_002" file="assets/V_left_stair2_002.obj"/>
+    <mesh class="visual" name="V_left_stair2_003" file="assets/V_left_stair2_003.obj"/>
+    <mesh class="visual" name="V_left_stair2_004" file="assets/V_left_stair2_004.obj"/>
+    <mesh class="visual" name="V_left_stair2_005" file="assets/V_left_stair2_005.obj"/>
+    <mesh class="visual" name="V_left_stair2_006" file="assets/V_left_stair2_006.obj"/>
+    <mesh class="visual" name="V_left_stair2_007" file="assets/V_left_stair2_007.obj"/>
+    <mesh class="visual" name="V_left_stair2_008" file="assets/V_left_stair2_008.obj"/>
+    <mesh class="visual" name="V_left_stair2_009" file="assets/V_left_stair2_009.obj"/>
+    <mesh class="visual" name="V_left_stair2_010" file="assets/V_left_stair2_010.obj"/>
+    <mesh class="visual" name="V_logo_mesh_001" file="assets/V_logo_mesh_001.obj"/>
+    <mesh class="visual" name="V_logo_mesh_002" file="assets/V_logo_mesh_002.obj"/>
+    <mesh class="visual" name="V_right_stair1_001" file="assets/V_right_stair1_001.obj"/>
+    <mesh class="visual" name="V_right_stair1_002" file="assets/V_right_stair1_002.obj"/>
+    <mesh class="visual" name="V_right_stair1_003" file="assets/V_right_stair1_003.obj"/>
+    <mesh class="visual" name="V_right_stair1_004" file="assets/V_right_stair1_004.obj"/>
+    <mesh class="visual" name="V_right_stair1_005" file="assets/V_right_stair1_005.obj"/>
+    <mesh class="visual" name="V_right_stair1_006" file="assets/V_right_stair1_006.obj"/>
+    <mesh class="visual" name="V_right_stair1_007" file="assets/V_right_stair1_007.obj"/>
+    <mesh class="visual" name="V_right_stair1_008" file="assets/V_right_stair1_008.obj"/>
+    <mesh class="visual" name="V_right_stair1_009" file="assets/V_right_stair1_009.obj"/>
+    <mesh class="visual" name="V_right_stair1_010" file="assets/V_right_stair1_010.obj"/>
+    <mesh class="visual" name="V_right_stair2_001" file="assets/V_right_stair2_001.obj"/>
+    <mesh class="visual" name="V_right_stair2_002" file="assets/V_right_stair2_002.obj"/>
+    <mesh class="visual" name="V_right_stair2_003" file="assets/V_right_stair2_003.obj"/>
+    <mesh class="visual" name="V_right_stair2_004" file="assets/V_right_stair2_004.obj"/>
+    <mesh class="visual" name="V_right_stair2_005" file="assets/V_right_stair2_005.obj"/>
+    <mesh class="visual" name="V_right_stair2_006" file="assets/V_right_stair2_006.obj"/>
+    <mesh class="visual" name="V_right_stair2_007" file="assets/V_right_stair2_007.obj"/>
+    <mesh class="visual" name="V_right_stair2_008" file="assets/V_right_stair2_008.obj"/>
+    <mesh class="visual" name="V_right_stair2_009" file="assets/V_right_stair2_009.obj"/>
+    <mesh class="visual" name="V_right_stair2_010" file="assets/V_right_stair2_010.obj"/>
+    <mesh class="visual" name="V_stair_diji_001" file="assets/V_stair_diji_001.obj"/>
+    <mesh class="visual" name="V_stair_diji_002" file="assets/V_stair_diji_002.obj"/>
+
+    <!-- Collision meshes -->
+    <mesh class="collision" name="C_cone_mesh_001" file="assets/C_cone_mesh_001.stl"/>
+    <mesh class="collision" name="C_cone_mesh_002" file="assets/C_cone_mesh_002.stl"/>
+    <mesh class="collision" name="C_cone_mesh_003" file="assets/C_cone_mesh_003.stl"/>
+    <mesh class="collision" name="C_cone_mesh_004" file="assets/C_cone_mesh_004.stl"/>
+    <mesh class="collision" name="C_cone_mesh_005" file="assets/C_cone_mesh_005.stl"/>
+    <mesh class="collision" name="C_cone_mesh_006" file="assets/C_cone_mesh_006.stl"/>
+    <mesh class="collision" name="C_cone_mesh_007" file="assets/C_cone_mesh_007.stl"/>
+    <mesh class="collision" name="C_cone_mesh_008" file="assets/C_cone_mesh_008.stl"/>
+    <mesh class="collision" name="C_Bpo" file="assets/C_Bpo.stl"/>
+    <mesh class="collision" name="C_logo_mesh_001" file="assets/C_logo_mesh_001.stl"/>
+    <mesh class="collision" name="C_logo_mesh_002" file="assets/C_logo_mesh_002.stl"/>
+  </asset>
+
+  <default>
+      <default class="visual">
+        <geom type="mesh" contype="0" conaffinity="0" group="2" density="0"/>
+      </default>
+      <default class="collision">
+        <geom type="mesh" rgba="1 1 1 1" group="3" contype="1" conaffinity="1"/>
+          <default class="C_cone_mesh_001">
+            <geom type="mesh" rgba="1 1 1 1" mesh="C_cone_mesh_001" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_002">
+            <geom type="mesh" rgba="1 1 1 1" mesh="C_cone_mesh_002" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_003">
+            <geom type="mesh" rgba="1 1 1 1" mesh="C_cone_mesh_003" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_004">
+            <geom type="mesh" rgba="1 1 1 1" mesh="C_cone_mesh_004" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_005">
+            <geom type="mesh" rgba="1 1 1 1" mesh="C_cone_mesh_005" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_006">
+            <geom type="mesh" rgba="1 1 1 1" mesh="C_cone_mesh_006" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_007">
+            <geom type="mesh" rgba="1 1 1 1" mesh="C_cone_mesh_007" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_cone_mesh_008">
+            <geom type="mesh" rgba="1 1 1 1" mesh="C_cone_mesh_008" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bbianjie_001">
+            <geom type="box" rgba="1 1 1 1" size="0.25 1.0 0.6000000834465027" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bbianjie_002">
+            <geom type="box" rgba="1 1 1 1" size="0.25 1.0 0.6000000834465027" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cube_001">
+            <geom type="box" rgba="1 1 1 1" size="1.5999999046325684 0.19999980926513672 0.5" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cube_002">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.3000001907348633 0.5" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cube_003">
+            <geom type="box" rgba="1 1 1 1" size="1.600000262260437 0.20000076293945312 0.5" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cube_004">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.3000011444091797 0.5" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cylinder_001">
+            <geom type="cylinder" rgba="1 1 1 1" size="0.3999999761581421 0.5" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cylinder_002">
+            <geom type="cylinder" rgba="1 1 1 1" size="0.40000009536743164 0.5" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cylinder_003">
+            <geom type="cylinder" rgba="1 1 1 1" size="0.40000009536743164 0.5" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_diji_cylinder_004">
+            <geom type="cylinder" rgba="1 1 1 1" size="0.3999999761581421 0.5" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bdiban_001">
+            <geom type="box" rgba="1 1 1 1" size="5.0 0.25 0.25" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bdiban_002">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.125 0.09999990463256836" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bdiban_003">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.125 0.09999990463256836" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bdiban_004">
+            <geom type="box" rgba="1 1 1 1" size="5.0 1.0 0.10000002384185791" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bdiban_005">
+            <geom type="box" rgba="1 1 1 1" size="5.0 1.5 0.25" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bpo">
+            <geom type="mesh" rgba="1 1 1 1" mesh="C_Bpo" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bpo_sphere_001">
+            <geom type="sphere" rgba="1 1 1 1" size="0.75" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bpo_sphere_002">
+            <geom type="sphere" rgba="1 1 1 1" size="0.75" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bpo_sphere_003">
+            <geom type="sphere" rgba="1 1 1 1" size="0.75" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bpo_sphere_004">
+            <geom type="sphere" rgba="1 1 1 1" size="0.75" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_Bpo_sphere_005">
+            <geom type="sphere" rgba="1 1 1 1" size="0.75" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_logo_mesh_001">
+            <geom type="mesh" rgba="1 1 1 1" mesh="C_logo_mesh_001" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_logo_mesh_002">
+            <geom type="mesh" rgba="1 1 1 1" mesh="C_logo_mesh_002" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_cube_001">
+            <geom type="box" rgba="1 1 1 1" size="0.030001044273376465 2.5300002098083496 0.29053306579589844" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_cube_002">
+            <geom type="box" rgba="1 1 1 1" size="0.030001163482666016 2.5300002098083496 0.29053306579589844" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_cylinder_001">
+            <geom type="cylinder" rgba="1 1 1 1" size="0.20000004768371582 1.1000001430511475" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_cylinder_002">
+            <geom type="cylinder" rgba="1 1 1 1" size="0.19999980926513672 1.1000001430511475" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_cylinder_003">
+            <geom type="cylinder" rgba="1 1 1 1" size="0.20000004768371582 1.1000001430511475" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_cylinder_004">
+            <geom type="cylinder" rgba="1 1 1 1" size="0.19999980926513672 1.1000001430511475" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_001">
+            <geom type="box" rgba="1 1 1 1" size="1.3193939924240112 0.11189079284667969 0.09729790687561035" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_002">
+            <geom type="box" rgba="1 1 1 1" size="1.3193937540054321 0.11171483993530273 0.09758853912353516" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_003">
+            <geom type="box" rgba="1 1 1 1" size="1.3193937540054321 0.11034250259399414 0.09519779682159424" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_004">
+            <geom type="box" rgba="1 1 1 1" size="1.3193938732147217 0.10861635208129883 0.09309220314025879" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_005">
+            <geom type="box" rgba="1 1 1 1" size="1.3193937540054321 0.10734176635742188 0.09155929088592529" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_006">
+            <geom type="box" rgba="1 1 1 1" size="1.3193936347961426 0.10618400573730469 0.09009170532226562" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_007">
+            <geom type="box" rgba="1 1 1 1" size="1.3193936347961426 0.10503578186035156 0.08857667446136475" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_008">
+            <geom type="box" rgba="1 1 1 1" size="1.3193937540054321 0.10407161712646484 0.08752429485321045" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_009">
+            <geom type="box" rgba="1 1 1 1" size="1.3193937540054321 0.10293388366699219 0.08595895767211914" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_010">
+            <geom type="box" rgba="1 1 1 1" size="1.3193941116333008 0.10206031799316406 0.08504843711853027" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_011">
+            <geom type="box" rgba="1 1 1 1" size="1.3193937540054321 0.10099124908447266 0.08363378047943115" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_012">
+            <geom type="box" rgba="1 1 1 1" size="1.3193939924240112 0.10028553009033203 0.0824899673461914" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_013">
+            <geom type="box" rgba="1 1 1 1" size="1.3193938732147217 0.1009073257446289 0.08351147174835205" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_014">
+            <geom type="box" rgba="1 1 1 1" size="1.3193937540054321 0.10199260711669922 0.08496606349945068" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_015">
+            <geom type="box" rgba="1 1 1 1" size="1.3193939924240112 0.10286521911621094 0.08586347103118896" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_016">
+            <geom type="box" rgba="1 1 1 1" size="1.3193938732147217 0.1039886474609375 0.08740353584289551" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_017">
+            <geom type="box" rgba="1 1 1 1" size="1.3193937540054321 0.1049642562866211 0.08850908279418945" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_018">
+            <geom type="box" rgba="1 1 1 1" size="1.3193937540054321 0.10608863830566406 0.08995115756988525" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_019">
+            <geom type="box" rgba="1 1 1 1" size="1.3193937540054321 0.1072540283203125 0.09147453308105469" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_020">
+            <geom type="box" rgba="1 1 1 1" size="1.3193943500518799 0.10851097106933594 0.09292006492614746" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_021">
+            <geom type="box" rgba="1 1 1 1" size="1.3193937540054321 0.11019229888916016 0.09504985809326172" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_022">
+            <geom type="box" rgba="1 1 1 1" size="1.3193941116333008 0.1116495132446289 0.09746909141540527" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_bridge_step_023">
+            <geom type="box" rgba="1 1 1 1" size="1.3193939924240112 0.1119232177734375 0.09733760356903076" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_001">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_002">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07499998807907104" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_003">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_004">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07499998807907104" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_005">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_006">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_007">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_008">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_009">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair1_010">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07499992847442627" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_001">
+            <geom type="box" rgba="1 1 1 1" size="1.9999998807907104 0.10000038146972656 0.07499992847442627" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_002">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_003">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_004">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_005">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_006">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_007">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07499998807907104" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_008">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_009">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07499998807907104" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_left_stair2_010">
+            <geom type="box" rgba="1 1 1 1" size="2.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_001">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07499998807907104" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_002">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_003">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_004">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_005">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_006">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_007">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_008">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_009">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair1_010">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_001">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_002">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_003">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_004">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_005">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_006">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_007">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_008">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_009">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07500004768371582" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_right_stair2_010">
+            <geom type="box" rgba="1 1 1 1" size="3.0 0.10000038146972656 0.07499998807907104" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_stair_diji_001">
+            <geom type="box" rgba="1 1 1 1" size="2.0 1.1499996185302734 0.9500002861022949" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+          <default class="C_stair_diji_002">
+            <geom type="box" rgba="1 1 1 1" size="2.0 1.1499996185302734 0.9499993324279785" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+      </default>
+  </default>
+
+  <worldbody>
+
+    <body name="B_BCone" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_cone_mesh_001"/>
+      <geom class="C_cone_mesh_002"/>
+      <geom class="C_cone_mesh_003"/>
+      <geom class="C_cone_mesh_004"/>
+      <geom class="C_cone_mesh_005"/>
+      <geom class="C_cone_mesh_006"/>
+      <geom class="C_cone_mesh_007"/>
+      <geom class="C_cone_mesh_008"/>
+      <geom class="visual" mesh="V_cone_mesh_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_cone_mesh_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_cone_mesh_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_cone_mesh_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_cone_mesh_005" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_cone_mesh_006" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_cone_mesh_007" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_cone_mesh_008" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+    </body>
+    <body name="B_Bbianjie" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_Bbianjie_001"/>
+      <geom class="C_Bbianjie_002"/>
+      <geom class="visual" mesh="V_Bbianjie_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Bbianjie_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+    </body>
+    <body name="B_Bbridge_diji" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_bridge_diji_cube_001"/>
+      <geom class="C_bridge_diji_cube_002"/>
+      <geom class="C_bridge_diji_cube_003"/>
+      <geom class="C_bridge_diji_cube_004"/>
+      <geom class="C_bridge_diji_cylinder_001"/>
+      <geom class="C_bridge_diji_cylinder_002"/>
+      <geom class="C_bridge_diji_cylinder_003"/>
+      <geom class="C_bridge_diji_cylinder_004"/>
+      <geom class="visual" mesh="V_bridge_diji_cube_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_diji_cube_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_diji_cube_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_diji_cube_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_diji_cylinder_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_diji_cylinder_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_diji_cylinder_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_diji_cylinder_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+    </body>
+    <body name="B_Bdiban" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_Bdiban_001"/>
+      <geom class="C_Bdiban_002"/>
+      <geom class="C_Bdiban_003"/>
+      <geom class="C_Bdiban_004"/>
+      <geom class="C_Bdiban_005"/>
+      <geom class="visual" mesh="V_Bdiban_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Bdiban_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Bdiban_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Bdiban_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Bdiban_005" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+    </body>
+    <body name="B_Bdixing" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+            <geom name="V_Bdixing_Plane" type="hfield" hfield="hfield_terrain" 
+            pos="0 10.3296 1.2941" quat="1 0 0 0" 
+            rgba="0.8 0.8 0.8 1" 
+            contype="1" conaffinity="1" 
+            friction="0.8" solref="0.02 1" condim="3"
+            material="Material"/>
+    </body>
+    <body name="B_Bpo" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_Bpo"/>
+      <geom class="C_Bpo_sphere_001"/>
+      <geom class="C_Bpo_sphere_002"/>
+      <geom class="C_Bpo_sphere_003"/>
+      <geom class="C_Bpo_sphere_004"/>
+      <geom class="C_Bpo_sphere_005"/>
+      <geom class="visual" mesh="V_Bpo" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Bpo_sphere_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Bpo_sphere_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Bpo_sphere_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Bpo_sphere_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Bpo_sphere_005" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+    </body>
+    <body name="B_Bstep_logo" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_logo_mesh_001"/>
+      <geom class="C_logo_mesh_002"/>
+      <geom class="visual" mesh="V_logo_mesh_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_logo_mesh_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+    </body>
+    <body name="B_bridge" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_bridge_cube_001"/>
+      <geom class="C_bridge_cube_002"/>
+      <geom class="C_bridge_cylinder_001"/>
+      <geom class="C_bridge_cylinder_002"/>
+      <geom class="C_bridge_cylinder_003"/>
+      <geom class="C_bridge_cylinder_004"/>
+      <geom class="C_bridge_step_001"/>
+      <geom class="C_bridge_step_002"/>
+      <geom class="C_bridge_step_003"/>
+      <geom class="C_bridge_step_004"/>
+      <geom class="C_bridge_step_005"/>
+      <geom class="C_bridge_step_006"/>
+      <geom class="C_bridge_step_007"/>
+      <geom class="C_bridge_step_008"/>
+      <geom class="C_bridge_step_009"/>
+      <geom class="C_bridge_step_010"/>
+      <geom class="C_bridge_step_011"/>
+      <geom class="C_bridge_step_012"/>
+      <geom class="C_bridge_step_013"/>
+      <geom class="C_bridge_step_014"/>
+      <geom class="C_bridge_step_015"/>
+      <geom class="C_bridge_step_016"/>
+      <geom class="C_bridge_step_017"/>
+      <geom class="C_bridge_step_018"/>
+      <geom class="C_bridge_step_019"/>
+      <geom class="C_bridge_step_020"/>
+      <geom class="C_bridge_step_021"/>
+      <geom class="C_bridge_step_022"/>
+      <geom class="C_bridge_step_023"/>
+      <geom class="visual" mesh="V_bridge_cube_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_cube_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_cylinder_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_cylinder_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_cylinder_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_cylinder_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_005" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_006" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_007" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_008" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_009" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_010" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_011" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_012" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_013" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_014" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_015" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_016" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_017" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_018" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_019" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_020" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_021" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_022" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_bridge_step_023" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+    </body>
+    <body name="B_left_stair1" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_left_stair1_001"/>
+      <geom class="C_left_stair1_002"/>
+      <geom class="C_left_stair1_003"/>
+      <geom class="C_left_stair1_004"/>
+      <geom class="C_left_stair1_005"/>
+      <geom class="C_left_stair1_006"/>
+      <geom class="C_left_stair1_007"/>
+      <geom class="C_left_stair1_008"/>
+      <geom class="C_left_stair1_009"/>
+      <geom class="C_left_stair1_010"/>
+      <geom class="visual" mesh="V_left_stair1_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair1_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair1_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair1_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair1_005" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair1_006" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair1_007" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair1_008" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair1_009" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair1_010" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+    </body>
+    <body name="B_left_stair2" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_left_stair2_001"/>
+      <geom class="C_left_stair2_002"/>
+      <geom class="C_left_stair2_003"/>
+      <geom class="C_left_stair2_004"/>
+      <geom class="C_left_stair2_005"/>
+      <geom class="C_left_stair2_006"/>
+      <geom class="C_left_stair2_007"/>
+      <geom class="C_left_stair2_008"/>
+      <geom class="C_left_stair2_009"/>
+      <geom class="C_left_stair2_010"/>
+      <geom class="visual" mesh="V_left_stair2_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair2_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair2_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair2_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair2_005" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair2_006" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair2_007" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair2_008" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair2_009" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_left_stair2_010" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+    </body>
+    <body name="B_right_stair1" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_right_stair1_001"/>
+      <geom class="C_right_stair1_002"/>
+      <geom class="C_right_stair1_003"/>
+      <geom class="C_right_stair1_004"/>
+      <geom class="C_right_stair1_005"/>
+      <geom class="C_right_stair1_006"/>
+      <geom class="C_right_stair1_007"/>
+      <geom class="C_right_stair1_008"/>
+      <geom class="C_right_stair1_009"/>
+      <geom class="C_right_stair1_010"/>
+      <geom class="visual" mesh="V_right_stair1_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair1_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair1_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair1_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair1_005" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair1_006" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair1_007" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair1_008" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair1_009" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair1_010" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+    </body>
+    <body name="B_right_stair2" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_right_stair2_001"/>
+      <geom class="C_right_stair2_002"/>
+      <geom class="C_right_stair2_003"/>
+      <geom class="C_right_stair2_004"/>
+      <geom class="C_right_stair2_005"/>
+      <geom class="C_right_stair2_006"/>
+      <geom class="C_right_stair2_007"/>
+      <geom class="C_right_stair2_008"/>
+      <geom class="C_right_stair2_009"/>
+      <geom class="C_right_stair2_010"/>
+      <geom class="visual" mesh="V_right_stair2_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair2_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair2_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair2_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair2_005" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair2_006" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair2_007" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair2_008" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair2_009" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_right_stair2_010" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+    </body>
+    <body name="B_stair_digi" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_stair_diji_001"/>
+      <geom class="C_stair_diji_002"/>
+      <geom class="visual" mesh="V_stair_diji_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_stair_diji_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+    </body>
+  </worldbody>
+</mujoco>

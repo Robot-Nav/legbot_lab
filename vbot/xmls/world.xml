@@ -1,0 +1,20 @@
+<!-- world.xml -->
+<!-- 结合了视觉模型和碰撞体 -->
+<mujoco>
+    <visual>
+        <map zfar="200"/>
+    </visual>
+    <asset>
+        <model name="section01C" file="section01/0131_C_section01.xml"/>
+        <model name="section01V" file="section01/0131_V_section00.xml"/>
+        <model name="baseground" file="section01/ground/world/baseground.xml"/>
+<!--        <model name="section01CP" file="section01/0126_CP_section01.xml"/>-->
+    </asset>
+
+  <worldbody>
+    <attach model="section01C" prefix="0"/>
+    <attach model="section01V" prefix="1"/>
+    <attach model="baseground" prefix="3"/>
+<!--    <attach model="section01CP" prefix="2"/>-->
+  </worldbody>
+</mujoco>
