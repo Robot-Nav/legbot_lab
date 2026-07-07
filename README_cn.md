@@ -650,6 +650,7 @@ xml_path: "{ROOT_DIR}/resources/legbot/stairs_and_slope.xml"
 相关论文：
 
 - [CTS: Concurrent Teacher-Student Reinforcement Learning for Legged Locomotion](https://arxiv.org/pdf/2405.10830)
+- [MOE](https://zhuanlan.zhihu.com/p/542465517)
 
 ---
 
