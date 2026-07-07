@@ -527,7 +527,7 @@ This project is based on the following open-source works:
 - [rsl_rl](https://github.com/leggedrobotics/rsl_rl) — Reinforcement learning algorithm library
 - [robot_lab](https://github.com/fan-ziqi/robot_lab) — IsaacLab-based robot RL extension
 - [MuJoCo](https://github.com/google-deepmind/mujoco) — High-performance physics simulator
-- [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym) — IsaacGym-based Go2 RL training (original implementation),本项目基于https://robogauge.github.io/complete项目进行适配与研究，需要详细的讲解可以参照上述链接。【点赞】
+- [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym) — IsaacGym-based Go2 RL training (original implementation),本项目基于[go2_rl_gym](https://robogauge.github.io/complete)项目进行适配与研究，需要详细的讲解可以参照上述链接。【点赞】
 
 Relevant paper:
 
