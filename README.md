@@ -1,4 +1,4 @@
-# LegBot RL RobotLab
+# <div align="center">LegBot RL RobotLab</div>
 
 <div align="center">
 
@@ -22,9 +22,13 @@ LegBot is a custom quadruped robot sharing the same 12-joint kinematic structure
   <b>IsaacLab Training → MuJoCo Sim2Sim Validation → Real LegBot Deployment</b>
 </p>
 
-<p align="center">
-  <img src="resources/results/isaaclab_scene.png" width="70%"/>
-</p>
+| 名称 | 视频演示 |
+| :--- | :---: |
+| **legbot爬楼梯** | <video src="https://github.com/user-attachments/assets/99bb00bd-92cd-465d-ac19-94da37ae8810" width="100%" controls muted autoplay loop></video> |
+| **legbot碎石堆** | <video src="https://github.com/user-attachments/assets/35efd286-cab9-4b0f-a7f3-bb45e754a128" width="100%" controls muted autoplay loop></video> |
+| **实物sim2real** | <video src="https://github.com/user-attachments/assets/eef8a52f-630c-465d-b445-44af1b34fdec" width="100%" controls muted autoplay loop></video><br><video src="https://github.com/user-attachments/assets/ac39a0d0-0bbb-45e5-ba66-a616a95ac10d" width="100%" controls muted autoplay loop></video><br><video src="" width="100%" controls muted autoplay loop></video> |
+
+
 
 ### Problem & Contribution
 
@@ -523,7 +527,7 @@ This project is based on the following open-source works:
 - [rsl_rl](https://github.com/leggedrobotics/rsl_rl) — Reinforcement learning algorithm library
 - [robot_lab](https://github.com/fan-ziqi/robot_lab) — IsaacLab-based robot RL extension
 - [MuJoCo](https://github.com/google-deepmind/mujoco) — High-performance physics simulator
-- [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym) — IsaacGym-based Go2 RL training (original implementation)
+- [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym) — IsaacGym-based Go2 RL training (original implementation),本项目基于https://robogauge.github.io/complete项目进行适配与研究，需要详细的讲解可以参照上述链接。【点赞】
 
 Relevant paper:
 
