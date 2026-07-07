@@ -1,4 +1,5 @@
-# LegBot RL RobotLab
+# <div align="center">LegBot RL RobotLab
+</div>
 
 <div align="center">
 
@@ -22,9 +23,12 @@ LegBot 是一个自定义四足机器人，具有与 Unitree Go2 相同的 12 �
   <b>IsaacLab 训练 → MuJoCo Sim2Sim 验证 → 真实 LegBot 部署</b>
 </p>
 
-<p align="center">
-  <img src="resources/results/isaaclab_scene.png" width="70%"/>
-</p>
+| 名称 | 视频演示 |
+| :--- | :---: |
+| **legbot爬楼梯** | <video src="https://github.com/user-attachments/assets/99bb00bd-92cd-465d-ac19-94da37ae8810" width="100%" controls muted autoplay loop></video> |
+| **legbot碎石堆** | <video src="https://github.com/user-attachments/assets/35efd286-cab9-4b0f-a7f3-bb45e754a128" width="100%" controls muted autoplay loop></video> |
+| **实物sim2real** | <video src="https://github.com/user-attachments/assets/eef8a52f-630c-465d-b445-44af1b34fdec" width="100%" controls muted autoplay loop></video><br><video src="https://github.com/user-attachments/assets/ac39a0d0-0bbb-45e5-ba66-a616a95ac10d" width="100%" controls muted autoplay loop></video><br><video src="" width="100%" controls muted autoplay loop></video> |
+
 
 ### 解决的问题与贡献
 
