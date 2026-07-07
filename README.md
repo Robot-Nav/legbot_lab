@@ -12,17 +12,33 @@
 
 ## Overview
 
-**LegBot RL RobotLab** is an NVIDIA IsaacLab-based reinforcement learning training and deployment framework for the LegBot quadruped robot. It implements the **MoE-CTS (Mixture of Experts – Concurrent Teacher-Student)** algorithm — the official IsaacLab implementation of the [CTS](https://arxiv.org/pdf/2405.10830) paper and a reimplementation of [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym).
+**LegBot RL RobotLab** is an NVIDIA IsaacLab-based reinforcement learning training and deployment framework for the LegBot quadruped robot. It implements the **MoE-CTS (Mixture of Experts – Concurrent Teacher-Student)** algorithm — the IsaacLab implementation of the [CTS paper](https://arxiv.org/pdf/2405.10830) and a reimplementation of [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym).
 
 LegBot is a custom quadruped robot sharing the same 12-joint kinematic structure as Unitree Go2 (4 legs × 3 joints: hip, thigh, calf), enabling direct reuse of MDP modules.
 
+**Core pipeline:**
+
 <p align="center">
-  <b>Train in IsaacLab → Verify via MuJoCo Sim2Sim → Deploy on Real Robot</b>
+  <b>IsaacLab Training → MuJoCo Sim2Sim Validation → Real LegBot Deployment</b>
 </p>
 
 <p align="center">
   <img src="resources/results/isaaclab_scene.png" width="70%"/>
 </p>
+
+### Problem & Contribution
+
+Legged locomotion faces three key challenges:
+
+1. **Incomplete perception**: Real robots lack full state information (exact linear velocity, terrain height maps), yet training without privileged information hurts performance.
+2. **Sim2Real gap**: Dynamics mismatch between simulation and reality (motor characteristics, friction, mass distribution).
+3. **Terrain generalization**: Robust walking across diverse terrains (stairs, slopes, rough ground).
+
+This project contributes:
+
+- **Concurrent Teacher-Student (CTS)**: Teacher (privileged) and Student (deployable) networks train concurrently; the student distills latent representations from the teacher. At deployment, only the student is used.
+- **Mixture of Experts (MoE)**: The student encoder uses 8 expert networks with gating for dynamic composition, improving modeling of complex terrain patterns.
+- **Realistic motor model**: Uses the official Unitree torque-speed-curve motor model (Go2 HV) instead of simple PD controllers, reducing the Sim2Real gap.
 
 ---
 
@@ -59,45 +75,45 @@ For each training iteration:
    - Entropy Bonus: L_entropy = -β·H[π]
 
 4. Student Encoder Distillation:
-   - Latent Loss:     L_latent  = ||StudentEncoder(o_a) - TeacherEncoder(o_c).detach()||²
+   - Latent Loss:      L_latent  = ||StudentEncoder(o_a) - TeacherEncoder(o_c).detach()||²
    - Load Balance Loss: L_balance = ||mean(gates) - 1/N||²
-   - Student Total:   L_student = L_latent + α·L_balance, α=0.01
+   - Student Total:    L_student = L_latent + α·L_balance, α=0.01
 ```
 
 ### Network Architecture
 
 #### Teacher Encoder
-```
-z_t = L2Norm(MLP_teacher(o_c))
-```
+
+$$z_t = \text{L2Norm}(\text{MLP}_{\text{teacher}}(o_c))$$
+
 - Input: critic observations (privileged)
 - Structure: MLP[512, 256] → L2Norm
-- Output: latent_dim = 32
+- Output: `latent_dim = 32`
 
 #### Student MoE Encoder
-```
-g   = Softmax(MLP_gate(o_a))
-e_i = Expert_i(Backbone(o_a)),  i=1,...,N
-z_s = L2Norm(Σ g_i · e_i)
-```
+
+$$g = \text{Softmax}(\text{MLP}_{\text{gate}}(o_a))$$
+$$e_i = \text{Expert}_i(\text{Backbone}(o_a)), \quad i=1,\dots,N$$
+$$z_s = \text{L2Norm}\left(\sum_{i=1}^{N} g_i \cdot e_i\right)$$
+
 - Number of experts: N = 8
 - Shared backbone: MLP[512, 256, 256]
 - Each expert: Conv1d(groups=8)
 - Gating network: MLP[512, 256, 256] → Softmax
-- Output: latent_dim = 32
+- Output: `latent_dim = 32`
 
 #### Actor (Policy Network)
-```
-a ~ N(μ, σ²),   μ = MLP_actor([z, o_single])
-```
+
+$$a \sim \mathcal{N}(\mu, \sigma^2), \quad \mu = \text{MLP}_{\text{actor}}([z, o_{\text{single}}])$$
+
 - Input: [latent(32), single_obs(45)] = 77 dims
 - Structure: MLP[512, 256, 128] → 12 (action dim)
 - Standard deviation: learnable scalar parameter
 
 #### Critic (Value Network)
-```
-V(s) = MLP_critic([z.detach(), o_c])
-```
+
+$$V(s) = \text{MLP}_{\text{critic}}([z.\text{detach}(), o_c])$$
+
 - Input: [latent(32), critic_obs]
 - Structure: MLP[512, 256, 128] → 1
 
@@ -106,7 +122,22 @@ V(s) = MLP_critic([z.detach(), o_c])
 $$L_{\text{PPO}} = -\mathbb{E}\left[\min\left(r_t A_t, \text{clip}(r_t, 1-\epsilon, 1+\epsilon) A_t\right)\right] + c_v \cdot L_{\text{value}} - c_e \cdot H[\pi]$$
 
 where:
+
 $$r_t = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{\text{old}}}(a_t|s_t)}, \quad \epsilon = 0.2$$
+
+### L2Norm & SimNorm
+
+Latent vector normalization for stable distillation:
+
+$$\text{L2Norm}(x) = \frac{x}{\|x\|_2}$$
+
+$$\text{SimNorm}(x) = \text{Softmax}(x_{\text{reshape}[-1, 8]}) \quad \text{(Simplicial Normalization)}$$
+
+### CatELU Activation (optional)
+
+Inspired by [Concat ReLU](https://arxiv.org/pdf/2303.07507), CatELU doubles feature dimension:
+
+$$\text{CatELU}(x) = [\text{ELU}(x), \text{ELU}(-x)]$$
 
 ---
 
@@ -127,7 +158,7 @@ legbot_lab/
 │   │       │   └── unitree_actuator.py  # Unitree motor model
 │   │       └── tasks/
 │   │           ├── go2/         # Go2 MDP modules (reused by LegBot)
-│   │           │   ├── mdp/     # Rewards, observations, commands, etc.
+│   │           │   ├── mdp/     # Rewards, observations, commands, events, curriculums
 │   │           │   └── manager/ # Action manager
 │   │           └── legbot/      # LegBot-specific configs
 │   │               ├── env_cfg.py      # Environment configuration
@@ -148,15 +179,12 @@ legbot_lab/
 ├── resources/legbot/            # MuJoCo scenes & URDF
 │   ├── urdf/legbot.urdf         # LegBot URDF model
 │   ├── meshes/                  # STL mesh files
-│   ├── flat.xml                 # Flat terrain scene
-│   ├── stairs.xml               # Stairs scene
-│   ├── boxes.xml                # Box obstacles scene
+│   ├── flat.xml / stairs.xml / boxes.xml  # Terrain scenes
 │   └── legbot.xml               # LegBot MuJoCo model
 ├── src/                         # C++ simulation & bridge
 │   ├── legbot_bridge.h          # DDS bridge for MuJoCo
 │   ├── param.h                  # Simulation config
 │   └── main.cc                  # MuJoCo simulation main
-├── logs/rsl_rl/legbot_moe_cts/  # Training logs & checkpoints
 ├── TECHNICAL_DOC_zh.md          # Detailed technical documentation (Chinese)
 └── README.md                    # This file
 ```
@@ -167,29 +195,49 @@ legbot_lab/
 
 ### Observation Space
 
+Defined in [env_cfg.py](source/robot_lab/robot_lab/tasks/legbot/env_cfg.py):
+
 | Group | Purpose | History | Noisy | Components |
 |-------|---------|---------|-------|------------|
 | **policy** (actor obs) | Student encoder input | 10 | Yes | base_ang_vel, projected_gravity, velocity_commands, joint_pos, joint_vel, last_action |
 | **critic** (critic obs) | Teacher/Critic input | 1 | No | All above + base_lin_vel, joint_acc, joint_torque, contact_force, height_scan |
 | **single_obs** | Actor concatenation | 1 | Yes | Same as policy, current frame only |
 
+**Joint order:**
+
+```python
+["FL_hip", "FL_thigh", "FL_calf",
+ "FR_hip", "FR_thigh", "FR_calf",
+ "RL_hip", "RL_thigh", "RL_calf",
+ "RR_hip", "RR_thigh", "RR_calf"]
+```
+
 ### Action Space
-- Type: Joint position control (`JointPositionAction`)
+
+- Type: Joint position control (`JointPositionActionCfg`)
 - Dimensions: 12
-- Scale: 0.25 (action × 0.25 + default pose → target joint angle)
+- Scale: 0.25 (action × 0.25 + default joint angle → target joint angle)
+- Clip range: [-100, 100]
 
 ### Command Space
+
 - Dimensions: 3 — `[lin_vel_x, lin_vel_y, ang_vel_yaw]`
 - Resample interval: 5s
-- Range curriculum: expands at 20k and 50k iterations
+- Dynamic resampling: adjusts lower velocity bound based on remaining distance and episode time
+- Terrain-dependent ranges: different speed limits for different terrain types
+- Command curriculum: expands velocity ranges at 20k and 50k iterations
+- Zero-command curriculum: gradually increases zero-command probability from 0 to 0.1
 
 ### Termination
+
 - Timeout: 25s per episode
 - Illegal contact: base link contact force > 1.0N
 
 ---
 
 ## Reward Design
+
+Defined in [rewards.py](source/robot_lab/robot_lab/tasks/go2/mdp/rewards.py), weighted sum of multiple terms.
 
 ### Tracking Rewards (positive)
 
@@ -203,36 +251,47 @@ $$r_{\text{ang}} = \exp\left(-\frac{(\omega_{\text{cmd}}^{z} - \omega_{\text{bas
 
 ### Penalty Terms (negative)
 
-| Term | Formula | Weight |
-|------|---------|--------|
-| Vertical velocity | $\|v_z\|^2$ | -2.0 → 0 (curriculum) |
-| Roll/pitch angular vel | $\|\omega_{xy}\|^2$ | -0.05 |
-| Joint acceleration | $\sum \ddot{q}_i^2$ | -1e-7 |
-| Joint power | $\sum \|\dot{q}_i \cdot \tau_i\|$ | -2e-5 |
-| Joint torques | $\sum \tau_i^2$ | -1e-4 |
-| Base height | $(h - 0.28)^2$ | -1.0 → -10.0 (curriculum) |
-| Action rate | $\|a_t - a_{t-1}\|^2$ | -0.01 |
-| Action smoothness | $\|a_t - 2a_{t-1} + a_{t-2}\|^2$ | -0.01 |
-| Undesired contacts | $\sum \mathbb{1}(\|F\| > 5)$ | -1.0 |
-| Joint position limits | Joint limit violation | -2.0 |
-| Foot sliding | $\sum v_{\text{foot}}^{xy\,2} \cdot e^{-h_{\text{foot}}/\text{threshold}}$ | -0.05 |
-| Hip position penalty | $\sum \|q_{\text{hip}} - q_{\text{default}}\|_1$ | -0.05 |
+| Term | Formula | Weight | Description |
+|------|---------|--------|-------------|
+| lin_vel_z_l2 | $\|v_z\|^2$ | -2.0 → 0 (curriculum) | Vertical velocity penalty |
+| ang_vel_xy_l2 | $\|\omega_{xy}\|^2$ | -0.05 | Roll/pitch angular velocity |
+| joint_acc_l2 | $\sum \ddot{q}_i^2$ | -1e-7 | Joint acceleration (physics-step-level, very small in Lab) |
+| joint_power | $\sum \|\dot{q}_i \cdot \tau_i\|$ | -2e-5 | Joint power consumption |
+| joint_torques_l2 | $\sum \tau_i^2$ | -1e-4 | Joint torque penalty |
+| base_height_l2 | $(h - 0.28)^2$ | -1.0 → -10.0 (curriculum) | Base height (uses height scanner for ground estimation) |
+| action_rate_l2 | $\|a_t - a_{t-1}\|^2$ | -0.01 | Action rate of change |
+| action_smoothness_l2 | $\|a_t - 2a_{t-1} + a_{t-2}\|^2$ | -0.01 | Second-order action smoothness |
+| undesired_contacts | $\sum \mathbb{1}(\|F\| > 5)$ | -1.0 | Thigh/calf contact |
+| joint_pos_limits | Joint limit violation | -2.0 | Joint position limits |
+| feet_regulation | $\sum v_{\text{foot}}^{xy\,2} \cdot e^{-h_{\text{foot}}/(0.025 \cdot h_{\text{target}})}$ | -0.05 | Near-ground foot sliding |
+| hip_pos_penalty_l1 | $\sum \|q_{\text{hip}} - q_{\text{default}}\|_1$ | -0.05 | Hip deviation from default |
+| joint_pos_penalty_l1 | $\sum \|q_{\text{thigh,calf}} - q_{\text{default}}\|_1$ | -0.01 | Thigh/calf deviation from default |
+
+### Base Height Estimation
+
+`base_height_l2` and `feet_regulation` use a height scanner to estimate ground height rather than world z-coordinates:
+
+```python
+base_height = base_z - mean(ray_hits_z)  # minus estimated ground height
+```
 
 ---
 
-## Domain Randomization
+## Domain Randomization & Motor Model
 
-| Parameter | Mode | Range |
-|-----------|------|-------|
-| Base mass | startup | ±1 kg |
-| Other body mass | startup | ×[0.9, 1.1] |
-| Center of mass | startup | ±0.05 m |
-| Joint reset position | reset | ×[0.5, 1.5] |
-| Actuator gains (kp/kd) | reset | ×[0.9, 1.1] |
-| Motor zero offset | reset | ±0.035 rad |
-| Push perturbation | interval (4s) | ±0.4 m/s, ±0.6 rad/s |
-| Friction coefficient | startup | [0, 2.0] |
-| Base initial state | reset | pos ±0.5m, yaw ±π |
+### Domain Randomization
+
+| Parameter | Mode | Range | Description |
+|-----------|------|-------|-------------|
+| Base mass | startup | ±1 kg | Payload variation |
+| Other body mass | startup | ×[0.9, 1.1] | Mass distribution |
+| Center of mass | startup | ±0.03 m | COM offset |
+| Joint reset position | reset | ×[0.5, 1.5] | Random initial pose |
+| Actuator gains (kp/kd) | reset | ×[0.9, 1.1] | PD parameter perturbation |
+| Motor zero offset | reset | ±0.035 rad | Encoder offset |
+| Push perturbation | interval (4s) | ±0.4 m/s, ±0.6 rad/s | Random external force |
+| Friction coefficient | startup | [0, 2.0] | Variable ground friction |
+| Base initial state | reset | pos ±0.5m, yaw ±π | Random initial pose |
 
 ### Unitree Motor Model
 
@@ -240,14 +299,44 @@ The project uses the official Unitree motor torque-speed curve model (Go2 HV par
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| X1 | 13.5 rad/s | Max speed at full torque |
+| X1 | 13.5 rad/s | Max speed at full torque (T-N curve knee) |
 | X2 | 30 rad/s | No-load speed |
 | Y1 | 20.2 N·m | Peak torque (same direction) |
 | Y2 | 23.4 N·m | Peak torque (opposite direction) |
 
-Friction model:
+**Friction model:**
 
 $$\tau_{\text{applied}} = \tau_{\text{PD}} - F_s \cdot \tanh\left(\frac{\dot{q}}{V_a}\right) - F_d \cdot \dot{q}$$
+
+**Torque clipping:**
+- $|\dot{q}| < X1$: clamped to Y1 (same direction) or Y2 (opposite direction)
+- $|\dot{q}| \geq X1$: linearly decays to 0 at X2
+
+**Motor delay**: `min_delay=0, max_delay=4` steps (motor-level, not action-level)
+
+---
+
+## Curriculum Learning
+
+### Terrain Curriculum (terrain_levels_vel_gym)
+
+Dynamically adjusts terrain difficulty based on robot traversal distance:
+- `move_up`: max distance > terrain length/2 → increase difficulty
+- `move_down`: max distance < target distance × 0.5 → decrease difficulty
+
+### Reward Weight Curriculum (gradual_reward_weight_modification)
+
+Linear interpolation of reward weights:
+- `lin_vel_z_l2`: -2.0 → 0.0 (0→1500 iterations)
+- `base_height_l2`: -1.0 → -10.0 (0→5000 iterations)
+
+### Command Range Curriculum (command_range_curriculum)
+
+Expands velocity command ranges at specified iterations:
+```python
+# 20000 iterations: lin_vel_x [-1,1], lin_vel_y [-1,1], ang_vel [-1.5,1.5]
+# 50000 iterations: lin_vel_x [-2,2], lin_vel_y [-1,1], ang_vel [-2,2]
+```
 
 ---
 
@@ -320,18 +409,6 @@ python scripts/rsl_rl/train.py --task=RobotLab-Legbot-v0 --headless
 python scripts/rsl_rl/play.py --task=RobotLab-Legbot-v0
 ```
 
-### With RoboGauge Evaluation
-
-[RoboGauge](https://github.com/wty-yy/robogauge) provides an asynchronous evaluation platform for locomotion RL policies:
-
-```bash
-# Terminal 1: Start RoboGauge server
-python robogauge/scripts/server.py --port 9973 --num-processes 32
-
-# Terminal 2: Train with evaluation
-python scripts/rsl_rl/train.py --task=RobotLab-Legbot-v0 --headless --robogauge --robogauge_port 9973
-```
-
 ### CLI Flags
 
 ```bash
@@ -345,13 +422,34 @@ python scripts/rsl_rl/train.py \
     --checkpoint <path>
 ```
 
+### Training Loop (OnPolicyRunnerCTS)
+
+```python
+for it in range(max_iterations):
+    # 1. Rollout: collect num_steps_per_env=24 steps
+    for _ in range(num_steps_per_env):
+        actions = alg.act(obs)              # Teacher/student inference
+        obs, rewards, dones, extras = env.step(actions)
+        alg.process_env_step(obs, rewards, dones, extras)
+
+    # 2. Compute GAE returns
+    alg.compute_returns(obs)
+
+    # 3. PPO + distillation update
+    loss_dict = alg.update()
+
+    # 4. Save checkpoint (every save_interval=500 steps)
+    if it % save_interval == 0:
+        runner.save(f"model_{it}.pt")
+```
+
 ---
 
 ## MuJoCo Sim2Sim Deployment
 
 ### Export Policy
 
-Running `play.py` automatically exports policies in both TorchScript (`.pt`) and ONNX (`.onnx`) formats:
+Running `play.py` automatically exports policies in both TorchScript (`.pt`) and ONNX (`.onnx`) formats. The export wraps the student branch (StudentMoEEncoder + Actor) with normalizers into a single-input model:
 
 ```bash
 python scripts/rsl_rl/play.py \
@@ -359,18 +457,36 @@ python scripts/rsl_rl/play.py \
     --checkpoint logs/rsl_rl/legbot_moe_cts/<run_name>/model_<iter>.pt
 ```
 
+**Key feature**: the exported policy internally maintains observation history, so deployment only requires current-frame input.
+
 ### Deploy in MuJoCo
 
-Configure `deploy/deploy_mujoco/configs/legbot.yaml` with your policy path:
+Configure `deploy/deploy_mujoco/configs/legbot.yaml`:
 
 ```yaml
 policy_path: "{ROOT_DIR}/logs/rsl_rl/legbot_moe_cts/<timestamp>/exported/policy.pt"
 ```
 
-Run deployment:
+Run:
 
 ```bash
 python deploy/deploy_mujoco/deploy_legbot.py
+```
+
+**Deployment loop:**
+
+```python
+while viewer.is_running():
+    # 1. PD control → compute torques
+    data.ctrl[:] = pd_control(target_pos, qpos, kps, target_vel, qvel, kds)
+    # 2. MuJoCo physics step
+    mujoco.mj_step(model, data)
+    # 3. Query policy every decimation steps
+    if counter % decimation == 0:
+        features = build_features(data, action, cmd, cfg)
+        single_obs = build_single_obs(features, layout)
+        action = policy(single_obs)
+        target_pos = default_angles + action * 0.25
 ```
 
 ### Switch Scenes
@@ -384,6 +500,8 @@ xml_path: "{ROOT_DIR}/resources/legbot/flat.xml"
 xml_path: "{ROOT_DIR}/resources/legbot/stairs.xml"
 # Box obstacles
 xml_path: "{ROOT_DIR}/resources/legbot/boxes.xml"
+# Stairs and slope
+xml_path: "{ROOT_DIR}/resources/legbot/stairs_and_slope.xml"
 ```
 
 ### Controller Mapping
@@ -393,62 +511,25 @@ xml_path: "{ROOT_DIR}/resources/legbot/boxes.xml"
 | LX / LY | Forward / Lateral velocity |
 | RX | Angular velocity (yaw) |
 
----
-
-## RoboGauge Benchmark Results
-
-<p align="center">
-  <img src="resources/results/robogauge_compare.png" width="100%"/>
-</p>
-
-### Best Scores within 150k Training Steps
-
-| Model | Total | Tracking | Safety | Quality | Levels |
-|-------|-------|----------|--------|---------|--------|
-| **go2_moe_cts (this project)** | **0.6828** | **0.6785** | 0.7552 | **0.7645** | **8.17** |
-| go2_moe_cts (go2_rl_gym) | 0.6713 | 0.6669 | **0.7857** | 0.7392 | 7.85 |
-| CTS (original) | 0.5786 | 0.5755 | 0.7066 | 0.6624 | 6.83 |
-| HIM | 0.5379 | 0.5453 | 0.6476 | 0.6050 | 6.19 |
-| DreamWaQ | 0.5054 | 0.5105 | 0.6149 | 0.5730 | 5.74 |
-
----
-
-## Differences from go2_rl_gym
-
-- **Motor model**: Uses the official Unitree torque-speed-curve motor model instead of a simple PD controller
-- **Rewards**: Different tracking reward form (fixed sigma vs. dynamic sigma); reduced `joint_acc_l2` weight due to physics-step-level computation in IsaacLab; added `joint_pos_penalty_l1` for better performance
-- **Domain randomization**: Motor-level delay instead of random action delay; no motor strength randomization (Lab constraint)
-- **History length**: 10 (vs. 5 in Gym), as longer history performs better in IsaacLab
-- **Algorithm**: MoE-CTS with 8 expert networks in student encoder
+- Auto-detects joystick connection; falls back to config `cmd_init: [1.0, 0.0, 0.0]` when no joystick is connected.
 
 ---
 
 ## Acknowledgments
 
-This project would not exist without:
+This project is based on the following open-source works:
 
 - [IsaacLab](https://github.com/isaac-sim/IsaacLab) — Unified robot learning framework on NVIDIA Isaac Sim
 - [rsl_rl](https://github.com/leggedrobotics/rsl_rl) — Reinforcement learning algorithm library
 - [robot_lab](https://github.com/fan-ziqi/robot_lab) — IsaacLab-based robot RL extension
 - [MuJoCo](https://github.com/google-deepmind/mujoco) — High-performance physics simulator
-- [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym) — IsaacGym-based Go2 RL training
+- [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym) — IsaacGym-based Go2 RL training (original implementation)
 
-Relevant papers:
+Relevant paper:
 
 - [CTS: Concurrent Teacher-Student Reinforcement Learning for Legged Locomotion](https://arxiv.org/pdf/2405.10830)
 
 ---
-
-## Citation
-
-```bibtex
-@article{go2_rl_robotlab,
-  title   = {MoE-CTS: Mixture of Experts Concurrent Teacher-Student for Legged Locomotion},
-  author  = {LegBot RobotLab Contributors},
-  journal = {Robotics: Science and Systems (RSS)},
-  year    = {2026}
-}
-```
 
 ## License
 

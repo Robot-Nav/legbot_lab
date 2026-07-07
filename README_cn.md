@@ -16,17 +16,17 @@
 
 LegBot 是一个自定义四足机器人，具有与 Unitree Go2 相同的 12 关节运动结构（4 条腿 × 3 个关节：髋关节、大腿、小腿），可直接复用已有的 MDP 模块。
 
+**核心闭环：**
+
 <p align="center">
-  <b>IsaacLab 训练 → MuJoCo Sim2Sim 验证 → 真实机器人部署</b>
+  <b>IsaacLab 训练 → MuJoCo Sim2Sim 验证 → 真实 LegBot 部署</b>
 </p>
 
 <p align="center">
   <img src="resources/results/isaaclab_scene.png" width="70%"/>
 </p>
 
----
-
-## 项目意义
+### 解决的问题与贡献
 
 足式机器人运动控制面临三大挑战：
 
@@ -39,7 +39,6 @@ LegBot 是一个自定义四足机器人，具有与 Unitree Go2 相同的 12 �
 - **并发师生架构（CTS）**：训练时同时运行教师网络（使用特权信息）和学生网络（仅用可部署信息），学生通过蒸馏学习教师的隐空间表示，部署时仅使用学生网络。
 - **混合专家（MoE）**：学生编码器采用 MoE 结构，8 个专家网络通过门控机制动态组合，提升对复杂地形和运动模式的建模能力。
 - **真实电机模型**：使用 Unitree 官方电机扭矩-转速曲线模型，而非简单 PD 控制器，缩小 Sim2Real 差距。
-- **RoboGauge 基准测试**：在 150k 训练步内达到 0.6828 分，超越 CTS 原始版本、HIM、DreamWaQ 等方法。
 
 ---
 
@@ -49,13 +48,12 @@ LegBot 是一个自定义四足机器人，具有与 Unitree Go2 相同的 12 �
 
 MoE-CTS 是 **PPO** 与 **并发师生蒸馏** 的结合，并在学生编码器中引入 **混合专家（MoE）** 机制。
 
-**关键点**：
-- 训练时将并行环境按 `teacher_env_ratio=0.75` 划分为两组：
-  - **教师环境（75%）**：使用教师编码器，输入特权观测（critic obs：含线速度、高度扫描、关节力矩等）
-  - **学生环境（25%）**：使用学生 MoE 编码器，输入仅可部署观测（actor obs：角速度、重力方向、关节状态、速度指令）
-- 两组环境共享同一个 Actor 和 Critic，仅编码器不同
-- 学生编码器通过 **隐空间蒸馏损失** 模仿教师编码器的输出
-- 部署时仅使用学生分支（无需特权信息）
+训练时将并行环境按 `teacher_env_ratio=0.75` 划分为两组：
+
+- **教师环境（75%）**：使用教师编码器，输入特权观测（critic obs：含线速度、高度扫描、关节力矩等）
+- **学生环境（25%）**：使用学生 MoE 编码器，输入仅可部署观测（actor obs：角速度、重力方向、关节状态、速度指令）
+
+两组环境共享同一个 Actor 和 Critic，仅编码器不同。学生编码器通过**隐空间蒸馏损失**模仿教师编码器的输出。部署时仅使用学生分支（无需特权信息）。
 
 ### 算法流程
 
@@ -83,6 +81,15 @@ MoE-CTS 是 **PPO** 与 **并发师生蒸馏** 的结合，并在学生编码器
    └─ L_student = L_latent + α·L_balance, α=0.01
 ```
 
+### 与原始 CTS 的区别
+
+| 特性 | 原始 CTS | MoE-CTS（本项目） |
+|------|---------|------------------|
+| 学生编码器 | 单一 MLP | 混合专家（8 个专家） |
+| 编码器归一化 | - | L2Norm / SimNorm |
+| 负载均衡 | 无 | 负载均衡损失 |
+| 激活函数 | ELU | ELU / CatELU（可选） |
+
 ### 网络结构
 
 #### 教师编码器
@@ -91,7 +98,15 @@ $$z_t = \text{L2Norm}(\text{MLP}_{\text{teacher}}(o_c))$$
 
 - 输入：critic 观测（特权信息）
 - 结构：MLP[512, 256] → L2Norm
-- 输出维度：latent_dim = 32
+- 输出维度：`latent_dim = 32`
+
+```python
+# source/rsl_rl/rsl_rl/modules/actor_critic_moe_cts.py
+self.teacher_encoder = nn.Sequential(
+    MLP(mlp_input_dim_t, latent_dim, teacher_encoder_hidden_dims, activation),
+    L2Norm()  # 或 SimNorm
+)
+```
 
 #### 学生 MoE 编码器
 
@@ -103,7 +118,25 @@ $$z_s = \text{L2Norm}\left(\sum_{i=1}^{N} g_i \cdot e_i\right)$$
 - 共享主干：MLP[512, 256, 256]
 - 每个专家：Conv1d(groups=8) 分组卷积
 - 门控网络：MLP[512, 256, 256] → Softmax
-- 输出维度：latent_dim = 32
+- 输出维度：`latent_dim = 32`
+
+```python
+# source/rsl_rl/rsl_rl/networks/moe.py
+class MoE(nn.Module):
+    def forward(self, x):
+        weights = self.gating_network(x)          # (B, expert_num)
+        expert_outs = self.experts(x)             # (B, expert_num, output_dim)
+        output = torch.sum(weights.unsqueeze(-1) * expert_outs, dim=1)
+        return output, weights
+```
+
+**专家结构（Experts）**：采用共享主干 + 分组卷积的高效实现，而非独立的 N 个 MLP：
+
+```python
+class Experts(nn.Module):
+    # backbone: MLP(input → expert_num * expert_hidden_dim)
+    # experts: Conv1d(in=expert_num*hidden, out=expert_num*output, kernel=1, groups=expert_num)
+```
 
 #### Actor（策略网络）
 
@@ -128,6 +161,20 @@ $$L_{\text{PPO}} = -\mathbb{E}\left[\min\left(r_t A_t, \text{clip}(r_t, 1-\epsil
 
 $$r_t = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{\text{old}}}(a_t|s_t)}, \quad \epsilon = 0.2$$
 
+### L2Norm 与 SimNorm
+
+隐向量归一化用于稳定蒸馏训练：
+
+$$\text{L2Norm}(x) = \frac{x}{\|x\|_2}$$
+
+$$\text{SimNorm}(x) = \text{Softmax}(x_{\text{reshape}[-1, 8]}) \quad \text{(Simplicial Normalization)}$$
+
+### CatELU 激活函数（可选）
+
+受 [Concat ReLU](https://arxiv.org/pdf/2303.07507) 启发，CatELU 将特征维度翻倍：
+
+$$\text{CatELU}(x) = [\text{ELU}(x), \text{ELU}(-x)]$$
+
 ---
 
 ## 项目结构
@@ -147,7 +194,7 @@ legbot_lab/
 │   │       │   └── unitree_actuator.py  # Unitree 电机模型
 │   │       └── tasks/
 │   │           ├── go2/         # Go2 MDP 模块（LegBot 复用）
-│   │           │   ├── mdp/     # 奖励/观测/指令等
+│   │           │   ├── mdp/     # 奖励/观测/指令/事件/课程
 │   │           │   └── manager/ # 动作管理器
 │   │           └── legbot/      # LegBot 专属配置
 │   │               ├── env_cfg.py      # 环境配置
@@ -168,17 +215,39 @@ legbot_lab/
 ├── resources/legbot/            # MuJoCo 场景与 URDF
 │   ├── urdf/legbot.urdf         # LegBot URDF 模型
 │   ├── meshes/                  # STL 网格文件
-│   ├── flat.xml                 # 平坦地形
-│   ├── stairs.xml               # 楼梯场景
-│   ├── boxes.xml                # 箱子障碍物
+│   ├── flat.xml / stairs.xml / boxes.xml  # 地形场景
 │   └── legbot.xml               # LegBot MuJoCo 模型
 ├── src/                         # C++ 仿真与桥接
 │   ├── legbot_bridge.h          # DDS 桥接（MuJoCo）
 │   ├── param.h                  # 仿真配置
 │   └── main.cc                  # MuJoCo 仿真的入口
 ├── TECHNICAL_DOC_zh.md          # 详细技术文档（中文）
-├── README.md                    # 英文 README
 └── README_cn.md                 # 本文件
+```
+
+### 模块依赖关系
+
+```
+train.py / play.py
+    │
+    ├── robot_lab.tasks.legbot.__init__  (注册 gym 环境 RobotLab-Legbot-v0)
+    │       │
+    │       ├── LegbotEnvCfg  (env_cfg.py) ── 场景/观测/奖励/事件/课程配置
+    │       ├── LegbotEnv     (legbot_env.py) ── 重写 ActionManager
+    │       └── MoECTSRunnerCfg (rsl_rl_cfg.py) ── 算法超参
+    │
+    └── rsl_rl.runners.OnPolicyRunnerCTS
+            │
+            ├── MoECTS 算法 (algorithms/moe_cts.py)
+            │       │
+            │       ├── ActorCriticMoECTS 策略 (modules/actor_critic_moe_cts.py)
+            │       │       ├── TeacherEncoder (MLP + L2Norm)
+            │       │       ├── StudentMoEEncoder (MoE + L2Norm)
+            │       │       ├── Actor MLP
+            │       │       └── Critic MLP
+            │       └── RolloutStorageCTS (storage/rollout_storage_cts.py)
+            │
+            └── networks/moe.py  (MoE 与 Experts 实现)
 ```
 
 ---
@@ -187,8 +256,10 @@ legbot_lab/
 
 ### 观测空间
 
-| 观测组 | 用途 | 历史帧 | 加噪 | 包含项 |
-|--------|------|--------|------|--------|
+定义于 [env_cfg.py](source/robot_lab/robot_lab/tasks/legbot/env_cfg.py)：
+
+| 观测组 | 用途 | 历史长度 | 是否加噪 | 包含项 |
+|--------|------|---------|---------|--------|
 | **policy**（actor obs） | 学生编码器输入 | 10 | 是 | base_ang_vel, projected_gravity, velocity_commands, joint_pos, joint_vel, last_action |
 | **critic**（critic obs） | 教师/Critic 输入 | 1 | 否 | 上述全部 + base_lin_vel, joint_acc, joint_torque, contact_force, height_scan |
 | **single_obs** | Actor 拼接输入 | 1 | 是 | 同 policy，仅当前帧 |
@@ -204,24 +275,31 @@ legbot_lab/
 
 ### 动作空间
 
-- 类型：关节位置控制（`JointPositionAction`）
+- 类型：关节位置控制（`JointPositionActionCfg`）
 - 维度：12
 - 缩放：0.25（动作 × 0.25 + 默认关节角 = 目标关节角）
+- 裁剪范围：[-100, 100]
 
 ### 指令空间
 
-- 维度：3 — `[lin_vel_x, lin_vel_y, ang_vel_yaw]`
+指令由 `Go2RLGymCommand` 生成，维度为 3：`[lin_vel_x, lin_vel_y, ang_vel_yaw]`
+
 - 重采样间隔：5s
+- 动态重采样：根据剩余距离与剩余回合时间调整速度下界
+- 地形相关范围：不同地形类型对应不同的速度上限
 - 指令范围课程：在 20k 和 50k 迭代时扩展速度范围
+- 零指令课程：训练初期零指令概率为 0，逐步增加至 0.1
 
 ### 终止条件
 
 - 超时：25s / episode
-- 非法接触：base 接触力 > 1.0N
+- 非法接触：base 链接接触力 > 1.0N
 
 ---
 
 ## 奖励函数设计
+
+定义于 [rewards.py](source/robot_lab/robot_lab/tasks/go2/mdp/rewards.py)，采用多项加权求和。
 
 ### 跟踪奖励（正向）
 
@@ -237,22 +315,31 @@ $$r_{\text{ang}} = \exp\left(-\frac{(\omega_{\text{cmd}}^{z} - \omega_{\text{bas
 
 | 奖励项 | 公式 | 权重 | 说明 |
 |--------|------|------|------|
-| 垂直速度 | $\|v_z\|^2$ | -2.0 → 0（课程） | 防止上下晃动 |
-| Roll/Pitch 角速度 | $\|\omega_{xy}\|^2$ | -0.05 | 防止侧向旋转 |
-| 关节加速度 | $\sum \ddot{q}_i^2$ | -1e-7 | 鼓励平滑运动 |
-| 关节功率 | $\sum \|\dot{q}_i \cdot \tau_i\|$ | -2e-5 | 减少能耗 |
-| 关节力矩 | $\sum \tau_i^2$ | -1e-4 | 避免过大扭矩 |
-| 基座高度 | $(h - 0.28)^2$ | -1.0 → -10.0（课程） | 保持站立高度 |
-| 动作变化率 | $\|a_t - a_{t-1}\|^2$ | -0.01 | 鼓励平滑动作 |
-| 动作平滑性 | $\|a_t - 2a_{t-1} + a_{t-2}\|^2$ | -0.01 | 二阶平滑 |
-| 不期望接触 | $\sum \mathbb{1}(\|F\| > 5)$ | -1.0 | 大腿/小腿触地 |
-| 关节限位 | 关节超限惩罚 | -2.0 | 避免超出关节范围 |
-| 足部滑动 | $\sum v_{\text{foot}}^{xy\,2} \cdot e^{-h_{\text{foot}}/\text{threshold}}$ | -0.05 | 减少脚部滑移 |
-| 髋关节位置 | $\sum \|q_{\text{hip}} - q_{\text{default}}\|_1$ | -0.05 | 髋关节保持在默认位置 |
+| lin_vel_z_l2 | $\|v_z\|^2$ | -2.0 → 0（课程） | 惩罚垂直速度 |
+| ang_vel_xy_l2 | $\|\omega_{xy}\|^2$ | -0.05 | 惩罚 roll/pitch 角速度 |
+| joint_acc_l2 | $\sum \ddot{q}_i^2$ | -1e-7 | 关节加速度（Lab 物理步级，权重极小） |
+| joint_power | $\sum \|\dot{q}_i \cdot \tau_i\|$ | -2e-5 | 关节功率 |
+| joint_torques_l2 | $\sum \tau_i^2$ | -1e-4 | 关节力矩 |
+| base_height_l2 | $(h - 0.28)^2$ | -1.0 → -10.0（课程） | 基座高度（使用高度扫描估计地面） |
+| action_rate_l2 | $\|a_t - a_{t-1}\|^2$ | -0.01 | 动作变化率 |
+| action_smoothness_l2 | $\|a_t - 2a_{t-1} + a_{t-2}\|^2$ | -0.01 | 动作平滑性（二阶差分） |
+| undesired_contacts | $\sum \mathbb{1}(\|F\| > 5)$ | -1.0 | 大腿/小腿非法接触 |
+| joint_pos_limits | 关节超限惩罚 | -2.0 | 关节位置限制 |
+| feet_regulation | $\sum v_{\text{foot}}^{xy\,2} \cdot e^{-h_{\text{foot}}/(0.025 \cdot h_{\text{target}})}$ | -0.05 | 惩罚近地脚横向滑动 |
+| hip_pos_penalty_l1 | $\sum \|q_{\text{hip}} - q_{\text{default}}\|_1$ | -0.05 | 髋关节偏离默认位置 |
+| joint_pos_penalty_l1 | $\sum \|q_{\text{thigh,calf}} - q_{\text{default}}\|_1$ | -0.01 | 大腿/小腿偏离默认位置 |
+
+### 基座高度估计
+
+`base_height_l2` 与 `feet_regulation` 使用高度扫描器估计地面高度，而非直接使用世界坐标 z：
+
+```python
+base_height = base_z - mean(ray_hits_z)  # 减去估计的地面高度
+```
 
 ---
 
-## 域随机化与 Unitree 电机模型
+## 域随机化与电机模型
 
 ### 域随机化
 
@@ -260,7 +347,7 @@ $$r_{\text{ang}} = \exp\left(-\frac{(\omega_{\text{cmd}}^{z} - \omega_{\text{bas
 |---------|------|------|------|
 | 基座质量 | startup | ±1 kg | 适应负载变化 |
 | 其他部件质量 | startup | ×[0.9, 1.1] | 质量分布变化 |
-| 质心位置 | startup | ±0.05 m | 质心偏移 |
+| 质心位置 | startup | ±0.03 m | 质心偏移 |
 | 关节重置位置 | reset | ×[0.5, 1.5] | 初始姿态随机 |
 | 执行器增益 (kp/kd) | reset | ×[0.9, 1.1] | PD 参数扰动 |
 | 电机零偏 | reset | ±0.035 rad | 编码器零位误差 |
@@ -272,16 +359,72 @@ $$r_{\text{ang}} = \exp\left(-\frac{(\omega_{\text{cmd}}^{z} - \omega_{\text{bas
 
 本项目使用 Unitree 官方扭矩-转速曲线模型（Go2 HV 参数）：
 
+```
+    扭矩上限 (N·m)
+        ^
+Y2──────|
+        |──────────Y1
+        |          |\
+        |          | \
+        |          |  \
+        |          |   \
+--------+----------|----> 速度 (rad/s)
+                 X1   X2
+```
+
 | 参数 | 值 | 说明 |
 |------|-----|------|
-| X1 | 13.5 rad/s | 满扭矩最大转速 |
+| X1 | 13.5 rad/s | 满扭矩最大转速（T-N 曲线拐点） |
 | X2 | 30 rad/s | 空载转速 |
-| Y1 | 20.2 N·m | 正向峰值扭矩 |
+| Y1 | 20.2 N·m | 同向峰值扭矩 |
 | Y2 | 23.4 N·m | 反向峰值扭矩 |
 
-摩擦模型：
+**摩擦模型：**
 
 $$\tau_{\text{applied}} = \tau_{\text{PD}} - F_s \cdot \tanh\left(\frac{\dot{q}}{V_a}\right) - F_d \cdot \dot{q}$$
+
+**扭矩裁剪：**
+- $|\dot{q}| < X1$：限制为 Y1（同向）或 Y2（反向）
+- $|\dot{q}| \geq X1$：线性下降至 0（在 X2 处）
+
+**电机延迟**：`min_delay=0, max_delay=4` 步（电机级延迟，非动作级延迟）
+
+### 动作管理器
+
+`ActionManagerGo2` 额外维护 `_prev_prev_action` 用于二阶动作平滑性奖励计算：
+
+```python
+# source/robot_lab/robot_lab/tasks/go2/manager/action_manager.py
+class ActionManagerGo2(ActionManager):
+    def process_action(self, action):
+        self._prev_prev_action[:] = self._prev_action
+        self._prev_action[:] = self._action
+        self._action[:] = action
+```
+
+---
+
+## 课程学习
+
+### 地形课程（terrain_levels_vel_gym）
+
+根据机器人移动距离动态调整地形难度：
+- `move_up`：最大移动距离 > 地形长度 / 2 → 提升难度等级
+- `move_down`：最大移动距离 < 目标距离 × 0.5 → 降低难度等级
+
+### 奖励权重课程（gradual_reward_weight_modification）
+
+线性插值修改奖励权重：
+- `lin_vel_z_l2`：-2.0 → 0.0（0→1500 迭代）
+- `base_height_l2`：-1.0 → -10.0（0→5000 迭代）
+
+### 指令范围课程（command_range_curriculum）
+
+在指定迭代步扩展速度指令范围：
+```python
+# 20000 迭代：lin_vel_x [-1,1], lin_vel_y [-1,1], ang_vel [-1.5,1.5]
+# 50000 迭代：lin_vel_x [-2,2], lin_vel_y [-1,1], ang_vel [-2,2]
+```
 
 ---
 
@@ -354,18 +497,6 @@ python scripts/rsl_rl/train.py --task=RobotLab-Legbot-v0 --headless
 python scripts/rsl_rl/play.py --task=RobotLab-Legbot-v0
 ```
 
-### 结合 RoboGauge 评估
-
-[RoboGauge](https://github.com/wty-yy/robogauge) 提供异步评估平台：
-
-```bash
-# 终端 1：启动 RoboGauge 服务
-python robogauge/scripts/server.py --port 9973 --num-processes 32
-
-# 终端 2：带评估的训练
-python scripts/rsl_rl/train.py --task=RobotLab-Legbot-v0 --headless --robogauge --robogauge_port 9973
-```
-
 ### 命令行参数
 
 ```bash
@@ -379,13 +510,36 @@ python scripts/rsl_rl/train.py \
     --checkpoint <路径>
 ```
 
+### 训练循环（OnPolicyRunnerCTS）
+
+定义于 [on_policy_runner_cts.py](source/rsl_rl/rsl_rl/runners/on_policy_runner_cts.py)：
+
+```python
+for it in range(max_iterations):
+    # 1. Rollout：采集 num_steps_per_env=24 步
+    for _ in range(num_steps_per_env):
+        actions = alg.act(obs)              # 教师/学生分别推理
+        obs, rewards, dones, extras = env.step(actions)
+        alg.process_env_step(obs, rewards, dones, extras)
+
+    # 2. 计算 GAE 回报
+    alg.compute_returns(obs)
+
+    # 3. PPO + 蒸馏更新
+    loss_dict = alg.update()
+
+    # 4. 保存检查点（每 save_interval=500 步）
+    if it % save_interval == 0:
+        runner.save(f"model_{it}.pt")
+```
+
 ---
 
 ## MuJoCo Sim2Sim 部署
 
-### 导出策略
+### 策略导出
 
-运行 `play.py` 会同时导出 TorchScript（`.pt`）和 ONNX（`.onnx`）格式：
+运行 `play.py` 会同时导出 TorchScript（`.pt`）和 ONNX（`.onnx`）格式。导出器将学生分支（StudentMoEEncoder + Actor）与归一化器封装为单输入模型：
 
 ```bash
 python scripts/rsl_rl/play.py \
@@ -393,7 +547,18 @@ python scripts/rsl_rl/play.py \
     --checkpoint logs/rsl_rl/legbot_moe_cts/<run_name>/model_<iter>.pt
 ```
 
-导出的策略**内部维护观测历史**，部署时只需输入当前帧观测。
+**关键特性**：导出的策略**内部维护观测历史**，部署时只需输入当前帧观测。
+
+```python
+# source/rsl_rl/rsl_rl/utils/exporter_cts.py
+class _TorchPolicyExporter:
+    def forward(self, single_obs):
+        self._update_history(single_obs)         # 更新内部历史
+        single_obs = self.single_obs_normalizer(single_obs)
+        obs_a = self.actor_obs_normalizer(self.obs_history)
+        latent, _ = self.student_moe_encoder(obs_a)   # MoE 编码
+        return self.actor(torch.cat([latent, single_obs], dim=-1))
+```
 
 ### MuJoCo 中运行
 
@@ -409,6 +574,22 @@ policy_path: "{ROOT_DIR}/logs/rsl_rl/legbot_moe_cts/<timestamp>/exported/policy.
 python deploy/deploy_mujoco/deploy_legbot.py
 ```
 
+**部署循环：**
+
+```python
+while viewer.is_running():
+    # 1. PD 控制计算扭矩
+    data.ctrl[:] = pd_control(target_pos, qpos, kps, target_vel, qvel, kds)
+    # 2. MuJoCo 物理步进
+    mujoco.mj_step(model, data)
+    # 3. 每 decimation 步查询策略
+    if counter % decimation == 0:
+        features = build_features(data, action, cmd, cfg)
+        single_obs = build_single_obs(features, layout)
+        action = policy(single_obs)
+        target_pos = default_angles + action * 0.25
+```
+
 ### 切换仿真场景
 
 修改 `legbot.yaml` 中的 `xml_path`：
@@ -420,6 +601,8 @@ xml_path: "{ROOT_DIR}/resources/legbot/flat.xml"
 xml_path: "{ROOT_DIR}/resources/legbot/stairs.xml"
 # 箱子障碍
 xml_path: "{ROOT_DIR}/resources/legbot/boxes.xml"
+# 楼梯与斜坡组合
+xml_path: "{ROOT_DIR}/resources/legbot/stairs_and_slope.xml"
 ```
 
 ### 手柄控制
@@ -430,35 +613,22 @@ xml_path: "{ROOT_DIR}/resources/legbot/boxes.xml"
 | LY | 左移/右移速度 |
 | RX | 角速度（转向） |
 
-- 自动检测手柄连接，无手柄时使用配置文件的默认指令
+- 自动检测手柄连接，无手柄时使用配置文件中的默认指令 `cmd_init: [1.0, 0.0, 0.0]`
 
 ---
 
-## RoboGauge 基准测试结果
+## 与 go2_rl_gym 的主要差异
 
-<p align="center">
-  <img src="resources/results/robogauge_compare.png" width="100%"/>
-</p>
-
-### 150k 训练步数最优分数
-
-| 模型 | 总分 | 跟踪 | 安全 | 质量 | 关卡 |
-|------|------|------|------|------|------|
-| **go2_moe_cts（本项目）** | **0.6828** | **0.6785** | 0.7552 | **0.7645** | **8.17** |
-| go2_moe_cts (go2_rl_gym) | 0.6713 | 0.6669 | **0.7857** | 0.7392 | 7.85 |
-| CTS（原始版本） | 0.5786 | 0.5755 | 0.7066 | 0.6624 | 6.83 |
-| HIM | 0.5379 | 0.5453 | 0.6476 | 0.6050 | 6.19 |
-| DreamWaQ | 0.5054 | 0.5105 | 0.6149 | 0.5730 | 5.74 |
-
----
-
-## 与 go2_rl_gym 的区别
-
-- **电机模型**：使用 Unitree 官方扭矩-转速曲线模型，替代简单 PD 控制器
-- **奖励函数**：固定 sigma 跟踪奖励、降低 joint_acc_l2 权重、增加 joint_pos_penalty_l1
-- **域随机化**：电机级延迟替代随机动作延迟
-- **观测历史**：10 帧（对比 Gym 版 5 帧）
-- **算法**：MoE-CTS，学生编码器含 8 个专家网络
+| 方面 | go2_rl_gym (IsaacGym) | legbot_lab (IsaacLab) |
+|------|----------------------|---------------------------|
+| 电机模型 | 简单 PD 控制器 | Unitree 官方扭矩-转速曲线模型 |
+| 跟踪奖励 | 动态 sigma | 固定 sigma=0.5 |
+| joint_acc_l2 权重 | 较大 | 极小（-1e-7），因 Lab 物理步级计算更精确 |
+| joint_pos_penalty_l1 | 无 | 有 |
+| 动作延迟 | 随机动作延迟 | 电机级延迟（min_delay=0, max_delay=4） |
+| 电机强度随机化 | 有 | 无（Lab 实现约束） |
+| 历史长度 | 5 | 10（Lab 中更优） |
+| 算法 | CTS | MoE-CTS（增加混合专家） |
 
 ---
 
@@ -470,7 +640,7 @@ xml_path: "{ROOT_DIR}/resources/legbot/boxes.xml"
 - [rsl_rl](https://github.com/leggedrobotics/rsl_rl) — 强化学习算法库
 - [robot_lab](https://github.com/fan-ziqi/robot_lab) — IsaacLab 机器人 RL 扩展
 - [MuJoCo](https://github.com/google-deepmind/mujoco) — 高性能物理仿真器
-- [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym) — IsaacGym 版 Go2 RL 训练
+- [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym) — IsaacGym 版 Go2 RL 训练（原始实现）
 
 相关论文：
 
