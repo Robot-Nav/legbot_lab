@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lingzu RS02 Serial Frame Tester</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f4f6fb;
+        color: #152033;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      header {
+        background: linear-gradient(135deg, #152033, #29476f);
+        color: white;
+        padding: 28px clamp(20px, 5vw, 56px);
+      }
+
+      main {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        padding: 24px clamp(20px, 5vw, 56px) 40px;
+      }
+
+      h1,
+      h2 {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(24px, 3vw, 36px);
+      }
+
+      .subtitle {
+        margin-top: 8px;
+        color: #dce8f8;
+      }
+
+      section {
+        background: white;
+        border: 1px solid #dfe6f2;
+        border-radius: 18px;
+        box-shadow: 0 14px 36px rgba(21, 32, 51, 0.08);
+        padding: 20px;
+      }
+
+      textarea,
+      input,
+      select {
+        border: 1px solid #cbd6e5;
+        border-radius: 10px;
+        box-sizing: border-box;
+        font: inherit;
+        padding: 10px 12px;
+        width: 100%;
+      }
+
+      textarea {
+        min-height: 112px;
+        resize: vertical;
+      }
+
+      button {
+        background: #1f6feb;
+        border: 0;
+        border-radius: 10px;
+        color: white;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        padding: 10px 14px;
+      }
+
+      button.secondary {
+        background: #607086;
+      }
+
+      .row {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        margin: 12px 0;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .result {
+        background: #0d1321;
+        border-radius: 12px;
+        color: #d8e8ff;
+        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        line-height: 1.5;
+        margin-top: 14px;
+        min-height: 140px;
+        overflow: auto;
+        padding: 14px;
+        white-space: pre-wrap;
+      }
+
+      .pill {
+        background: #eaf1ff;
+        border-radius: 999px;
+        color: #174a91;
+        display: inline-block;
+        font-size: 13px;
+        font-weight: 700;
+        margin: 8px 6px 0 0;
+        padding: 5px 10px;
+      }
+
+      .error {
+        color: #ffb4b4;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Lingzu RS02 串口帧打包/解析测试</h1>
+      <div class="subtitle">验证 45 54 USB-CAN 串口帧、标准运控帧和扩展反馈帧。</div>
+        <span class="pill">运控: 通信类型 1</span>
+        <span class="pill">反馈: 通信类型 2</span>
+        <span class="pill">使能/失能: 通信类型 3/4</span>
+    </header>
+
+    <main>
+      <section>
+        <h2>解析串口数据</h2>
+        <p>粘贴 18 字节十六进制数据，选择按运控帧或反馈帧解码负载。</p>
+        <textarea id="parseInput">45 54 01 02 00 20 FD 08 A3 5B 7F AC 7F FF 01 22 0D 0A</textarea>
+        <div class="row">
+          <label>
+            负载解释
+            <select id="decodeMode">
+              <option value="auto">自动：0x01按type1，0x02按type2</option>
+              <option value="mode">使能/失能 type3/type4</option>
+              <option value="type2">反馈 type2: q/dq/tau/temp</option>
+              <option value="type1">运控 type1: q/dq/kp/kd</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="parseBtn">解析</button>
+          <button class="secondary" id="loadTxExample">载入 DDS->串口示例</button>
+          <button class="secondary" id="loadRxExample">载入反馈示例</button>
+        </div>
+        <div class="result" id="parseOutput"></div>
+      </section>
+
+      <section>
+        <h2>DDS 运控帧打包</h2>
+        <p>生成标准帧：<code>45 54 + channel + 01 + torque + can_id + 08 + q/dq/kp/kd + 0D 0A</code></p>
+        <div class="row">
+          <label>通道 <input id="channel" value="0" /></label>
+          <label>CAN ID / 电机ID <input id="motorId" value="0x20" /></label>
+          <label>tau(Nm) <input id="tau" value="-17" /></label>
+        </div>
+        <div class="row">
+          <label>目标角度 q(rad) <input id="q" value="-12.5663706144" /></label>
+          <label>目标角速度 dq(rad/s) <input id="dq" value="-44" /></label>
+          <label>Kp <input id="kp" value="0" /></label>
+          <label>Kd <input id="kd" value="0" /></label>
+        </div>
+        <div class="actions">
+          <button id="packBtn">打包</button>
+          <button class="secondary" id="packZeroTau">tau=0 示例</button>
+        </div>
+        <div class="result" id="packOutput"></div>
+      </section>
+
+      <section>
+        <h2>电机使能 / 失能打包</h2>
+        <p>生成通信类型 3 使能、通信类型 4 停止运行 / 清故障帧。</p>
+        <div class="row">
+          <label>通道 <input id="modeChannel" value="0" /></label>
+          <label>主 CAN_ID <input id="modeMaster" value="0xFD" /></label>
+          <label>目标电机 CAN_ID <input id="modeMotor" value="0x7F" /></label>
+        </div>
+        <div class="row">
+          <label>
+            类型
+            <select id="modeType">
+              <option value="3">通信类型3：电机使能运行</option>
+              <option value="4">通信类型4：电机停止运行</option>
+            </select>
+          </label>
+          <label>
+            清故障
+            <select id="clearFault">
+              <option value="0">否：data区全0</option>
+              <option value="1">是：Byte0=1</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="packModeBtn">打包使能/失能</button>
+          <button class="secondary" id="loadEnableExample">载入使能示例</button>
+          <button class="secondary" id="loadDisableExample">载入清故障示例</button>
+        </div>
+        <div class="result" id="modeOutput"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      import {
+        decodeType1Command,
+        decodeType2Feedback,
+        decodeModeFrame,
+        encodeModeFrame,
+        encodeStandardType1Frame,
+        parseSerialFrame,
+        toHex,
+      } from "./serial_frame_codec.js?v=20260526-2";
+
+      const txExample = "45 54 00 01 00 00 20 08 00 00 00 00 00 00 00 00 0D 0A";
+      const rxExample = "45 54 01 02 00 20 FD 08 A3 5B 7F AC 7F FF 01 22 0D 0A";
+      const enableExample = "45 54 00 03 00 FD 7F 08 00 00 00 00 00 00 00 00 0D 0A";
+      const clearFaultExample = "45 54 00 04 00 FD 7F 08 01 00 00 00 00 00 00 00 0D 0A";
+
+      const $ = (id) => document.getElementById(id);
+      const num = (value) => Number.parseFloat(value);
+      const intNum = (value) => Number.parseInt(String(value).trim(), 0);
+
+      function formatFrame(frame) {
+        const lines = [
+          `raw        : ${toHex(frame.bytes)}`,
+          `header     : 45 54`,
+          `channel    : ${frame.channel}`,
+          `frame_type : 0x${frame.frameType.toString(16).padStart(2, "0")}`,
+        ];
+        if (frame.frameType === 0x01) {
+          lines.push(`torque_raw : 0x${frame.torqueRaw.toString(16).padStart(4, "0")}`);
+          lines.push(`can_id     : 0x${frame.canId.toString(16).padStart(2, "0")} (${frame.canId})`);
+        } else if (frame.frameType === 0x02) {
+          lines.push(`id_field   : 0x${frame.idField.toString(16).padStart(4, "0")}`);
+          lines.push(`motor_id   : 0x${frame.motorId.toString(16).padStart(2, "0")} (${frame.motorId})`);
+          lines.push(`master_id  : 0x${frame.masterId.toString(16).padStart(2, "0")}`);
+        } else if (frame.frameType === 0x03 || frame.frameType === 0x04) {
+          lines.push(`master_id  : 0x${frame.masterId.toString(16).padStart(4, "0")}`);
+          lines.push(`motor_id   : 0x${frame.motorId.toString(16).padStart(2, "0")} (${frame.motorId})`);
+        }
+        lines.push(`dlc        : ${frame.dlc}`);
+        lines.push(`data       : ${toHex(frame.data)}`);
+        return lines;
+      }
+
+      function parseNow() {
+        try {
+          const frame = parseSerialFrame($("parseInput").value);
+          const lines = formatFrame(frame);
+          const selectedMode = $("decodeMode").value;
+          const effectiveMode =
+            selectedMode === "auto"
+              ? frame.frameType === 0x01
+                ? "type1"
+                : frame.frameType === 0x02
+                  ? "type2"
+                  : frame.frameType === 0x03 || frame.frameType === 0x04
+                    ? "mode"
+                    : "unknown"
+              : selectedMode;
+          lines.push("");
+          lines.push(`payload mode: ${effectiveMode}${selectedMode === "auto" ? " (auto)" : ""}`);
+          if (effectiveMode === "type1") {
+            const cmd = decodeType1Command(frame);
+            lines.push("type1 decoded:");
+            lines.push(`  motor_id : ${cmd.motorId}`);
+            lines.push(`  q        : ${cmd.q.toFixed(6)} rad`);
+            lines.push(`  dq       : ${cmd.dq.toFixed(6)} rad/s`);
+            lines.push(`  kp       : ${cmd.kp.toFixed(6)}`);
+            lines.push(`  kd       : ${cmd.kd.toFixed(6)}`);
+            lines.push(`  tau      : ${cmd.tau.toFixed(6)} Nm`);
+          } else if (effectiveMode === "type2") {
+            const fb = decodeType2Feedback(frame);
+            lines.push("type2 decoded:");
+            lines.push(`  motor_id : ${fb.motorId}`);
+            lines.push(`  q        : ${fb.q.toFixed(6)} rad`);
+            lines.push(`  dq       : ${fb.dq.toFixed(6)} rad/s`);
+            lines.push(`  tau      : ${fb.tau.toFixed(6)} Nm`);
+            lines.push(`  temp     : ${fb.tempC.toFixed(1)} C`);
+          } else if (effectiveMode === "mode") {
+            const mode = decodeModeFrame(frame);
+            lines.push("mode decoded:");
+            lines.push(`  type     : ${mode.mode === 3 ? "通信类型3 使能" : "通信类型4 停止运行"}`);
+            lines.push(`  master   : 0x${mode.masterId.toString(16).padStart(4, "0")}`);
+            lines.push(`  motor_id : 0x${mode.motorId.toString(16).padStart(2, "0")} (${mode.motorId})`);
+            lines.push(`  data0    : 0x${mode.data[0].toString(16).padStart(2, "0")}`);
+            lines.push(`  clear_fault : ${mode.clearFault ? "yes" : "no"}`);
+          } else {
+            lines.push("unsupported frame_type");
+          }
+          $("parseOutput").textContent = lines.join("\n");
+        } catch (error) {
+          $("parseOutput").innerHTML = `<span class="error">${error.message}</span>`;
+        }
+      }
+
+      function packNow() {
+        try {
+          const bytes = encodeStandardType1Frame({
+            channel: intNum($("channel").value),
+            motorId: intNum($("motorId").value),
+            q: num($("q").value),
+            dq: num($("dq").value),
+            kp: num($("kp").value),
+            kd: num($("kd").value),
+            tau: num($("tau").value),
+          });
+          const hex = toHex(bytes);
+          $("packOutput").textContent = hex;
+          $("parseInput").value = hex;
+          $("decodeMode").value = "type1";
+          parseNow();
+        } catch (error) {
+          $("packOutput").innerHTML = `<span class="error">${error.message}</span>`;
+        }
+      }
+
+      function packModeNow() {
+        try {
+          const bytes = encodeModeFrame({
+            channel: intNum($("modeChannel").value),
+            mode: intNum($("modeType").value),
+            masterId: intNum($("modeMaster").value),
+            motorId: intNum($("modeMotor").value),
+            clearFault: $("clearFault").value === "1",
+          });
+          const hex = toHex(bytes);
+          $("modeOutput").textContent = hex;
+          $("parseInput").value = hex;
+          $("decodeMode").value = "mode";
+          parseNow();
+        } catch (error) {
+          $("modeOutput").innerHTML = `<span class="error">${error.message}</span>`;
+        }
+      }
+
+      $("parseBtn").addEventListener("click", parseNow);
+      $("packBtn").addEventListener("click", packNow);
+      $("packModeBtn").addEventListener("click", packModeNow);
+      $("loadTxExample").addEventListener("click", () => {
+        $("parseInput").value = txExample;
+        $("decodeMode").value = "type1";
+        parseNow();
+      });
+      $("loadRxExample").addEventListener("click", () => {
+        $("parseInput").value = rxExample;
+        $("decodeMode").value = "type2";
+        parseNow();
+      });
+      $("loadEnableExample").addEventListener("click", () => {
+        $("parseInput").value = enableExample;
+        $("decodeMode").value = "mode";
+        parseNow();
+      });
+      $("loadDisableExample").addEventListener("click", () => {
+        $("parseInput").value = clearFaultExample;
+        $("decodeMode").value = "mode";
+        parseNow();
+      });
+      $("packZeroTau").addEventListener("click", () => {
+        $("tau").value = "0";
+        $("q").value = "0";
+        $("dq").value = "0";
+        $("kp").value = "0";
+        $("kd").value = "0";
+        packNow();
+      });
+
+      parseNow();
+    </script>
+  </body>
+</html>

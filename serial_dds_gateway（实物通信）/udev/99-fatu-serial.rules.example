@@ -1,0 +1,21 @@
+# Fixed serial device names for fatu hardware.
+#
+# Copy this file to:
+#   /etc/udev/rules.d/99-fatu-serial.rules
+#
+# Then replace the placeholder ATTRS{serial} values with each adapter's real serial number.
+# Inspect a plugged device with:
+#   udevadm info -a -n /dev/ttyUSB0 | grep -E 'idVendor|idProduct|serial|KERNELS'
+#
+# Reload after editing:
+#   sudo udevadm control --reload-rules
+#   sudo udevadm trigger
+
+# Motor USB-CAN adapter for bus A: FR=(11,21,31), RR=(13,23,33)
+SUBSYSTEM=="tty", ATTRS{serial}=="CAN0_SERIAL", SYMLINK+="myttyCAN0", MODE="0666"
+
+# Motor USB-CAN adapter for bus B: FL=(12,22,32), RL=(14,24,34)
+SUBSYSTEM=="tty", ATTRS{serial}=="CAN1_SERIAL", SYMLINK+="myttyCAN1", MODE="0666"
+
+# IMU serial adapter
+SUBSYSTEM=="tty", ATTRS{serial}=="IMU_SERIAL", SYMLINK+="myttyIMU", MODE="0666"

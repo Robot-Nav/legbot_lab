@@ -1,0 +1,1 @@
+/usr/bin/c++ -O2 -g -DNDEBUG CMakeFiles/imu_frame_verify.dir/src/imu_frame_verify.cpp.o -o imu_frame_verify  libserial_dds_gateway_core.a 

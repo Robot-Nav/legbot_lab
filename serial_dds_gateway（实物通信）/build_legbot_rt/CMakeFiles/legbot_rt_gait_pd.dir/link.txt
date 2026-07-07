@@ -1,0 +1,1 @@
+/usr/bin/c++ -O2 -g -DNDEBUG CMakeFiles/legbot_rt_gait_pd.dir/src/legbot_rt_gait_pd.cpp.o -o legbot_rt_gait_pd  libserial_dds_gateway_core.a -lunitree_sdk2 -lddscxx -lddsc -lfmt -lpthread -lrt 

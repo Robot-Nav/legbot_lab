@@ -1,0 +1,2 @@
+/usr/bin/ar qc libserial_dds_gateway_core.a CMakeFiles/serial_dds_gateway_core.dir/src/protocol_codec.cpp.o CMakeFiles/serial_dds_gateway_core.dir/src/can_id_codec.cpp.o CMakeFiles/serial_dds_gateway_core.dir/src/serial_framer.cpp.o CMakeFiles/serial_dds_gateway_core.dir/src/lingzu_motor_protocol.cpp.o CMakeFiles/serial_dds_gateway_core.dir/src/imu_framer.cpp.o
+/usr/bin/ranlib libserial_dds_gateway_core.a

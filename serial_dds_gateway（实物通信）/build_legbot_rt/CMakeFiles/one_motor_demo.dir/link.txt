@@ -1,0 +1,1 @@
+/usr/bin/c++ -O2 -g -DNDEBUG CMakeFiles/one_motor_demo.dir/src/one_motor_demo.cpp.o -o one_motor_demo  libserial_dds_gateway_core.a 

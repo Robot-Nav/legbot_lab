@@ -1,0 +1,1 @@
+/usr/bin/c++ -O2 -g -DNDEBUG CMakeFiles/imu_serial_monitor.dir/src/imu_serial_monitor.cpp.o -o imu_serial_monitor  libserial_dds_gateway_core.a 

@@ -1,0 +1,1 @@
+/usr/bin/c++ -O2 -g -DNDEBUG CMakeFiles/dds_to_serial_gateway.dir/src/dds_to_serial_gateway.cpp.o -o dds_to_serial_gateway  libserial_dds_gateway_core.a -lunitree_sdk2 -lddscxx -lddsc -lfmt -lpthread -lrt 

@@ -1,0 +1,11 @@
+/home/orangepi/fatuDog/serial_dds_gateway/build_legbot_rt/CMakeFiles/serial_dds_gateway_core.dir
+/home/orangepi/fatuDog/serial_dds_gateway/build_legbot_rt/CMakeFiles/one_motor_demo.dir
+/home/orangepi/fatuDog/serial_dds_gateway/build_legbot_rt/CMakeFiles/one_motor_serial.dir
+/home/orangepi/fatuDog/serial_dds_gateway/build_legbot_rt/CMakeFiles/twelve_motor_serial.dir
+/home/orangepi/fatuDog/serial_dds_gateway/build_legbot_rt/CMakeFiles/lingzu_frame_verify.dir
+/home/orangepi/fatuDog/serial_dds_gateway/build_legbot_rt/CMakeFiles/imu_frame_verify.dir
+/home/orangepi/fatuDog/serial_dds_gateway/build_legbot_rt/CMakeFiles/imu_serial_monitor.dir
+/home/orangepi/fatuDog/serial_dds_gateway/build_legbot_rt/CMakeFiles/dds_to_serial_gateway.dir
+/home/orangepi/fatuDog/serial_dds_gateway/build_legbot_rt/CMakeFiles/legbot_rt_gait_pd.dir
+/home/orangepi/fatuDog/serial_dds_gateway/build_legbot_rt/CMakeFiles/edit_cache.dir
+/home/orangepi/fatuDog/serial_dds_gateway/build_legbot_rt/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,15 @@
+# Per-motor type1 commands: joint,q,dq,kp,kd,tau
+# Copy and edit for your test. Unknown joints are ignored; missing joints keep CLI defaults.
+joint,q,dq,kp,kd,tau
+FR_hip_joint,0.10,0.0,0.0,0.5,0.0
+FR_thigh_joint,0.80,0.0,0.0,0.5,0.0
+FR_calf_joint,-1.50,0.0,0.0,0.5,0.0
+FL_hip_joint,0.10,0.0,0.0,0.5,0.0
+FL_thigh_joint,0.80,0.0,0.0,0.5,0.0
+FL_calf_joint,-1.50,0.0,0.0,0.5,0.0
+RR_hip_joint,-0.10,0.0,0.0,0.5,0.0
+RR_thigh_joint,0.80,0.0,0.0,0.5,0.0
+RR_calf_joint,-1.50,0.0,0.0,0.5,0.0
+RL_hip_joint,-0.10,0.0,0.0,0.5,0.0
+RL_thigh_joint,0.80,0.0,0.0,0.5,0.0
+RL_calf_joint,-1.50,0.0,0.0,0.5,0.0

@@ -1,0 +1,7 @@
+# EXAMPLE ONLY — replace with your own gateway calibration log.
+# Session: prone power-on, reference = joint_prone_reference.example.txt
+# joint q after gear: [-0.01, 1.09, -2.63, 0.04, 1.07, -2.65, -0.04, 1.10, -2.62, 0.05, 1.07, -2.63]
+# reference:         [-0.02, 1.08, -2.64, 0.03, 1.08, -2.64, -0.05, 1.08, -2.64, 0.06, 1.08, -2.64]
+# bias = measured_joint - reference:
+
+0.0100, 0.0100, 0.0100, 0.0100, -0.0100, -0.0100, 0.0100, 0.0200, 0.0200, -0.0100, -0.0100, 0.0100

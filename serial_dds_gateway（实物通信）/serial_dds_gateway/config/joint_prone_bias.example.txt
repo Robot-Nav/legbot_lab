@@ -1,0 +1,12 @@
+# Joint bias in MODEL space (joint-model), motor order FR/FL/RR/RL hip/thigh/calf.
+# bias[i] = (gear_scale[i] * q_motor_measured[i]) - q_reference[i]
+# Copy ONE line of 12 floats to joint_prone_bias.txt after calibration.
+#
+# Get values from gateway log:
+#   [INFO] joint bias (joint-model space): [ ... ]
+#
+# Or compute: bias = "joint q after gear" - reference (see joint_prone_reference.example.txt)
+#
+# Below: placeholder (all zero = no extra offset). Replace with your robot's calibrated line.
+
+0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000

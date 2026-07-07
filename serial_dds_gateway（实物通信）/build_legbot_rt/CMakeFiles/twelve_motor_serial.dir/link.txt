@@ -1,0 +1,1 @@
+/usr/bin/c++ -O2 -g -DNDEBUG CMakeFiles/twelve_motor_serial.dir/src/twelve_motor_serial.cpp.o -o twelve_motor_serial  libserial_dds_gateway_core.a 

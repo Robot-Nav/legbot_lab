@@ -1,0 +1,619 @@
+四足机器人用 **PPO 训练后做 sim2real**，不要只盯着“奖励函数”和“域随机化”。真正需要关注的是这几大块：
+
+```text
+奖励函数
+域随机化
+观测空间
+动作空间
+仿真模型
+电机/执行器模型
+控制频率与延迟
+状态估计
+地形课程
+安全保护
+实物部署接口
+实物测试流程
+```
+
+其中最容易影响 sim2real 成败的是：**执行器模型、延迟、摩擦/质量随机化、观测噪声、动作平滑、状态估计一致性**。Google 的早期四足 sim2real 工作就强调了系统辨识、准确执行器模型、延迟模拟、物理环境随机化、扰动和紧凑观测空间的重要性。([arXiv][1]) ETH 的 `legged_gym` 也明确包含 actuator network、摩擦和质量随机化、观测噪声、随机推力等 sim2real 组件。([GitHub][2])
+
+---
+
+## 1. 奖励函数需要关注什么
+
+奖励函数不是越多越好，而是要保证学出来的策略**能走、稳、平滑、省力、不过度依赖仿真漏洞**。
+
+常见奖励可以分成这几类：
+
+| 奖励项              | 作用                     |
+| ---------------- | ---------------------- |
+| 线速度跟踪            | 让机器人按目标 `vx, vy` 走     |
+| 角速度跟踪            | 让机器人按目标 `yaw_rate` 转向  |
+| base 高度奖励        | 保持机身高度稳定               |
+| base 姿态奖励        | 抑制 roll / pitch 过大     |
+| 关节力矩惩罚           | 降低能耗，避免实物电机过热          |
+| 关节速度惩罚           | 减少高频抖动                 |
+| 关节加速度惩罚          | 提高动作平滑性                |
+| action rate 惩罚   | 防止相邻动作变化过大             |
+| 足端滑移惩罚           | 减少接触脚在地面上打滑            |
+| 足端碰撞惩罚           | 防止小腿、大腿撞地              |
+| feet air time 奖励 | 鼓励形成合理摆腿周期             |
+| 接触模式奖励           | 引导 trot、pace、bound 等步态 |
+| 终止惩罚             | 摔倒、翻车、姿态过大时惩罚          |
+
+比较常见的奖励结构可以写成：
+
+```text
+r = r_velocity_tracking
+  + r_yaw_tracking
+  + r_base_stability
+  + r_gait
+  - r_torque
+  - r_joint_velocity
+  - r_joint_acceleration
+  - r_action_rate
+  - r_foot_slip
+  - r_collision
+```
+
+速度跟踪通常写成指数形式：
+
+```text
+r_v = exp(-||v_cmd - v_base||² / σ)
+```
+
+角速度跟踪类似：
+
+```text
+r_yaw = exp(-(yaw_rate_cmd - yaw_rate)² / σ)
+```
+
+实物部署时，特别要注意这些惩罚项：
+
+```text
+torque penalty
+action rate penalty
+joint acceleration penalty
+foot slip penalty
+orientation penalty
+collision penalty
+```
+
+因为仿真里策略可能学出很激进的高频动作，但实物上会表现成：**电机发热、关节抖动、脚端打滑、机器人抽搐、摔倒**。
+
+---
+
+## 2. 域随机化需要关注什么
+
+域随机化是 sim2real 的核心，但不是“随机得越大越好”。太小会过拟合仿真，太大会导致训练不收敛。
+
+推荐关注这些：
+
+| 随机化对象                | 作用                 |
+| -------------------- | ------------------ |
+| 机身质量                 | 适应建模误差、负载变化        |
+| 各 link 质量            | 适应 URDF/MJCF 参数不准  |
+| 质心位置                 | 适应电池、传感器、线缆造成的重心偏差 |
+| 地面摩擦系数               | 适应木板、水泥、橡胶、草地、湿滑地面 |
+| 地面恢复系数               | 影响足端碰撞反弹           |
+| 电机强度 scale           | 适应电机输出不足或个体差异      |
+| PD stiffness/damping | 适应底层控制器误差          |
+| 关节摩擦/阻尼              | 适应真实关节阻力           |
+| 观测噪声                 | 适应 IMU、编码器噪声       |
+| 动作延迟                 | 适应策略输出到电机执行的延迟     |
+| 通信延迟                 | 适应板端/上位机通信延迟       |
+| 随机外力 push            | 提高抗扰动能力            |
+| 地形高度                 | 适应不平地形             |
+| 初始姿态                 | 适应不同起步状态           |
+
+`legged_gym` 里常见的 sim2real 配置就是：**friction randomization、mass randomization、noisy observations、random pushes、actuator network**。([GitHub][2]) RMA 这类方法进一步强调，实物部署还会遇到不同地形、负载、磨损等仿真没完全覆盖的变化，因此需要在线适应或隐变量估计。([arXiv][3])
+
+可以这样分类：
+
+```text
+动力学随机化：
+mass, inertia, COM, link mass, joint damping, joint friction
+
+接触随机化：
+ground friction, restitution, terrain height, contact stiffness, contact damping
+
+执行器随机化：
+motor strength, torque limit, PD gains, action delay, actuator lag
+
+传感器随机化：
+IMU noise, joint position noise, joint velocity noise, projected gravity noise
+
+环境随机化：
+random push, slope, stairs, rough terrain, obstacles
+
+任务随机化：
+command velocity, command yaw rate, initial pose, episode length
+```
+
+---
+
+## 3. 观测空间要重点检查
+
+PPO 策略输入什么，实物就必须能稳定提供什么。不要在训练时用了实物没有的“特权信息”。
+
+常见观测包括：
+
+```text
+base angular velocity
+projected gravity
+command velocity
+joint position
+joint velocity
+previous action
+```
+
+有些训练会用：
+
+```text
+base linear velocity
+foot contact state
+terrain height scan
+body height
+external force
+friction coefficient
+```
+
+这些要小心。比如 `base linear velocity` 在实物上通常不是直接测量，需要状态估计；`friction coefficient`、真实地形高度、外力等属于 privileged information，实物上没有。训练时如果用了这些，部署会失败，除非你做 teacher-student 或 adaptation module。
+
+实物部署时更推荐使用：
+
+```text
+IMU角速度
+IMU姿态/重力方向
+关节角
+关节速度
+上一时刻动作
+期望速度命令
+```
+
+如果你要用地形高度、足端接触、机身速度，必须确认实物能可靠估计。
+
+---
+
+## 4. 动作空间要设计清楚
+
+四足 PPO 常见动作有三种：
+
+| 动作形式    | 含义                               | 优点      | 风险      |
+| ------- | -------------------------------- | ------- | ------- |
+| 关节目标位置  | policy 输出 q_des                  | 最常见，稳定  | 依赖底层 PD |
+| 关节力矩    | policy 输出 torque                 | 控制直接    | 实物风险高   |
+| 足端位置/残差 | policy 输出 foot target 或 residual | 可结合传统控制 | 工程复杂    |
+
+最常见是：
+
+```text
+action = target_joint_position_offset
+q_des = q_nominal + action_scale * action
+torque = Kp * (q_des - q) + Kd * (qd_des - qd)
+```
+
+部署时一定要检查：
+
+```text
+action_scale 是否过大
+q_des 是否超关节限位
+torque 是否超电机限制
+相邻 action 是否变化过快
+policy 输出频率是否和训练一致
+```
+
+如果仿真中 action 是 50 Hz，实物上也尽量保持 50 Hz；如果训练是 100 Hz，部署变成 30 Hz，策略通常会明显退化。
+
+---
+
+## 5. 执行器模型非常关键
+
+这是很多 sim2real 失败的核心原因。
+
+仿真里如果直接用理想 PD 或理想 torque，实物上会出现明显偏差。真实电机有：
+
+```text
+力矩限制
+速度限制
+电流限制
+响应延迟
+摩擦
+齿隙
+温度影响
+低层控制器滤波
+通信延迟
+```
+
+所以训练时最好加入：
+
+```text
+motor strength randomization
+PD gain randomization
+action delay
+torque clipping
+joint friction
+actuator network / actuator model
+```
+
+ETH 的早期 ANYmal 强化学习工作就是通过在仿真中训练策略并转移到真实四足机器人上实现动态运动；这类工作通常都会非常重视仿真动力学和执行器建模。([科学杂志][4])
+
+---
+
+## 6. 控制频率和延迟要保持一致
+
+训练和部署必须明确这些频率：
+
+```text
+仿真物理步长 dt
+policy 推理频率
+底层 PD 控制频率
+状态估计频率
+电机通信频率
+```
+
+例如：
+
+```text
+physics dt = 0.002 s      # 500 Hz
+control decimation = 10
+policy frequency = 50 Hz
+PD frequency = 500 Hz
+```
+
+如果训练时是：
+
+```text
+policy 50 Hz
+PD 500 Hz
+```
+
+实物也应该尽量保持这个结构。
+
+还要模拟：
+
+```text
+observation delay
+action delay
+communication delay
+IMU delay
+joint encoder delay
+```
+
+延迟不处理，实物上容易表现为：**身体前后晃、腿频繁抖动、速度跟踪滞后、转向不稳**。
+
+---
+
+## 7. 地形和课程学习也很重要
+
+如果直接让机器人从随机复杂地形开始学，PPO 可能不收敛。一般用 curriculum：
+
+```text
+平地走稳
+小速度命令
+大速度命令
+随机转向
+小坡度
+粗糙地形
+台阶/障碍
+随机推力
+```
+
+Rudin 等人的 massively parallel DRL 工作就提出了适合大量并行机器人的课程学习方法，并将策略转移到真实 ANYmal 上验证。([arXiv][5])
+
+常见 terrain curriculum：
+
+```text
+plane
+rough plane
+slope
+stairs
+discrete obstacles
+stepping stones
+gaps
+```
+
+如果你的目标只是实物平地 trot，不建议一开始就把地形做得太复杂。可以先做：
+
+```text
+平地 + 摩擦随机化 + 质量随机化 + 推力扰动
+```
+
+跑稳后再加：
+
+```text
+斜坡 + 粗糙地形 + 低台阶
+```
+
+---
+
+## 8. PPO 训练本身要关注
+
+PPO 训练时要看这些指标：
+
+```text
+episode reward 是否稳定上升
+velocity tracking reward 是否提升
+torque penalty 是否过大
+action rate 是否过大
+摔倒率是否下降
+步态是否对称
+足端是否频繁打滑
+机身是否抖动
+```
+
+不要只看总 reward。总 reward 高，不代表能上实物。
+
+还要注意：
+
+```text
+obs normalization
+reward scale
+action clipping
+entropy coefficient
+learning rate
+clip range
+GAE lambda
+batch size
+num environments
+episode length
+```
+
+如果 reward scale 不合理，策略可能会学出奇怪行为，比如：
+
+```text
+为了省力不走
+为了跟踪速度疯狂抖腿
+为了 feet air time 跳跃
+为了避免摔倒趴着滑行
+```
+
+---
+
+## 9. 状态估计要和训练一致
+
+训练里如果观测是仿真真值，实物上如果用估计值，两者差异会很大。
+
+重点检查：
+
+```text
+base orientation 来自 IMU 还是仿真真值？
+base angular velocity 是否滤波？
+base linear velocity 是否使用？
+足端接触是否真实可测？
+关节速度是否滤波？
+IMU 坐标系和机器人坐标系是否一致？
+```
+
+实物部署前要检查坐标系：
+
+```text
+x 前方
+y 左方
+z 上方
+roll pitch yaw 方向
+关节正方向
+电机编号
+腿编号顺序
+```
+
+四足里腿顺序经常出错，比如：
+
+```text
+FL FR RL RR
+FR FL RR RL
+```
+
+一旦顺序错，仿真里学得再好，上实物也会直接乱动。
+
+---
+
+## 10. 实物安全保护必须有
+
+上实物前必须加 safety layer：
+
+```text
+关节位置限幅
+关节速度限幅
+力矩限幅
+action 低通滤波
+急停开关
+姿态保护
+高度保护
+电机温度保护
+电流保护
+通信超时保护
+摔倒检测
+```
+
+常用保护逻辑：
+
+```text
+if abs(roll) > threshold:
+    stop_policy()
+
+if abs(pitch) > threshold:
+    stop_policy()
+
+if joint_position out of limit:
+    stop_policy()
+
+if torque too large:
+    clip_torque()
+
+if command timeout:
+    set velocity command = 0
+```
+
+第一次上实物不要直接给大速度。建议流程：
+
+```text
+吊起来空跑
+低刚度站立
+原地踏步
+低速前进
+低速转向
+小扰动测试
+增加速度
+复杂地形测试
+```
+
+---
+
+## 11. MuJoCo 中还要额外关注这些
+
+如果你用 MuJoCo 训练或验证，重点检查：
+
+```text
+MJCF / URDF 模型是否准确
+body mass 是否正确
+inertia 是否合理
+joint axis 是否正确
+joint range 是否正确
+actuator gear 是否正确
+motor ctrlrange 是否正确
+friction 参数是否合理
+contact solref / solimp 是否合理
+timestep 是否足够小
+solver 是否稳定
+```
+
+尤其是：
+
+```xml
+<body>
+<joint>
+<geom>
+<actuator>
+```
+
+这几个地方必须和实物一致。
+
+容易出问题的是：
+
+```text
+质量单位错
+惯量太小或太大
+关节轴方向反了
+电机正负号反了
+腿部左右镜像错
+足端摩擦太理想
+接触太硬或太软
+控制频率和训练频率不一致
+```
+
+---
+
+## 12. 还可以关注 teacher-student / adaptation
+
+普通 PPO + domain randomization 可以完成基础 sim2real，但如果希望适应不同地形、不同负载、打滑、磨损，可以考虑：
+
+```text
+teacher-student
+privileged learning
+RMA
+history encoder
+latent adaptation
+```
+
+RMA 的核心思想是：策略不仅根据当前本体感觉控制机器人，还通过适应模块从历史观测中估计环境/动力学隐变量，从而适应地形、负载、磨损等变化；论文中展示了在 A1 上无需实物微调的部署。([arXiv][3]) `rsl_rl` 现在也把 PPO 和 Student-Teacher Distillation 作为面向机器人学习的重要方法支持。([GitHub][6])
+
+---
+
+## 你可以按这个清单理解 PPO 四足 sim2real
+
+### 训练阶段关注
+
+```text
+奖励函数是否合理
+观测空间是否能在实物获得
+动作空间是否适合实物执行
+PPO 参数是否稳定
+课程学习是否合理
+是否加入扰动
+是否加入地形变化
+是否加入域随机化
+```
+
+### 仿真阶段关注
+
+```text
+机器人模型质量/惯量是否准确
+关节方向是否正确
+电机模型是否接近真实
+摩擦和接触是否合理
+控制频率是否和实物一致
+延迟是否模拟
+传感器噪声是否模拟
+```
+
+### 部署阶段关注
+
+```text
+模型导出格式
+推理频率
+obs normalization 参数
+action scale 参数
+关节编号映射
+坐标系映射
+PD 参数
+低通滤波
+安全限幅
+急停保护
+```
+
+### 实物测试阶段关注
+
+```text
+先吊起来测试
+再低速站立
+再原地踏步
+再低速行走
+逐步增加速度
+记录真实数据
+对比仿真和实物关节轨迹
+根据误差调整随机化范围和 actuator model
+```
+
+---
+
+## 最重要的总结
+
+如果你写项目或者做实验，可以这样概括：
+
+> 四足机器人采用 PPO 训练并进行 sim2real 时，需要从奖励函数、域随机化、观测/动作空间、执行器建模、控制频率、通信延迟、状态估计、地形课程学习和实物安全保护等方面保证仿真策略具备鲁棒性。其中，奖励函数负责约束速度跟踪、姿态稳定、能耗和平滑性；域随机化用于覆盖质量、摩擦、质心、电机强度、观测噪声和外部扰动等现实不确定性；执行器模型、延迟建模和状态估计一致性则直接决定策略能否稳定迁移到真实机器人。
+
+最关键的几个词是：
+
+```text
+reward design
+domain randomization
+actuator modeling
+latency modeling
+observation noise
+action smoothness
+state estimation
+safety layer
+curriculum learning
+hardware validation
+```
+
+如果你是用 **Unitree Go2 / A1 + MuJoCo / Isaac Gym**，建议优先把这几项做好：
+
+```text
+1. 关节编号和方向映射
+2. action_scale 和 PD 参数
+3. friction / mass / COM randomization
+4. action delay 和 observation noise
+5. torque limit 和 joint limit
+6. action rate penalty
+7. 低速吊装测试
+8. 实物日志和仿真日志对比
+```
+
+[1]: https://arxiv.org/abs/1804.10332?utm_source=chatgpt.com "Sim-to-Real: Learning Agile Locomotion For Quadruped Robots"
+[2]: https://github.com/leggedrobotics/legged_gym?utm_source=chatgpt.com "Isaac Gym Environments for Legged Robots · ..."
+[3]: https://arxiv.org/abs/2107.04034?utm_source=chatgpt.com "RMA: Rapid Motor Adaptation for Legged Robots"
+[4]: https://www.science.org/doi/10.1126/scirobotics.aau5872?utm_source=chatgpt.com "Learning agile and dynamic motor skills for legged robots"
+[5]: https://arxiv.org/abs/2109.11978?utm_source=chatgpt.com "Learning to Walk in Minutes Using Massively Parallel Deep Reinforcement Learning"
+[6]: https://github.com/leggedrobotics/rsl_rl?utm_source=chatgpt.com "leggedrobotics/rsl_rl: A fast and simple implementation of ..."
