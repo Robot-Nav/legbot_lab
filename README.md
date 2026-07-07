@@ -4,10 +4,7 @@
 
 **MoE-CTS: Mixture of Experts Concurrent Teacher-Student Reinforcement Learning for Quadruped Locomotion**
 
-[![Project Page](https://img.shields.io/badge/Project-Page-green.svg)](https://robogauge.github.io/complete/)
-[![RSS 2026 Paper](https://img.shields.io/badge/Paper-RSS%202026-blue.svg)](https://robogauge.github.io/static/files/arxiv.pdf)
-[![arXiv](https://img.shields.io/badge/arXiv-2602.00678-b31b1b.svg)](https://arxiv.org/abs/2602.00678)
-[![IsaacGym go2_rl_gym](https://img.shields.io/badge/IsaacGym-go2__rl__gym-orange.svg)](https://github.com/wty-yy/go2_rl_gym)
+[中文文档 (Chinese README)](README_cn.md) | [技术文档 (Technical Doc)](TECHNICAL_DOC_zh.md)
 
 </div>
 
