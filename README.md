@@ -532,6 +532,7 @@ This project is based on the following open-source works:
 Relevant paper:
 
 - [CTS: Concurrent Teacher-Student Reinforcement Learning for Legged Locomotion](https://arxiv.org/pdf/2405.10830)
+- [MOE](https://zhuanlan.zhihu.com/p/542465517)
 
 ---
 
