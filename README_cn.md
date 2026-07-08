@@ -1,4 +1,4 @@
-# LegBot RL RobotLab
+#<div align="center"> LegBot RL RobotLab</div>
 
 <div align="center">
 
@@ -642,7 +642,7 @@ xml_path: "{ROOT_DIR}/resources/legbot/stairs_and_slope.xml"
 - [rsl_rl](https://github.com/leggedrobotics/rsl_rl) — 强化学习算法库
 - [robot_lab](https://github.com/fan-ziqi/robot_lab) — IsaacLab 机器人 RL 扩展
 - [MuJoCo](https://github.com/google-deepmind/mujoco) — 高性能物理仿真器
-- [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym) — IsaacGym 版 Go2 RL 训练（原始实现）
+- [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym) — IsaacGym 版 Go2 RL 训练（原始实现）,在此推荐该大佬的项目，点赞；
 
 相关论文：
 
