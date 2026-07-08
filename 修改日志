@@ -1,0 +1,43 @@
+# LegBot 模型参数修改日志
+
+## 2026-07-08
+
+### 质量参数更新
+
+| 部件 | 原值 (kg) | 新值 (kg) |
+|------|----------|----------|
+| base (基座) | 6.583964 | **7.09** |
+| thigh (大腿) ×4 | 1.55038 | **1.456** |
+| hip (髋关节) ×4 | 0.079643 | 不变 |
+| calf (小腿) ×4 | 0.183986 | 不变 |
+| foot (足端) ×4 | 0.04 | **0.025** |
+
+### 基座碰撞几何体更新
+
+| 参数 | 原值 (m) | 新值 (cm→m) |
+|------|---------|-------------|
+| box X (半宽) | 0.133329 | **0.135** (27cm÷2) |
+| box Y (半宽) | 0.101205 | **0.105** (21cm÷2) |
+| box Z (半高) | 0.068913 | **0.055** (11cm÷2) |
+
+### 基座质心更新
+
+| 轴 | 原值 (m) | 新值 (cm→m) |
+|----|---------|-------------|
+| X | -0.005 | **-0.012** (-1.2cm) |
+| Y | 0 | **0.002** (0.2cm) |
+| Z | 0 | **0.001** (0.1cm) |
+
+### 修改文件清单
+
+**go2_rl_robotlab 项目 (7 文件):**
+- `legbot_description/legbot_training.xml`
+- `legbot_description/meshes/legbot.xml`
+- `legbot_description/urdf/legbot_description.urdf`
+- `legbot/xmls/legbot.xml`
+- `legbot/xmls/mjmodel.xml`
+- `resources/legbot/legbot.xml`
+- `resources/legbot/urdf/legbot.urdf`
+
+**vbot_mujoco 项目 (1 文件):**
+- `legbot/xmls/legbot.xml`

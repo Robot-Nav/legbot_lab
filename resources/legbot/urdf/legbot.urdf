@@ -2,8 +2,8 @@
 <robot name="legbot_description">
   <link name="base">
     <inertial>
-      <origin xyz="-0.005 0 0" rpy="0 0 0" />
-      <mass value="6.583964" />
+      <origin xyz="-0.012 0.002 0.001" rpy="0 0 0" />
+      <mass value="7.09" />
       <inertia ixx="0.044277" ixy="-0.000146" ixz="-0.024292" iyy="0.105409" iyz="-0.000032" izz="0.091875" />
     </inertial>
     <visual>
@@ -17,7 +17,7 @@
     </collision>
     <collision>
       <origin xyz="0 0 0.004583" rpy="0 0 0" />
-      <geometry><box size="0.266658 0.20241 0.137826" /></geometry>
+      <geometry><box size="0.27 0.21 0.11" /></geometry>
     </collision>
   </link>
 
@@ -47,7 +47,7 @@
   <link name="FR_thigh">
     <inertial>
       <origin xyz="-0.000498 0.038065 -0.024467" rpy="0 0 0" />
-      <mass value="1.55038" />
+      <mass value="1.456" />
       <inertia ixx="0.00679074" ixy="0" ixz="0" iyy="0.00586921" iyz="0" izz="0.00204705" />
     </inertial>
     <visual>
@@ -91,7 +91,7 @@
   </joint>
 
   <link name="FR_foot">
-    <inertial><origin xyz="0 0 0" rpy="0 0 0" /><mass value="0.04" /><inertia ixx="9.6e-06" ixy="0" ixz="0" iyy="9.6e-06" iyz="0" izz="9.6e-06" /></inertial>
+    <inertial><origin xyz="0 0 0" rpy="0 0 0" /><mass value="0.025" /><inertia ixx="9.6e-06" ixy="0" ixz="0" iyy="9.6e-06" iyz="0" izz="9.6e-06" /></inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry><mesh filename="package://legbot/meshes/FR_foot.STL" /></geometry>
@@ -133,7 +133,7 @@
   <link name="FL_thigh">
     <inertial>
       <origin xyz="-0.000498 -0.038065 -0.024467" rpy="0 0 0" />
-      <mass value="1.55038" />
+      <mass value="1.456" />
       <inertia ixx="0.00679074" ixy="0" ixz="0" iyy="0.00586921" iyz="0" izz="0.00204705" />
     </inertial>
     <visual>
@@ -177,7 +177,7 @@
   </joint>
 
   <link name="FL_foot">
-    <inertial><origin xyz="0 0 0" rpy="0 0 0" /><mass value="0.04" /><inertia ixx="9.6e-06" ixy="0" ixz="0" iyy="9.6e-06" iyz="0" izz="9.6e-06" /></inertial>
+    <inertial><origin xyz="0 0 0" rpy="0 0 0" /><mass value="0.025" /><inertia ixx="9.6e-06" ixy="0" ixz="0" iyy="9.6e-06" iyz="0" izz="9.6e-06" /></inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry><mesh filename="package://legbot/meshes/FL_foot.STL" /></geometry>
@@ -219,7 +219,7 @@
   <link name="RR_thigh">
     <inertial>
       <origin xyz="-0.000498 0.038065 -0.024467" rpy="0 0 0" />
-      <mass value="1.55038" />
+      <mass value="1.456" />
       <inertia ixx="0.00679074" ixy="0" ixz="0" iyy="0.00586921" iyz="0" izz="0.00204705" />
     </inertial>
     <visual>
@@ -263,7 +263,7 @@
   </joint>
 
   <link name="RR_foot">
-    <inertial><origin xyz="0 0 0" rpy="0 0 0" /><mass value="0.04" /><inertia ixx="9.6e-06" ixy="0" ixz="0" iyy="9.6e-06" iyz="0" izz="9.6e-06" /></inertial>
+    <inertial><origin xyz="0 0 0" rpy="0 0 0" /><mass value="0.025" /><inertia ixx="9.6e-06" ixy="0" ixz="0" iyy="9.6e-06" iyz="0" izz="9.6e-06" /></inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry><mesh filename="package://legbot/meshes/RR_foot.STL" /></geometry>
@@ -305,7 +305,7 @@
   <link name="RL_thigh">
     <inertial>
       <origin xyz="-0.000498 -0.038065 -0.024467" rpy="0 0 0" />
-      <mass value="1.55038" />
+      <mass value="1.456" />
       <inertia ixx="0.00679074" ixy="0" ixz="0" iyy="0.00586921" iyz="0" izz="0.00204705" />
     </inertial>
     <visual>
@@ -349,7 +349,7 @@
   </joint>
 
   <link name="RL_foot">
-    <inertial><origin xyz="0 0 0" rpy="0 0 0" /><mass value="0.04" /><inertia ixx="9.6e-06" ixy="0" ixz="0" iyy="9.6e-06" iyz="0" izz="9.6e-06" /></inertial>
+    <inertial><origin xyz="0 0 0" rpy="0 0 0" /><mass value="0.025" /><inertia ixx="9.6e-06" ixy="0" ixz="0" iyy="9.6e-06" iyz="0" izz="9.6e-06" /></inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry><mesh filename="package://legbot/meshes/RL_foot.STL" /></geometry>

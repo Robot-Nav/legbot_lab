@@ -69,10 +69,10 @@
       <geom name="arrow_head" pos="0.28 -0.3 0.09" quat="0.707107 0 0.707107 0" type="mesh" contype="0" conaffinity="0" material="target_green" mesh="arrow_cone"/>
     </body>
     <body name="base" childclass="vita" pos="0 0 0.462">
-      <inertial pos="-0.005 0 0" mass="6.583964" fullinertia="0.044277 0.105409 0.091875 -0.000146 -0.024292 -0.000032"/>
+      <inertial pos="-0.012 0.002 0.001" mass="7.09" fullinertia="0.044277 0.105409 0.091875 -0.000146 -0.024292 -0.000032"/>
       <joint name="joint_fixed_world" type="free" limited="false" actuatorfrclimited="false" armature="0" damping="0" frictionloss="0"/>
       <geom class="visual" rgba="0.752941 0.752941 0.752941 1" mesh="base_link"/>
-      <geom name="collision_middle_box" class="collision" size="0.133329 0.101205 0.068913" pos="0 0 0.004583" type="box"/>
+      <geom name="collision_middle_box" class="collision" size="0.135 0.105 0.055" pos="0 0 0.004583" type="box"/>
       <geom name="collision_front_dangban_box" class="collision" size="0.0058255 0.029011 0.029011" pos="0.247938 0 0.006492" type="box"/>
       <geom name="collision_back_dangban_box" class="collision" size="0.0058255 0.029011 0.023818" pos="-0.249278 0 0.006492" type="box"/>
       <geom name="collision_low_bar_FL_box" class="collision" size="0.008 0.008 0.0065" pos="0.083 0.042 -0.086" type="box"/>
@@ -85,7 +85,7 @@
         <joint name="FR_hip_joint" class="R_hip_joint" pos="0 0 0" axis="1 0 0"/>
         <geom class="visual" rgba="0.898039 0.917647 0.929412 1" mesh="FR_hip"/>
         <body name="FR_thigh" pos="0 -0.0975 0">
-          <inertial pos="-0.000498 0.038065 -0.024467" quat="0.975282 -0.219111 0.024734 0.0142991" mass="1.55038" diaginertia="0.00679074 0.00586921 0.00204705"/>
+          <inertial pos="-0.000498 0.038065 -0.024467" quat="0.975282 -0.219111 0.024734 0.0142991" mass="1.456" diaginertia="0.00679074 0.00586921 0.00204705"/>
           <joint name="FR_thigh_joint" class="F_thigh_joint" pos="0 0 0" axis="0 1 0"/>
           <geom class="visual" rgba="0.498039 0.498039 0.498039 1" mesh="FR_thigh"/>
           <geom name="collision_mainlink_box" class="collision" size="0.0129095 0.013 0.06282" pos="-0.029488 -0.000724 -0.10287" quat="0.999071 0 -0.0430946 0" type="box"/>
@@ -113,7 +113,7 @@
         <joint name="FL_hip_joint" class="L_hip_joint" pos="0 0 0" axis="1 0 0"/>
         <geom class="visual" rgba="1 1 1 1" mesh="FL_hip"/>
         <body name="FL_thigh" pos="0 0.0975 0">
-          <inertial pos="-0.000498 -0.038065 -0.024467" quat="0.975282 0.219111 0.024734 -0.0142991" mass="1.55038" diaginertia="0.00679074 0.00586921 0.00204705"/>
+          <inertial pos="-0.000498 -0.038065 -0.024467" quat="0.975282 0.219111 0.024734 -0.0142991" mass="1.456" diaginertia="0.00679074 0.00586921 0.00204705"/>
           <joint name="FL_thigh_joint" class="F_thigh_joint" pos="0 0 0" axis="0 1 0"/>
           <geom class="visual" rgba="0.498039 0.498039 0.498039 1" mesh="FL_thigh"/>
           <geom class="collision" size="0.0129095 0.013 0.06282" pos="-0.029488 0.000724 -0.10287" quat="0.999071 0 -0.0430946 0" type="box"/>
@@ -141,7 +141,7 @@
         <joint name="RR_hip_joint" class="R_hip_joint" pos="0 0 0" axis="1 0 0"/>
         <geom class="visual" rgba="0.898039 0.917647 0.929412 1" mesh="RR_hip"/>
         <body name="RR_thigh" pos="0 -0.0975 0">
-          <inertial pos="-0.000498 0.038065 -0.024467" quat="0.975282 -0.219111 0.024734 0.0142991" mass="1.55038" diaginertia="0.00679074 0.00586921 0.00204705"/>
+          <inertial pos="-0.000498 0.038065 -0.024467" quat="0.975282 -0.219111 0.024734 0.0142991" mass="1.456" diaginertia="0.00679074 0.00586921 0.00204705"/>
           <joint name="RR_thigh_joint" class="R_thigh_joint" pos="0 0 0" axis="0 1 0"/>
           <geom class="visual" rgba="0.498039 0.498039 0.498039 1" mesh="RR_thigh"/>
           <geom class="collision" size="0.0129095 0.013 0.06282" pos="-0.029488 -0.000724 -0.10287" quat="0.999071 0 -0.0430946 0" type="box"/>
@@ -169,7 +169,7 @@
         <joint name="RL_hip_joint" class="L_hip_joint" pos="0 0 0" axis="1 0 0"/>
         <geom class="visual" rgba="1 1 1 1" mesh="RL_hip"/>
         <body name="RL_thigh" pos="0 0.0975 0">
-          <inertial pos="-0.000498 -0.038065 -0.024467" quat="0.975282 0.219111 0.024734 -0.0142991" mass="1.55038" diaginertia="0.00679074 0.00586921 0.00204705"/>
+          <inertial pos="-0.000498 -0.038065 -0.024467" quat="0.975282 0.219111 0.024734 -0.0142991" mass="1.456" diaginertia="0.00679074 0.00586921 0.00204705"/>
           <joint name="RL_thigh_joint" class="R_thigh_joint" pos="0 0 0" axis="0 1 0"/>
           <geom class="visual" rgba="0.498039 0.498039 0.498039 1" mesh="RL_thigh"/>
           <geom class="collision" size="0.0129095 0.013 0.06282" pos="-0.029488 0.000724 -0.10287" quat="0.999071 0 -0.0430946 0" type="box"/>

@@ -102,8 +102,8 @@
     
     <body name="base" pos="0 0 0.462" childclass="vita">
       <inertial
-                pos="-0.005 0 0"
-                mass="6.583964"
+                pos="-0.012 0.002 0.001"
+                mass="7.09"
                 fullinertia="0.044277 0.105409 0.091875 -0.000146 -0.024292 -0.000032"
             />
       <freejoint name="joint_fixed_world" />
@@ -181,7 +181,7 @@
           <inertial
                         pos="-0.000498 0.038065 -0.024467"
                         quat="0.975282 -0.219111 0.024734 0.0142991"
-                        mass="1.55038"
+                        mass="1.456"
                         diaginertia="0.00679074 0.00586921 0.00204705"
                     />
           <joint name="FR_thigh_joint" class="F_thigh_joint" />
@@ -303,7 +303,7 @@
           <inertial
                         pos="-0.000498 -0.038065 -0.024467"
                         quat="0.975282 0.219111 0.024734 -0.0142991"
-                        mass="1.55038"
+                        mass="1.456"
                         diaginertia="0.00679074 0.00586921 0.00204705"
                     />
           <joint name="FL_thigh_joint" class="F_thigh_joint" />
@@ -422,7 +422,7 @@
           <inertial
                         pos="-0.000498 0.038065 -0.024467"
                         quat="0.975282 -0.219111 0.024734 0.0142991"
-                        mass="1.55038"
+                        mass="1.456"
                         diaginertia="0.00679074 0.00586921 0.00204705"
                     />
           <joint name="RR_thigh_joint" class="R_thigh_joint" />
@@ -536,7 +536,7 @@
           <inertial
                         pos="-0.000498 -0.038065 -0.024467"
                         quat="0.975282 0.219111 0.024734 -0.0142991"
-                        mass="1.55038"
+                        mass="1.456"
                         diaginertia="0.00679074 0.00586921 0.00204705"
                     />
           <joint name="RL_thigh_joint" class="R_thigh_joint" />
