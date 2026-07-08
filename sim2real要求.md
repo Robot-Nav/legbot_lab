@@ -131,6 +131,7 @@ cp /home/fatu06/workspace/fatuDog/unitree_rl_lab/deploy/robots/fatu/build/fatu_c
 ```bash
 cd /home/fatu06/workspace/fatuDog/serial_dds_gateway
 
+非在线：
 ./build/dds_to_serial_gateway \
   --serial-port-a /dev/myttyCAN0 \
   --serial-port-b /dev/myttyCAN1 \
@@ -145,6 +146,10 @@ cd /home/fatu06/workspace/fatuDog/serial_dds_gateway
   --imu-gyro-calib-seconds 4 \
   --imu-gyro-deadzone 0.03 \
   --joint-bias-calib-seconds 2
+
+在线：
+
+多加一行  --joint-bias-calib \
 ```
 
 首次标定用上面命令；已有 `config/joint_prone_bias.fatu.txt` 时见下文 [方式 B](#422-方式-b固定-bias-配置文件推荐重复开机)（`--joint-bias-load-file` + `--no-joint-bias-calib`）。

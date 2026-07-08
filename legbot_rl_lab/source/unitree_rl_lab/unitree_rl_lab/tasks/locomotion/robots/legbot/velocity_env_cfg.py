@@ -122,7 +122,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="base"),
-            # 14kg实机基准，base约6.58kg，总质量随机12~16kg
+            # base 7.09kg，±1.5kg随机化
             "mass_distribution_params": (-1.5, 1.5),
             "operation": "add",                         # 增加操作
         },
