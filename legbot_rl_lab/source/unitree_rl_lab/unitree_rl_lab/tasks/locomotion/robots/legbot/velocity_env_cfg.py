@@ -122,8 +122,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="base"),
-            # base 7.09kg，±1.5kg随机化
-            "mass_distribution_params": (-1.5, 1.5),
+            # base 7.09kg，±1.0kg随机化
+            "mass_distribution_params": (-1.0, 1.0),
             "operation": "add",                         # 增加操作
         },
     )
@@ -134,7 +134,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="base"),
-            "com_range": {"x": (-0.02, 0.02), "y": (-0.02, 0.02), "z": (-0.02, 0.02)},  # ±2cm 覆盖 sim2real COM 偏置
+            "com_range": {"x": (-0.01, 0.01), "y": (-0.005, 0.005), "z": (-0.002, 0.002)},  # ±1cm 覆盖 sim2real COM 偏置
         },
     )
 
@@ -144,7 +144,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="^(?!.*base).*"),
-            "mass_distribution_params": (0.9, 1.1),       # ±10%
+            "mass_distribution_params": (0.95, 1.05),       # ±5%
             "operation": "scale",
             "recompute_inertia": True,
         },
@@ -156,16 +156,16 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "inertia_distribution_params": (0.9, 1.1),    # ±10%
+            "inertia_distribution_params": (0.95, 1.05),    # ±5%
             "operation": "scale",
             "distribution": "uniform",
         },
     )
 
-    # 随机化执行器增益（Kp/Kd），缩放因子 0.9~1.1，每次 reset 重新采样
+    # 随机化执行器增益（Kp/Kd），缩放因子 0.9~1.1，startup 模式
     randomize_actuator_gains = EventTerm(
         func=mdp.randomize_actuator_gains,
-        mode="reset",
+        mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
             "stiffness_distribution_params": (0.9, 1.1),  # Kp 缩放范围
@@ -175,13 +175,13 @@ class EventCfg:
         },
     )
 
-    # 随机化关节零位偏移（编码器误差），±35mrad ≈ ±2°
+    # 随机化关节零位偏移（编码器误差），±10mrad，startup 模式
     randomize_motor_zero_offset = EventTerm(
         func=mdp.randomize_action_joint_pos_offset,
-        mode="reset",
+        mode="startup",
         params={
             "action_term_name": "JointPositionAction",
-            "offset_range": (-0.035, 0.035),
+            "offset_range": (-0.01, 0.01),
         },
     )
 
@@ -352,24 +352,12 @@ class RewardsCfg:
     joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-0.001)                # 关节速度惩罚
     joint_acc = RewTerm(func=mdp.joint_acc_l2, weight=-5e-7)                # 关节加速度惩罚
     joint_torques = RewTerm(func=mdp.joint_torques_l2, weight=-2e-4)         # 关节力矩惩罚
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.08)              # 动作变化率惩罚
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.18)              # 动作变化率惩罚
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-8.0)        # 关节位置限位惩罚
     energy = RewTerm(func=mdp.energy, weight=-2e-5)                          # 能量消耗惩罚
 
     # -- 机器人姿态奖励
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-3.0) # 基座姿态偏离惩罚
-
-    # hip 关节位置惩罚：静止时保持 hip 在 0 附近，防止外八
-    hip_pos_penalty_l1 = RewTerm(
-        func=mdp.hip_pos_penalty_l1,
-        weight=-0.05,
-        params={
-            "command_name": "base_velocity",
-            "asset_cfg": SceneEntityCfg("robot", joint_names=".*_hip_joint"),
-            "stand_still_scale": 1.0,
-            "command_threshold": 0.1,
-        },
-    )
 
     joint_pos = RewTerm(
         func=mdp.joint_position_penalty,
