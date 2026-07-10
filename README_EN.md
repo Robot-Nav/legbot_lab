@@ -1,15 +1,22 @@
-# Legbot Lab
+# <p align="center"> Legbot Lab </p>
 
+
+
+<p align="center">
+  <a href="https://www.linux.org/"><img src="https://img.shields.io/badge/Platform-Linux-orange" alt="Platform"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python"></a>
+  <a href="https://isaac-sim.github.io/IsaacLab/"><img src="https://img.shields.io/badge/Isaac_Lab-2.2.0-green" alt="Isaac Lab"></a>
+  <a href="https://arxiv.org/abs/1707.06347"><img src="https://img.shields.io/badge/RL-PPO-red" alt="PPO"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow" alt="License"></a>
+</p>
+
+<p align="center">
+  English
+  <a href="README.md">简体中文</a>
+</p>
+
+---
 > Reinforcement Learning Training & Sim2Real Deployment Framework for the Legbot Quadruped Robot Based on NVIDIA Isaac Lab
-
-[![Platform](https://img.shields.io/badge/Platform-Linux-orange)](https://www.linux.org/)
-[![Python](https://img.shields.io/badge/Python-3.10+-blue)](https://www.python.org/)
-[![Isaac Lab](https://img.shields.io/badge/Isaac_Lab-2.2.0-green)](https://isaac-sim.github.io/IsaacLab/)
-[![PPO](https://img.shields.io/badge/RL-PPO-red)](https://arxiv.org/abs/1707.06347)
-[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-
-[简体中文](README.md) | English
-
 ---
 
 ## Table of Contents
