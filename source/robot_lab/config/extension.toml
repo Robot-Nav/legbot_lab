@@ -8,10 +8,8 @@ category = "isaaclab"
 readme  = "README.md"
 
 title = "RL Extension Library for Robots, Based on IsaacLab."
-author = "Ziqi Fan"
-maintainer = "Ziqi Fan"
 description="RL Extension Library for Robots, Based on IsaacLab."
-repository = "https://github.com/fan-ziqi/robot_lab.git"
+repository = "https://github.com/Robot-Nav/legbot_lab/tree/PPO-CTS-MOE"
 keywords = ["extension", "robot_lab", "isaaclab"]
 
 [dependencies]
