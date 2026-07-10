@@ -1,26 +1,22 @@
 #  <p align="center"> Legbot Lab </p>
 
-> 基于 NVIDIA Isaac Lab 框架的四足机器人 Legbot 强化学习训练与 Sim2Real 部署项目
+
 
 <p align="center">
-  <a href="https://www.linux.org/">
-    <img src="https://img.shields.io/badge/Platform-Linux-orange" alt="Platform">
-  </a>
-  <a href="https://www.python.org/">
-    <img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python">
-  </a>
-  <a href="https://isaac-sim.github.io/IsaacLab/">
-    <img src="https://img.shields.io/badge/Isaac_Lab-2.2.0-green" alt="Isaac Lab">
-  </a>
-  <a href="https://arxiv.org/abs/1707.06347">
-    <img src="https://img.shields.io/badge/RL-PPO-red" alt="PPO">
-  </a>
-  <a href="LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License">
-  </a>
+  <a href="https://www.linux.org/"><img src="https://img.shields.io/badge/Platform-Linux-orange" alt="Platform"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python"></a>
+  <a href="https://isaac-sim.github.io/IsaacLab/"><img src="https://img.shields.io/badge/Isaac_Lab-2.2.0-green" alt="Isaac Lab"></a>
+  <a href="https://arxiv.org/abs/1707.06347"><img src="https://img.shields.io/badge/RL-PPO-red" alt="PPO"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow" alt="License"></a>
 </p>
 
-[English](README_EN.md) | 简体中文
+<p align="center">
+  <a href="README_EN.md">English</a> | 简体中文
+</p>
+
+---
+
+> 基于 NVIDIA Isaac Lab 框架的四足机器人 Legbot 强化学习训练与 Sim2Real 部署项目
 
 ---
 
