@@ -1,59 +1,47 @@
 /**
- * Joystick DSL (Domain Specific Language) for Unitree Robotics Joystick
+ * 文件用途：Unitree 手柄 DSL（领域特定语言）解析器。
  *
- * This DSL allows users to define complex joystick button combinations and
- * interactions in a human-readable format. It supports logical expressions
- * combining button states with AND (+), OR (|), NOT (!), and parentheses.
- * Example expressions:
- * 
- * --- Basic ---
- * - "A"                  # A is pressed
- * - "A.on_pressed"       # A is just pressed (single frame trigger)
- * - "A.on_released"      # A is just released (single frame trigger)
+ * 该 DSL 用于在手柄/摇杆按键之间定义复杂组合条件，支持 AND（+）、OR（|）、NOT（!）
+ * 与括号分组。解析器将字符串表达式编译为可调用谓词，供 FSM 状态切换条件使用。
  *
- * --- Multi-key Combinations ---
- * - "A+B"                # A and B are pressed simultaneously
- * - "RB+X.on_pressed"    # RB is pressed + X is just pressed
+ * 表达式示例：
+ * --- 基础 ---
+ * - "A"                  # A 键被按住
+ * - "A.on_pressed"       # A 键在本周期刚按下（单帧触发）
+ * - "A.on_released"      # A 键在本周期刚释放（单帧触发）
  *
- * --- Directional Key Combinations ---
- * - "up+right"           # Up and right directions are pressed simultaneously (diagonal)
+ * --- 多键组合 ---
+ * - "A+B"                # A 与 B 同时按住
+ * - "RB+X.on_pressed"    # RB 按住且 X 刚按下
  *
- * --- Long Press Detection ---
- * - "LT(2s) + up"        # LT is pressed for more than 2 seconds and up is pressed
- * - "LT(3s).pressed"     # Equivalent to above (explicitly specifying .pressed)
+ * --- 方向键组合 ---
+ * - "up+right"           # 上、右同时按下（对角线）
  *
- * --- Multi-condition OR ---
- * - "X|Y"                # Either X or Y is pressed
- * - "A.on_pressed|B.on_pressed"  # Either A or B is just pressed
+ * --- 长按检测 ---
+ * - "LT(2s) + up"        # LT 长按超过 2 秒且上方向键按下
+ * - "LT(3s).pressed"     # 显式指定 .pressed，语义同上
  *
- * --- Logical NOT ---
- * - "!A + B"             # A is not pressed and B is pressed
- * - "!(A + B)"           # A and B are not pressed simultaneously
- * - "!LT(1s)"            # LT is not pressed for 1 second (i.e., LT.pressed_time < 1 or not pressed)
+ * --- 多条件或 ---
+ * - "X|Y"                # X 或 Y 任一按住
+ * - "A.on_pressed|B.on_pressed"  # A 或 B 任一刚按下
  *
- * --- Nested Grouping ---
- * - "(A + B) | (X + Y)"  # A+B or X+Y is satisfied
- * - "!(A + B | X)"       # A+B or X is not allowed
+ * --- 逻辑非 ---
+ * - "!A + B"             # A 未按住且 B 按住
+ * - "!(A + B)"           # A 与 B 未同时按住
+ * - "!LT(1s)"            # LT 未长按 1 秒（未按或按下的时间不足）
  *
- * --- Mixed Directions and Buttons ---
- * - "LT + up.on_pressed" # LT is pressed + up is just pressed
+ * --- 嵌套分组 ---
+ * - "(A + B) | (X + Y)"  # A+B 或 X+Y 任一满足
+ * - "!(A + B | X)"       # A+B 或 X 的组合不允许
  *
- * --- Multi-level Complex Combinations ---
- * - "((LT(1s) + up) | (RB + X.on_pressed)) + !Y"
- *   # LT long press + up or RB + X trigger, while Y is not pressed
+ * --- 摇杆轴与触发键 ---
+ * - "LX + LY"            # 左摇杆任意方向超出阈值
+ * - "RX(1s) + B"         # 右摇杆持续超出阈值 1 秒且 B 按住
  *
- * --- Axes and Trigger Keys ---
- * - "LX + LY"            # Left joystick exceeds threshold in any direction
- * - "RX(1s) + B"         # Right joystick holds beyond threshold for 1s + B is pressed
- *
- * --- Start/Exit Actions ---
- * - "start.on_pressed"   # Start button is just pressed
- * - "back.on_pressed"    # Back button is just pressed
- * - "!start + !back"     # Neither is pressed (commonly used for "idle state")
- *
- * --- Combined Long Press Actions (Complex Example) ---
- * - "(LT(2s) + RT(2s)) + A"
- *   # LT and RT are both long pressed for more than 2 seconds, and A is pressed
+ * --- 启动/退出动作 ---
+ * - "start.on_pressed"   # Start 键刚按下
+ * - "back.on_pressed"    # Back 键刚按下
+ * - "!start + !back"     # 两者均未按（常用于空闲状态）
  */
 #pragma once
 
@@ -72,7 +60,7 @@
 
 namespace unitree::common::dsl {
 
-// ======================== Lexical Analysis ========================
+// ======================== 词法分析 ========================
 struct Token {
   enum Kind {
     kIdent, kNumber,
@@ -91,7 +79,7 @@ class Lexer {
     if (pos_ >= s_.size()) return {Token::kEnd, ""};
     char c = s_[pos_];
     if (std::isalpha(static_cast<unsigned char>(c))) return Ident();
-    if (std::isdigit(static_cast<unsigned char>(c))) return Number(); // Only support [1-9]
+    if (std::isdigit(static_cast<unsigned char>(c))) return Number(); // 数字仅支持 [1-9] 开头
     ++pos_;
     switch (c) {
       case '+': return {Token::kPlus, "+"};
@@ -133,30 +121,30 @@ class Lexer {
   size_t pos_{0};
 };
 
-// ======================== Abstract Syntax Tree (AST) & Semantics ========================
+// ======================== 抽象语法树与语义 ========================
 enum class Field { kPressed, kOnPressed, kOnReleased, kHoldTimeGE };
 
 struct Atom {
-  std::string name;         // Key name: "LT" "RB" "up" ...
+  std::string name;         // 按键名，例如 LT、RB、up
   Field field{Field::kPressed};
-  float hold_seconds{0.f};  // used when field==kHoldTimeGE
+  float hold_seconds{0.f};  // 当 field 为 kHoldTimeGE 时使用，表示长按秒数
 };
 
 struct Node {
   enum Kind { kAtom, kNot, kAnd, kOr } kind{kAtom};
-  Atom atom;                  // kAtom
-  std::unique_ptr<Node> lhs;  // kNot: child is in lhs; kAnd/kOr: left
-  std::unique_ptr<Node> rhs;  // kAnd/kOr: right
+  Atom atom;                  // 原子节点时有效
+  std::unique_ptr<Node> lhs;  // 非：子节点；与/或：左子树
+  std::unique_ptr<Node> rhs;  // 与/或：右子树
 };
 
-// Utility to convert strings to lowercase (used to make key names case-insensitive)
+// 字符串转小写，使按键名大小写不敏感。
 inline std::string ToLower(std::string s) {
   std::transform(s.begin(), s.end(), s.begin(),
                  [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
   return s;
 }
 
-// Retrieve KeyBase from UnitreeJoystick (case-insensitive)
+// 按按键名从 UnitreeJoystick 中取出对应 KeyBase（大小写不敏感）。
 inline const KeyBase& GetKey(const UnitreeJoystick& joy, std::string_view name_sv) {
   const std::string name = ToLower(std::string{name_sv});
   static const std::unordered_map<std::string, const KeyBase* (*)(const UnitreeJoystick&)> kMap = {
@@ -188,9 +176,9 @@ inline const KeyBase& GetKey(const UnitreeJoystick& joy, std::string_view name_s
   return *it->second(joy);
 }
 
-// ======================== Recursive Descent Parser ========================
-// Supports: ! unary NOT; + logical AND; | logical OR; () grouping
-// Atom syntax: name [ '(' number ['s'|'sec'|'secs'] ')' ] [ '.' (pressed|on_pressed|on_released) ]
+// ======================== 递归下降解析器 ========================
+// 支持：! 一元非、+ 逻辑与、| 逻辑或、() 分组。
+// 原子语法：name [ '(' number ['s'|'sec'|'secs'] ')' ] [ '.' (pressed|on_pressed|on_released) ]
 class Parser {
  public:
   explicit Parser(std::string expr) : lex_(expr) { 
@@ -255,19 +243,19 @@ class Parser {
     a.name = tok_.text;
     Eat(Token::kIdent);
 
-    // Optional hold duration: name '(' number ['s'|'sec'|'secs'] ')'
+    // 可选长按时长：name '(' number ['s'|'sec'|'secs'] ')'
     if (tok_.kind == Token::kLParen) {
       Eat(Token::kLParen);
       if (tok_.kind != Token::kNumber) throw std::runtime_error("Expected hold seconds number near pos=" + std::to_string(lex_.pos()));
       a.hold_seconds = std::stof(tok_.text);
       Eat(Token::kNumber);
-      // Optional unit
+      // 可选时间单位
       if (tok_.kind == Token::kIdent) {
         std::string unit = ToLower(tok_.text);
         if (unit == "s" || unit == "sec" || unit == "secs") {
           Eat(Token::kIdent);
         } else {
-          // Allow clearer error message for unknown or missing units
+          // 对未知或缺失单位给出明确报错
           throw std::runtime_error("Unknown time unit '" + tok_.text + "'; use 's'/'sec'");
         }
       }
@@ -275,7 +263,7 @@ class Parser {
       a.field = Field::kHoldTimeGE;
     }
 
-    // Optional explicit state
+    // 可选显式状态
     if (tok_.kind == Token::kDot) {
       Eat(Token::kDot);
       if (tok_.kind != Token::kIdent) throw std::runtime_error("Expected state after '.' near pos=" + std::to_string(lex_.pos()));
@@ -305,7 +293,7 @@ class Parser {
   Token tok_{Token::kEnd, ""};
 };
 
-// ======================== Compile to Executable Predicate ========================
+// ======================== 编译为可执行谓词 ========================
 inline std::function<bool(const UnitreeJoystick&)> Compile(const Node& n) {
   switch (n.kind) {
     case Node::kAtom: {

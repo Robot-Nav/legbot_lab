@@ -1,7 +1,11 @@
 <?xml version="1.0" ?>
+<!-- Legbot 机器人模型：定义连杆、关节、执行器与传感器。 -->
 <mujoco model="legbot">
+  <!-- 编译器设置：角度单位为弧度，网格目录指向 meshes。 -->
   <compiler angle="radian" meshdir="meshes/" />
+  <!-- 全局物理选项：接触锥、积分比率等。 -->
   <option cone="elliptic" impratio="100" />
+  <!-- 默认属性模板：几何、关节、电机共享参数。 -->
   <default>
     <material specular="0" shininess="0.25"/>
     <default class="vita">
@@ -56,6 +60,7 @@
       </default>
     </default>
   </default>
+  <!-- 资源定义：网格、纹理、材质与高度场。 -->
   <asset>
     <mesh name="base_link" file="base_link.STL" />
     <mesh name="FR_hip" file="FR_hip.STL" />
@@ -77,12 +82,13 @@
     <!-- <mesh name="head_yaw" file="head_yaw.STL" />
     <mesh name="head_pitch" file="head_pitch.STL" /> -->
     
-    <!-- 目标箭头mesh -->
+    <!-- 目标箭头网格 -->
     <mesh name="arrow_cone" file="cone.STL" scale="0.003 0.003 0.003"/>
-    
+
     <!-- 目标箭头材质 -->
     <material name="target_green" rgba="0 1 0 0.9"/>
   </asset>
+  <!-- 世界坐标系实体：机器人本体与目标标记。 -->
   <worldbody>
     <light name="spotlight" mode="targetbodycom" target="base" pos="0 -1 2" cutoff="30"/>
     
@@ -103,6 +109,7 @@
             material="target_green" contype="0" conaffinity="0"/>
     </body>
     
+    <!-- 机器人基座：包含躯干、IMU 与各腿根部关节。 -->
     <body name="base" pos="0 0 0.40" childclass="vita">
       <inertial
                 pos="-0.012 0.002 0.001"
@@ -188,7 +195,8 @@
                 type="box"
                 class="collision"
             />
-      <body name="FR_hip" pos="0.18453 -0.051 0">
+      <!-- 前右腿：髋关节。 -->
+      <body name="FR_hip" pos="0.18453 -0.051 0.012">
         <inertial
                     pos="-0.027882 0.015355 0"
                     quat="-0.137609 0.678417 0.233155 0.682973"
@@ -202,6 +210,7 @@
                     mesh="FR_hip"
                     class="visual"
                 />
+        <!-- 前右腿：大腿连杆。 -->
         <body name="FR_thigh" pos="0 -0.0975 0">
           <inertial
                         pos="-0.000498 0.038065 -0.024467"
@@ -256,6 +265,7 @@
                         type="box"
                         class="collision"
                     />
+          <!-- 前右腿：小腿连杆。 -->
           <body name="FR_calf" pos="0 0 -0.1985">
             <inertial
                             pos="0.00261631 0 -0.125302"
@@ -309,13 +319,15 @@
                             mesh="FR_foot"
                             class="visual"
                         />
+            <!-- 前右腿：足部碰撞体。 -->
             <body name="FR_foot" pos="0 0 -0.214">
               <geom class="foot" name="FR" />
             </body>
           </body>
         </body>
       </body>
-      <body name="FL_hip" pos="0.18453 0.051 0">
+      <!-- 前左腿：髋关节。 -->
+      <body name="FL_hip" pos="0.18453 0.051 0.012">
         <inertial
                     pos="-0.027882 -0.015355 0"
                     quat="0.137609 0.678417 -0.233155 0.682973"
@@ -324,6 +336,7 @@
                 />
         <joint name="FL_hip_joint" class="L_hip_joint" />
         <geom type="mesh" rgba="1 1 1 1" mesh="FL_hip" class="visual" />
+        <!-- 前左腿：大腿连杆。 -->
         <body name="FL_thigh" pos="0 0.0975 0">
           <inertial
                         pos="-0.000498 -0.038065 -0.024467"
@@ -373,6 +386,7 @@
                         type="box"
                         class="collision"
                     />
+          <!-- 前左腿：小腿连杆。 -->
           <body name="FL_calf" pos="0 0 -0.1985">
             <inertial
                             pos="0.00261631 0 -0.125302"
@@ -423,13 +437,15 @@
                             mesh="FL_foot"
                             class="visual"
                         />
+            <!-- 前左腿：足部碰撞体。 -->
             <body name="FL_foot" pos="0 0 -0.214">
               <geom class="foot" name="FL" />
             </body>
           </body>
         </body>
       </body>
-      <body name="RR_hip" pos="-0.18453 -0.051 0">
+      <!-- 后右腿：髋关节。 -->
+      <body name="RR_hip" pos="-0.18453 -0.051 0.012">
         <inertial
                     pos="0.027882 0.015355 0"
                     quat="0.233155 0.682973 -0.137609 0.678417"
@@ -443,6 +459,7 @@
                     mesh="RR_hip"
                     class="visual"
                 />
+        <!-- 后右腿：大腿连杆。 -->
         <body name="RR_thigh" pos="0 -0.0975 0">
           <inertial
                         pos="-0.000498 0.038065 -0.024467"
@@ -492,6 +509,7 @@
                         type="box"
                         class="collision"
                     />
+          <!-- 后右腿：小腿连杆。 -->
           <body name="RR_calf" pos="0 0 -0.1985">
             <inertial
                             pos="0.00261631 0 -0.125302"
@@ -542,13 +560,15 @@
                             mesh="RR_foot"
                             class="visual"
                         />
+            <!-- 后右腿：足部碰撞体。 -->
             <body name="RR_foot" pos="0 0 -0.214">
               <geom class="foot" name="RR" />
             </body>
           </body>
         </body>
       </body>
-      <body name="RL_hip" pos="-0.18453 0.051 0">
+      <!-- 后左腿：髋关节。 -->
+      <body name="RL_hip" pos="-0.18453 0.051 0.012">
         <inertial
                     pos="0.027882 -0.015355 0"
                     quat="-0.233155 0.682973 0.137609 0.678417"
@@ -557,6 +577,7 @@
                 />
         <joint name="RL_hip_joint" class="L_hip_joint" />
         <geom type="mesh" rgba="1 1 1 1" mesh="RL_hip" class="visual" />
+        <!-- 后左腿：大腿连杆。 -->
         <body name="RL_thigh" pos="0 0.0975 0">
           <inertial
                         pos="-0.000498 -0.038065 -0.024467"
@@ -606,6 +627,7 @@
                         type="box"
                         class="collision"
                     />
+          <!-- 后左腿：小腿连杆。 -->
           <body name="RL_calf" pos="0 0 -0.1985">
             <inertial
                             pos="0.00261631 0 -0.125302"
@@ -656,6 +678,7 @@
                             mesh="RL_foot"
                             class="visual"
                         />
+            <!-- 后左腿：足部碰撞体。 -->
             <body name="RL_foot" pos="0 0 -0.214">
               <geom class="foot" name="RL" />
             </body>
@@ -686,6 +709,7 @@
             rgba="0 0 1 0.8" contype="0" conaffinity="0"/>
     </body>
   </worldbody>
+  <!-- 执行器：驱动各关节的力矩电机。 -->
   <actuator>
     <!-- FR - 前右 -->
     <motor class="vita" name="FR_hip_joint" joint="FR_hip_joint" />
@@ -704,6 +728,7 @@
     <motor class="vita" name="RL_thigh_joint" joint="RL_thigh_joint" />
     <motor class="calf_joint" name="RL_calf_joint" joint="RL_calf_joint" />
   </actuator>
+  <!-- 传感器：关节状态、IMU 与接触检测。 -->
   <sensor>
     <!-- 关节位置传感器 - 按照与执行器相同的顺序排列 -->
     <!-- FR - 前右 -->

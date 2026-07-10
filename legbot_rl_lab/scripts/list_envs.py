@@ -1,14 +1,11 @@
 """
-Script to print all the available environments in Isaac Lab.
+列出 Isaac Lab 中所有可用环境的脚本。
 
-The script iterates over all registered environments and stores the details in a table.
-It prints the name of the environment, the entry point and the config file.
-
-All the environments are registered in the `unitree_rl_lab` extension. They start
-with `Unitree` in their name.
+遍历已注册环境并以表格形式输出环境名称、入口点与配置文件路径。
+所有环境注册在 `unitree_rl_lab` 扩展中，名称以 `Unitree` 开头。
 """
 
-"""Launch Isaac Sim Simulator first."""
+"""首先启动 Isaac Sim 仿真器。"""
 
 
 import importlib
@@ -22,11 +19,10 @@ def _walk_packages(
     prefix: str = "",
     onerror=None,
 ):
-    """Yields ModuleInfo for all modules recursively on path, or, if path is None, all accessible modules.
+    """递归遍历指定路径下的所有模块，生成 ModuleInfo。
 
-    Note:
-        This function is a modified version of the original ``pkgutil.walk_packages`` function. Please refer to the original
-        ``pkgutil.walk_packages`` function for more details.
+    说明：
+        本函数基于 ``pkgutil.walk_packages`` 修改而来，用于导入项目任务包。
     """
 
     def seen(p, m={}):
@@ -36,7 +32,7 @@ def _walk_packages(
 
     for info in pkgutil.iter_modules(path, prefix):
 
-        # yield the module info
+        # 返回当前模块信息
         yield info
 
         if info.ispkg:
@@ -50,13 +46,14 @@ def _walk_packages(
             else:
                 path = getattr(sys.modules[info.name], "__path__", None) or []
 
-                # don't traverse path items we've seen before
+                # 跳过已遍历的路径，避免重复
                 path = [p for p in path if not seen(p)]
 
                 yield from _walk_packages(path, info.name + ".", onerror)
 
 
 def import_packages():
+    """导入 unitree_rl_lab 任务包，完成环境注册。"""
     sys.path.insert(0, f"{pathlib.Path(__file__).parent.parent}/source/unitree_rl_lab/unitree_rl_lab/tasks/")
     for package in ["locomotion.robots"]:
         package = importlib.import_module(package)
@@ -67,30 +64,30 @@ def import_packages():
 
 import_packages()
 
-"""Rest everything follows."""
+"""后续逻辑。"""
 
 import gymnasium as gym
 from prettytable import PrettyTable
 
 
 def main():
-    """Print all environments registered in `unitree_rl_lab` extension."""
-    # print all the available environments
-    table = PrettyTable(["S. No.", "Task Name", "Entry Point", "Config"])
-    table.title = "Available Environments in Unitree RL Lab"
-    # set alignment of table columns
-    table.align["Task Name"] = "l"
-    table.align["Entry Point"] = "l"
-    table.align["Config"] = "l"
+    """以表格形式打印 unitree_rl_lab 扩展中注册的所有环境。"""
+    # 创建输出表格
+    table = PrettyTable(["序号", "任务名称", "入口点", "配置文件"])
+    table.title = "Unitree RL Lab 可用环境"
+    # 设置列对齐方式
+    table.align["任务名称"] = "l"
+    table.align["入口点"] = "l"
+    table.align["配置文件"] = "l"
 
-    # count of environments
+    # 环境序号
     index = 0
-    # acquire all Isaac environments names
+    # 遍历 gym 注册表，筛选 Unitree 相关环境
     for task_spec in gym.registry.values():
         if "Unitree" in task_spec.id and "Isaac" not in task_spec.id:
-            # add details to table
+            # 添加环境详情到表格
             table.add_row([index + 1, task_spec.id, task_spec.entry_point, task_spec.kwargs["env_cfg_entry_point"]])
-            # increment count
+            # 序号递增
             index += 1
 
     print(table)
@@ -98,7 +95,7 @@ def main():
 
 if __name__ == "__main__":
     try:
-        # run the main function
+        # 执行主函数
         main()
     except Exception as e:
         raise e

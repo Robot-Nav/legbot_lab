@@ -1,9 +1,12 @@
+<!-- 第一段地形视觉模型（0131 版本）：烘焙纹理与灯光装饰。 -->
 <mujoco>
+  <!-- 编译器设置：角度单位为弧度，网格目录指向 meshes。 -->
   <compiler angle="radian" assetdir="assets" autolimits="true"/>
 
+  <!-- 资源定义：网格、纹理、材质与高度场。 -->
   <asset>
 
-    <!-- Textures -->
+    <!-- 纹理 -->
     <texture type="2d" colorspace="sRGB" name="BAKE_INSIDE_Bake1_CyclesBake_COMBINED" file="BAKE_INSIDE_Bake1_CyclesBake_COMBINED.png"/>
     <texture type="2d" colorspace="linear" name="BAKE_INSIDE_Bake1_CyclesBake_COMBINED_ro" file="BAKE_INSIDE_Bake1_CyclesBake_COMBINED_ro.png"/>
     <texture type="2d" colorspace="sRGB" name="BAKE_OUTSIDE_A_Bake1_CyclesBake_COMBINED" file="BAKE_OUTSIDE_A_Bake1_CyclesBake_COMBINED.png"/>
@@ -16,7 +19,7 @@
 
     <texture type="2d" colorspace="sRGB" name="LOGO_03_BK_Bake1_CyclesBake_COMBINED" file="LOGO_03_BK_Bake1_CyclesBake_COMBINED.png"/>
 
-    <!-- Materials -->
+    <!-- 材质 -->
     <material name="MI_ARRO_WHITE"
              emission="1.0 1.0 1.0 1.0"
              emissionintensity="10.0"/>
@@ -53,7 +56,7 @@
       <layer texture="LOGO_03_BK_Bake1_CyclesBake_COMBINED" role="rgb"/>
     </material>
 
-    <!-- Visual meshes -->
+    <!-- 视觉网格 -->
     <mesh class="visual" name="V_ARRO" file="V_ARRO.obj"/>
     <mesh class="visual" name="V_BAKE_INSIDE" file="V_BAKE_INSIDE.obj"/>
     <mesh class="visual" name="V_BAKE_OUTSIDE_A" file="V_BAKE_OUTSIDE_A.obj"/>
@@ -66,9 +69,10 @@
     <mesh class="visual" name="V_LOGO_03_BK" file="V_LOGO_03_BK.obj"/>
     <mesh class="visual" name="V_LOGO_03_light" file="V_LOGO_03_light.obj"/>
 
-    <!-- Collision meshes -->
+    <!-- 碰撞网格 -->
   </asset>
 
+  <!-- 默认属性模板：几何、关节、电机共享参数。 -->
   <default>
       <default class="visual">
         <geom type="mesh" contype="0" conaffinity="0" group="2" density="0"/>
@@ -78,8 +82,10 @@
       </default>
   </default>
 
+  <!-- 世界坐标系实体：第一段地形视觉主体与灯光装饰。 -->
   <worldbody>
 
+    <!-- 视觉场景主体或碰撞代理体。 -->
     <body name="B_body" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
       <geom class="visual" mesh="V_ARRO" pos="0.0 0.0 0.05000000074505806" quat="1.0 0.0 0.0 0.0" material="MI_ARRO_WHITE"/>
       <geom class="visual" mesh="V_BAKE_INSIDE" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="MI_ground1_BK"/>

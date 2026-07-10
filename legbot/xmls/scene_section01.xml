@@ -1,12 +1,16 @@
 <?xml version="1.0" ?>
+<!-- Section01 高台楼梯导航场景：挂载 0126 版本第一段地形。 -->
 <mujoco model="legbot navigation - section01">
+  <!-- 编译器设置：角度单位为弧度，网格目录指向 meshes。 -->
   <compiler angle="radian" meshdir="meshes/" autolimits="true"/>
   
   <!-- 引入legbot机器人 -->
   <include file="legbot.xml" />
   
+  <!-- 场景统计与相机范围参数。 -->
   <statistic center="0 0 0.1" extent="12" meansize="0.04" />
 
+  <!-- 可视化渲染参数。 -->
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
     <rgba haze="0.15 0.25 0.35 1" />
@@ -16,6 +20,7 @@
     <quality shadowsize="8192" />
   </visual>
 
+  <!-- 资源定义：网格、纹理、材质与高度场。 -->
   <asset>
     <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
     
@@ -23,6 +28,7 @@
     <model name="section01C" file="0126_C_section01.xml"/>
   </asset>
 
+  <!-- 世界坐标系实体：灯光、地面、机器人与地形。 -->
   <worldbody>
     <light pos="0 0 10" dir="0 0 -1" directional="true" />
     
@@ -32,6 +38,7 @@
 
 
 
+  <!-- 传感器：关节状态、IMU 与接触检测。 -->
   <sensor>
     <!-- <contact name="FR_foot_contact" body1="FR_foot" body2="0B_Abianjie" data="normal" num="1" />
     <contact name="FL_foot_contact" body1="FL_foot" body2="0B_Abianjie" data="normal" num="1" />

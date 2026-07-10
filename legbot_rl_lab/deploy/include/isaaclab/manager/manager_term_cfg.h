@@ -1,6 +1,5 @@
-// Copyright (c) 2025, Unitree Robotics Co., Ltd.
-// All rights reserved.
-
+// 文件用途：观察项配置。对每个观察源维护一个带裁剪/缩放的历史缓冲，
+// 支持 gym 风格历史展开或直接返回最新值。
 #pragma once
 
 #include <deque>
@@ -17,12 +16,12 @@ using ObsFunc = std::function<std::vector<float>(ManagerBasedRLEnv*, YAML::Node)
 
 struct ObservationTermCfg
 {
-    YAML::Node params;
-    ObsFunc func;
-    std::vector<float> clip;
-    std::vector<float> scale;
-    int history_length = 1;
-    bool scale_first = false;
+    YAML::Node params;          // 该观察项的专属参数
+    ObsFunc func;               // 观察计算函数
+    std::vector<float> clip;    // 裁剪范围
+    std::vector<float> scale;   // 缩放系数
+    int history_length = 1;     // 历史长度
+    bool scale_first = false;   // true 表示先缩放后裁剪
 
     void reset(std::vector<float> obs)
     {
@@ -65,7 +64,7 @@ struct ObservationTermCfg
         [](std::size_t sum, const auto& v) { return sum + v.size(); }); }
 
 private:
-    // Complete circular buffer with most recent entry at the end and oldest entry at the beginning.
+    // 完整循环缓冲：最新条目在尾部，最旧条目在头部。
     std::deque<std::vector<float>> buff_;
 };
 

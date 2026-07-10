@@ -38,13 +38,12 @@ FOOT_LINK_NAME = ".*_foot"
 # foot_z = -0.1985*cos(0.9) - 0.214*cos(0.9-1.8) + 0.021 ≈ 0.28m
 BASE_HEIGHT_TARGET = 0.28  # 目标高度，与真实机器人质心高度(0.277m)对齐
 
-##
-# Scene definition - 场景配置
+### 场景配置
 ##
 
 @configclass
 class LegbotSceneCfg(InteractiveSceneCfg):
-    """Configuration for the terrain scene with the Legbot robot."""
+    """Legbot 机器人地形场景配置。"""
 
     # 地形：使用生成器创建粗糙地形，支持课程学习
     terrain = TerrainImporterCfg(
@@ -105,22 +104,21 @@ class LegbotSceneCfg(InteractiveSceneCfg):
         ),
     )
 
-##
-# MDP settings - MDP配置（命令、动作、观测、域随机化、奖励、终止条件、课程学习）
+### MDP 配置（命令、动作、观测、域随机化、奖励、终止条件、课程学习）
 ##
 
 # ============== 命令配置 ==============
 # 定义机器人需要跟踪的目标速度命令
 @configclass
 class CommandsCfg:
-    """Command specifications for the MDP."""
+    """MDP 命令配置。"""
     base_velocity = mdp.Go2RLGymCommandCfg()  # 线速度(xy)和角速度(z)命令
 
 # ============== 动作配置 ==============
 # 定义策略输出的动作如何映射到关节位置
 @configclass
 class ActionsCfg:
-    """Action specifications for the MDP."""
+    """MDP 动作配置。"""
 
     # 腿部关节：位置控制，动作缩放系数0.25（动作范围[-1,1]映射到关节偏移[-0.25,0.25]rad）
     joint_pos = mdp.JointPositionActionCfg(
@@ -139,7 +137,7 @@ class ActionsCfg:
 class ObservationsCfg:
     @configclass
     class PolicyCfg(ObsGroup):
-        """Observations for policy group - 策略网络观测（带噪声和历史帧）"""
+        """策略网络观测配置（带噪声和历史帧）。"""
         base_ang_vel = ObsTerm(
             func=mdp.base_ang_vel,  # 基座角速度
             noise=Unoise(n_min=-0.2, n_max=0.2),
@@ -185,7 +183,7 @@ class ObservationsCfg:
 
     @configclass
     class CriticCfg(ObsGroup):
-        """Observations for critic group - 价值网络观测（无噪声，特权信息）"""
+        """价值网络观测配置（无噪声，含特权信息）。"""
         base_lin_vel = ObsTerm(
             func=mdp.base_lin_vel,  # 基座线速度（真实值，策略无法观测）
             clip=(-100.0, 100.0),
@@ -254,7 +252,7 @@ class ObservationsCfg:
 
     @configclass
     class SingleObsCfg(PolicyCfg):
-        """Single timestep observation - 单帧观测（用于MoE-CTS模型）"""
+        """单帧观测配置（用于 MoE-CTS 模型）。"""
         def __post_init__(self):
             super().__post_init__()
             self.history_length = 1  # 仅当前帧，无历史
@@ -270,7 +268,7 @@ class ObservationsCfg:
 # mode="interval": 定期随机化（外力扰动，每4秒）
 @configclass
 class EventCfg:
-    """Configuration for events - 域随机化事件配置"""
+    """域随机化事件配置。"""
 
     # 质量随机化 - base质量±1kg变化，适应负载变化
     randomize_rigid_body_mass_base = EventTerm(
@@ -395,7 +393,7 @@ class EventCfg:
 # 负奖励：惩罚不期望的行为（垂直速度、高度偏差、关节加速度、力矩、碰撞等）
 @configclass
 class RewardsCfg:
-    """Reward terms for the MDP - 奖励函数配置"""
+    """奖励函数配置。"""
 
     # === 跟踪奖励（正奖励） ===
     # 线速度跟踪：指数奖励，std=0.5控制容差，weight=1.0为主要目标
@@ -500,7 +498,7 @@ class RewardsCfg:
 # 定义何时结束episode
 @configclass
 class TerminationsCfg:
-    """Termination terms for the MDP - 终止条件配置"""
+    """终止条件配置。"""
     # 超时终止：episode达到最大时长25秒
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     # 非法接触终止：base接触地面（摔倒）
@@ -516,7 +514,7 @@ class TerminationsCfg:
 # 随训练进度逐渐增加难度或调整奖励权重
 @configclass
 class CurriculumCfg:
-    """Curriculum terms for the MDP - 课程学习配置"""
+    """课程学习配置。"""
     # 地形难度课程：随训练进度增加地形复杂度
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel_gym)
     # 垂直速度惩罚课程：初期weight=-2.0逐渐减弱到0（1500次迭代）
@@ -528,42 +526,41 @@ class CurriculumCfg:
         "term_name": "base_height_l2", "initial_weight": -1.0, "final_weight": -10.0, "start_it": 0, "end_it": 5000
         })
 
-##
-# Environment configuration - 环境主配置
+### 环境主配置
 ##
 
 @configclass
 class LegbotEnvCfg(ManagerBasedRLEnvCfg):
-    """Merged configuration for the Legbot robot on rough terrain - Legbot强化学习环境总配置"""
+    """Legbot 强化学习环境总配置。"""
 
-    # Scene settings - 场景设置
+    # 场景设置
     scene: LegbotSceneCfg = LegbotSceneCfg(num_envs=4096, env_spacing=0.5)  # 4096个并行环境，间距0.5m
-    # Basic settings - 基础设置
+    # 基础设置
     observations: ObservationsCfg = ObservationsCfg()  # 观测配置
     actions: ActionsCfg = ActionsCfg()  # 动作配置
     commands: CommandsCfg = CommandsCfg()  # 命令配置
-    # MDP settings - MDP设置
+    # MDP 设置
     rewards: RewardsCfg = RewardsCfg()  # 奖励配置
     terminations: TerminationsCfg = TerminationsCfg()  # 终止条件配置
     events: EventCfg = EventCfg()  # 域随机化配置
     curriculum: CurriculumCfg = CurriculumCfg()  # 课程学习配置
 
     def __post_init__(self):
-        """Post initialization - 后初始化：仿真参数设置"""
-        # General settings - 通用设置
+        """后初始化：设置仿真参数。"""
+        # 通用设置
         self.decimation = 4  # 控制频率降采样：仿真20ms/控制周期80ms
         self.episode_length_s = 25.0  # 每个episode最长25秒
-        # Simulation settings - 仿真设置
+        # 仿真设置
         self.sim.dt = 0.005  # 仿真步长5ms（200Hz物理仿真）
         self.sim.render_interval = self.decimation  # 渲染间隔=控制周期
 
-        # Physics material settings from subclass - 物理材质设置
+        # 物理材质设置
         self.sim.physics_material = self.scene.terrain.physics_material
         self.sim.physx.gpu_max_rigid_patch_count = int(1 * 1024 * 1024)  # GPU最大刚体patch数：1M
         self.sim.physx.gpu_collision_stack_size = int(512 * 1024 * 1024)  # GPU碰撞堆栈：512MB
         self.sim.physx.enable_external_forces_every_iteration = True  # 每步启用外力
 
-        # Update sensor periods - 传感器更新周期设置
+        # 传感器更新周期设置
         if self.scene.height_scanner is not None:
             self.scene.height_scanner.update_period = self.decimation * self.sim.dt  # 80ms更新一次
         if self.scene.height_scanner_small is not None:
@@ -571,7 +568,7 @@ class LegbotEnvCfg(ManagerBasedRLEnvCfg):
         if self.scene.contact_forces is not None:
             self.scene.contact_forces.update_period = self.sim.dt  # 接触力每步更新（5ms）
 
-        # Handle curriculum for terrain generator - 地形课程学习设置
+        # 地形课程学习设置
         if getattr(self.curriculum, "terrain_levels", None) is not None:
             if self.scene.terrain.terrain_generator is not None:
                 self.scene.terrain.terrain_generator.curriculum = True  # 启用地形课程

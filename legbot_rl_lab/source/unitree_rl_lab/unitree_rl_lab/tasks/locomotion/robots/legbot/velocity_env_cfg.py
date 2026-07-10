@@ -1,9 +1,10 @@
+# Legbot 速度跟踪运动环境配置，包含场景、事件、指令、动作、观测、奖励、终止和课程学习配置。
 # 导入数学库，用于数学运算
 import math
 
-# 导入Isaac Lab仿真工具
+# 导入仿真工具
 import isaaclab.sim as sim_utils
-# 导入Isaac Lab地形生成模块
+# 导入地形生成模块
 import isaaclab.terrains as terrain_gen
 # 导入机器人关节配置类
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
@@ -31,7 +32,7 @@ from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 # 导入机器人配置
 from unitree_rl_lab.assets.robots.unitree import UNITREE_LEGBOT_CFG as ROBOT_CFG
-# 导入运动控制MDP模块
+# 导入运动控制 MDP 模块
 from unitree_rl_lab.tasks.locomotion import mdp
 
 # 定义鹅卵石道路地形生成器配置
@@ -122,7 +123,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="base"),
-            # base 7.09kg，±1.0kg随机化
+            # 基座 7.09kg，±1.0kg 随机化
             "mass_distribution_params": (-1.0, 1.0),
             "operation": "add",                         # 增加操作
         },
@@ -162,7 +163,7 @@ class EventCfg:
         },
     )
 
-    # 随机化执行器增益（Kp/Kd），缩放因子 0.9~1.1，startup 模式
+    # 随机化执行器增益（刚度/阻尼），缩放因子 0.9~1.1，启动时执行
     randomize_actuator_gains = EventTerm(
         func=mdp.randomize_actuator_gains,
         mode="startup",
@@ -175,7 +176,7 @@ class EventCfg:
         },
     )
 
-    # 随机化关节零位偏移（编码器误差），±10mrad，startup 模式
+    # 随机化关节零位偏移（编码器误差），±10mrad，启动时执行
     randomize_motor_zero_offset = EventTerm(
         func=mdp.randomize_action_joint_pos_offset,
         mode="startup",
@@ -197,7 +198,7 @@ class EventCfg:
         },
     )
 
-    # 随机化电机力矩限幅（Y1/Y2），缩放因子 0.7~1.0
+    # 随机化电机力矩限幅（峰值扭矩），缩放因子 0.7~1.0
     randomize_torque_limit = EventTerm(
         func=mdp.randomize_actuator_torque_limit,
         mode="startup",
@@ -445,7 +446,7 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.render_interval = self.decimation                         # 渲染间隔
         self.sim.physics_material = self.scene.terrain.physics_material    # 物理材质
 
-        # PhysX GPU内存配置
+        # PhysX GPU 内存配置
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
         self.sim.physx.gpu_found_lost_pairs_capacity = 2**22
         self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 2**26

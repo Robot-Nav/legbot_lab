@@ -1,3 +1,7 @@
+// 用途：单电机串口收发测试，用于验证一台电机的使能/控制/反馈链路。
+// 说明：支持发送 type3 使能、type4 失能/清错，以及一条 type1 控制命令；
+//       随后监听串口并解码 type2 反馈。
+
 #include "lingzu_serial.hpp"
 #include "lingzu_motor_protocol.hpp"
 #include "motor_map.hpp"
@@ -13,6 +17,7 @@
 
 using namespace serial_dds_gateway;
 
+// 命令行参数结构体。
 struct Args {
   std::string port;
   int baudrate = 2000000;
@@ -30,6 +35,7 @@ struct Args {
   bool clear_fault = false;
 };
 
+// 解析命令行参数；未提供 --port 时抛异常提示。
 Args ParseArgs(int argc, char** argv) {
   Args a;
   for (int i = 1; i < argc; ++i) {
@@ -63,6 +69,7 @@ int main(int argc, char** argv) {
     RangeSpec ranges;
     SerialFramer framer(args.port, args.baudrate);
 
+    // 根据用户开关发送 type3 使能 / type4 清错 / type4 失能。
     if (args.send_enable) {
       framer.WriteFrame(BuildMotorEnableFrame(args.channel, static_cast<uint8_t>(args.master_id), args.motor_id));
       std::cout << "[TX] enable motor_id=" << static_cast<int>(args.motor_id) << "\n";
@@ -76,6 +83,7 @@ int main(int argc, char** argv) {
       std::cout << "[TX] disable motor_id=" << static_cast<int>(args.motor_id) << "\n";
     }
 
+    // 构造并发送一条 type1 标准帧控制命令。
     Type1Command cmd{
         .motor_id = args.motor_id, .q = args.q, .dq = args.dq, .kp = args.kp, .kd = args.kd, .tau = args.tau};
     auto tx = EncodeType1StandardSerialFrame(args.channel, cmd, ranges);
@@ -85,6 +93,7 @@ int main(int argc, char** argv) {
               << static_cast<int>(tx.master_id) << std::dec << " motor_id=" << static_cast<int>(args.motor_id)
               << "\n";
 
+    // 在指定时间内轮询串口，打印原始帧并尝试解码 type2 反馈。
     const auto t_end = std::chrono::steady_clock::now() + std::chrono::duration<double>(args.rx_seconds);
     while (std::chrono::steady_clock::now() < t_end) {
       for (const auto& f : framer.ReadAvailableFrames()) {

@@ -1,3 +1,5 @@
+// 29 位 CAN ID 与 4 字节扩展原始字段的移位互转实现。
+
 #include "can_id_codec.hpp"
 
 namespace serial_dds_gateway {
@@ -19,4 +21,3 @@ std::array<uint8_t, 4> can29_to_ext_raw(uint32_t can29, int shift_left) {
 }
 
 }  // namespace serial_dds_gateway
-

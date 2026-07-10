@@ -13,6 +13,7 @@ namespace serial_dds_gateway {
 
 namespace {
 
+// IMU 帧固定格式：4 字节帧头 + 6 个 float32 + 2 字节 CRC16-Modbus + 2 字节帧尾。
 constexpr std::array<uint8_t, 4> kImuHeader = {0xEB, 0x90, 0xA5, 0xFF};
 constexpr std::array<uint8_t, 2> kImuTail = {0x80, 0x7F};
 constexpr size_t kImuChannels = 6;
@@ -20,6 +21,7 @@ constexpr size_t kBytesPerFloat = 4;
 constexpr size_t kImuDataBytes = kImuChannels * kBytesPerFloat;
 constexpr size_t kImuFrameLen = kImuHeader.size() + kImuDataBytes + 2 + kImuTail.size();
 
+// 将常用波特率映射为 termios 常量；2000000 在部分内核头文件中才有定义。
 speed_t ToTermiosBaud(int baudrate) {
   switch (baudrate) {
     case 115200:
@@ -39,6 +41,7 @@ speed_t ToTermiosBaud(int baudrate) {
   }
 }
 
+// 小端 float32 读取：直接按 IEEE-754 位模式 memcpy 到 float。
 float ReadFloatLe(const std::vector<uint8_t>& bytes, size_t offset) {
   uint32_t raw = static_cast<uint32_t>(bytes[offset]) | (static_cast<uint32_t>(bytes[offset + 1]) << 8) |
                  (static_cast<uint32_t>(bytes[offset + 2]) << 16) |
@@ -60,8 +63,9 @@ bool HasHeaderAt(const std::vector<uint8_t>& bytes, size_t offset) {
   return true;
 }
 
-}  // namespace
+}  // 命名空间
 
+// ZYX 欧拉角（yaw-pitch-roll）转四元数，对应 IMU 输出顺序。
 Quaternion EulerYprToQuaternion(double yaw, double pitch, double roll) {
   const double cy = std::cos(yaw * 0.5);
   const double sy = std::sin(yaw * 0.5);
@@ -95,6 +99,7 @@ ImuFramer::ImuFramer(std::string port, int baudrate) {
   cfsetispeed(&tty, baud);
   cfsetospeed(&tty, baud);
 
+  // 本地连接、启用接收；禁用硬件流控；非阻塞读。
   tty.c_cflag |= (CLOCAL | CREAD);
   tty.c_cflag &= ~CRTSCTS;
   tty.c_cc[VMIN] = 0;
@@ -117,6 +122,7 @@ void ImuFramer::Close() {
 
 std::vector<ImuSample> ImuFramer::ReadAvailableSamples() {
   uint8_t tmp[1024];
+  // 非阻塞循环读取当前串口缓冲区所有字节。
   while (true) {
     const auto n = ::read(fd_, tmp, sizeof(tmp));
     if (n > 0) {
@@ -128,6 +134,7 @@ std::vector<ImuSample> ImuFramer::ReadAvailableSamples() {
   return ParseBuffer(rx_buf_);
 }
 
+// CRC16-Modbus：初始值 0xFFFF，多项式 0xA001（即 reversed 0x8005）。
 uint16_t ImuFramer::Crc16Modbus(const std::vector<uint8_t>& data) {
   uint16_t crc = 0xFFFF;
   for (const auto byte : data) {
@@ -147,6 +154,7 @@ std::vector<ImuSample> ImuFramer::ParseBuffer(std::vector<uint8_t>& rx_buf) {
   std::vector<ImuSample> out;
 
   while (rx_buf.size() >= kImuHeader.size()) {
+    // 查找帧头；丢弃帧头前的所有噪声字节。
     size_t start = rx_buf.size();
     for (size_t i = 0; i + kImuHeader.size() <= rx_buf.size(); ++i) {
       if (HasHeaderAt(rx_buf, i)) {
@@ -166,11 +174,13 @@ std::vector<ImuSample> ImuFramer::ParseBuffer(std::vector<uint8_t>& rx_buf) {
       break;
     }
 
+    // 帧尾不匹配则丢弃首字节，避免死锁在伪帧头上。
     if (rx_buf[kImuFrameLen - 2] != kImuTail[0] || rx_buf[kImuFrameLen - 1] != kImuTail[1]) {
       rx_buf.erase(rx_buf.begin());
       continue;
     }
 
+    // 校验 CRC：覆盖帧头与数据区，不包括 CRC 自身和帧尾。
     const size_t crc_offset = kImuHeader.size() + kImuDataBytes;
     const uint16_t received_crc =
         static_cast<uint16_t>(rx_buf[crc_offset] | (static_cast<uint16_t>(rx_buf[crc_offset + 1]) << 8));
@@ -180,8 +190,8 @@ std::vector<ImuSample> ImuFramer::ParseBuffer(std::vector<uint8_t>& rx_buf) {
       continue;
     }
 
+    // 解析 6 个 float32：线序为 yaw, pitch, roll, gz, gy, gx。
     const size_t data_offset = kImuHeader.size();
-    // Wire order: yaw, pitch, roll, gz, gy, gx (float32 LE each).
     ImuSample sample;
     sample.yaw = ReadFloatLe(rx_buf, data_offset + 0 * kBytesPerFloat);
     sample.pitch = ReadFloatLe(rx_buf, data_offset + 1 * kBytesPerFloat);
@@ -196,4 +206,4 @@ std::vector<ImuSample> ImuFramer::ParseBuffer(std::vector<uint8_t>& rx_buf) {
   return out;
 }
 
-}  // namespace serial_dds_gateway
+}  // 命名空间 serial_dds_gateway

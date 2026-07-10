@@ -1,6 +1,5 @@
-// Copyright (c) 2025, Unitree Robotics Co., Ltd.
-// All rights reserved.
-
+// 文件用途：动作管理器。将策略网络输出按动作项配置拆分为各动作项，
+// 由动作项完成缩放、偏移、裁剪，最后拼接成完整目标量。
 #pragma once
 
 #include "isaaclab/envs/manager_based_rl_env.h"
@@ -10,6 +9,7 @@
 namespace isaaclab
 {
 
+// 动作项抽象基类。具体动作项需实现维度、原始/处理后动作与处理逻辑。
 class ActionTerm 
 {
 public:
@@ -31,6 +31,7 @@ inline std::map<std::string, std::function<std::unique_ptr<ActionTerm>(YAML::Nod
     return instance;
 }
 
+// 注册动作项宏：静态注册器将工厂函数加入全局表。
 #define REGISTER_ACTION(name) \
     inline struct name##_registrar { \
         name##_registrar() { \
@@ -123,8 +124,8 @@ private:
         }
     }
 
-    std::vector<float> _action;
-    std::vector<std::unique_ptr<ActionTerm>> _terms;
+    std::vector<float> _action;                              // 上一次网络原始动作
+    std::vector<std::unique_ptr<ActionTerm>> _terms;         // 动作项列表
 };
 
 };

@@ -1,13 +1,15 @@
+<!-- 第三段地形碰撞模型（0122 版本）：终点平台与金球障碍。 -->
 <mujoco>
 
+  <!-- 资源定义：网格、纹理、材质与高度场。 -->
   <asset>
 
-    <!-- Textures -->
+    <!-- 纹理 -->
     <hfield name="hfield_terrain" file="assets/H_section_03_0122_16.png" size="5 1.5 0.148681 0" />
-    <!-- Materials -->
+    <!-- 材质 -->
     <material name="Material" rgba="0.800000011920929 0.800000011920929 0.800000011920929 1.0" reflectance="0.5" metallic="0.0" roughness="0.5"/>
 
-    <!-- Visual meshes -->
+    <!-- 视觉网格 -->
     <mesh class="visual" name="V_Ccube_001" file="assets/V_Ccube_001.obj"/>
     <mesh class="visual" name="V_Ccube_002" file="assets/V_Ccube_002.obj"/>
     <mesh class="visual" name="V_Ccube_003" file="assets/V_Ccube_003.obj"/>
@@ -23,9 +25,10 @@
     <mesh class="visual" name="V_goldball_002" file="assets/V_goldball_002.obj"/>
     <mesh class="visual" name="V_goldball_003" file="assets/V_goldball_003.obj"/>
 
-    <!-- Collision meshes -->
+    <!-- 碰撞网格 -->
   </asset>
 
+  <!-- 默认属性模板：几何、关节、电机共享参数。 -->
   <default>
       <default class="visual">
         <geom type="mesh" contype="0" conaffinity="0" group="2" density="0"/>
@@ -74,8 +77,10 @@
       </default>
   </default>
 
+  <!-- 世界坐标系实体：第三段地形碰撞体。 -->
   <worldbody>
 
+    <!-- C 段边界。 -->
     <body name="B_Cbianjie" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
       <geom class="C_Ccube_001"/>
       <geom class="C_Ccube_002"/>
@@ -88,6 +93,7 @@
       <geom class="visual" mesh="V_Ccube_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
       <geom class="visual" mesh="V_Ccube_005" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
     </body>
+    <!-- C 段地板与金球障碍。 -->
     <body name="B_Cdiban" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
       <geom class="C_Cdiban_001"/>
       <geom class="C_Cdiban_002"/>
@@ -106,6 +112,7 @@
       <geom class="visual" mesh="V_goldball_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
       <geom class="visual" mesh="V_goldball_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
     </body>
+    <!-- C 段地形：高度场起伏路面。 -->
     <body name="B_Cdixing" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
       <geom name="V_Cdixing_Plane" type="hfield" hfield="hfield_terrain" 
             pos="0 29.3296 1.343" quat="1 0 0 0" 

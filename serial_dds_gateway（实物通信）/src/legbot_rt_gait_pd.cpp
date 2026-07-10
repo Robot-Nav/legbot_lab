@@ -1,5 +1,5 @@
-// Real-time-ish Legbot gait executor: subscribe rt/lowstate, publish rt/lowcmd.
-// This process never touches the serial bus; dds_to_serial_gateway owns motor IO.
+// 用途：LEGBOT 实机步态控制器（仅 DDS，不直接访问串口）。
+// 说明：订阅 rt/lowstate，发布 rt/lowcmd；实现站立/小跑步态、IK、PD、安全门限与退出斜坡。
 
 #include "motor_map.hpp"
 
@@ -40,18 +40,22 @@ constexpr double kPi = 3.14159265358979323846;
 constexpr size_t kNumJoints = 12;
 constexpr size_t kNumLegs = 4;
 
+// 腿部连杆长度（单位：m），用于正逆运动学。
 constexpr double kAbadLinkLength = 0.0975;
 constexpr double kHipLinkLength = 0.1985;
 constexpr double kKneeLinkLength = 0.214;
 
+// 四条腿枚举。
 enum class Leg : size_t { FL = 0, FR = 1, RL = 2, RR = 3 };
 
+// 三维向量，用于足端位置计算。
 struct Vec3 {
   double x{0.0};
   double y{0.0};
   double z{0.0};
 };
 
+// 单腿静态信息：名称、DDS 关节起始下标、左右镜像符号、髋关节在机体系偏移。
 struct LegInfo {
   Leg leg;
   const char* name;
@@ -60,6 +64,7 @@ struct LegInfo {
   Vec3 abad_offset_body;
 };
 
+// 四条腿配置：FL/FR/RL/RR。
 constexpr std::array<LegInfo, kNumLegs> kLegs = {{
     {Leg::FL, "FL", 3, 1.0, {0.18453, 0.051, 0.0}},
     {Leg::FR, "FR", 0, -1.0, {0.18453, -0.051, 0.0}},
@@ -67,12 +72,7 @@ constexpr std::array<LegInfo, kNumLegs> kLegs = {{
     {Leg::RR, "RR", 6, -1.0, {-0.18453, -0.051, 0.0}},
 }};
 
-// Stand pose in DDS joint order:
-//   FR_hip, FR_thigh, FR_calf,
-//   FL_hip, FL_thigh, FL_calf,
-//   RR_hip, RR_thigh, RR_calf,
-//   RL_hip, RL_thigh, RL_calf.
-// Model stand pose requested for real-machine test.
+// 站立姿态（DDS 关节顺序：FR/FL/RR/RL，每腿 hip/thigh/calf）。
 constexpr std::array<double, kNumJoints> kStandQ = {
     -0.0, 0.9, -1.8,
      0.0, 0.9, -1.8,
@@ -80,13 +80,7 @@ constexpr std::array<double, kNumJoints> kStandQ = {
      0.0, 0.9, -1.8,
 };
 
-// Down/prone pose in DDS joint order:
-//   FR_hip, FR_thigh, FR_calf,
-//   FL_hip, FL_thigh, FL_calf,
-//   RR_hip, RR_thigh, RR_calf,
-//   RL_hip, RL_thigh, RL_calf.
-// This matches the measured safe crouch/down feedback on the current LEGBOT.
-// Calf is kept at the configured soft-limit boundary.
+// 趴下/归位姿态（与当前 LEGBOT 实测安全反馈一致，小腿保持在软限位边界）。
 constexpr std::array<double, kNumJoints> kDownQ = {
     -0.02, 1.08, -2.6387,
      0.03, 1.08, -2.6387,
@@ -94,11 +88,13 @@ constexpr std::array<double, kNumJoints> kDownQ = {
      0.06, 1.08, -2.6387,
 };
 
+// 关节软限位。
 struct JointSoftLimit {
   double lo;
   double hi;
 };
 
+// 命令行参数：网络、步态参数、PD 增益、安全门限与退出行为。
 struct Args {
   std::string network = "lo";
   std::string mode = "trot";
@@ -131,6 +127,7 @@ struct Args {
   bool help = false;
 };
 
+// 运行统计：循环次数、发布次数、LowState 采样间隔、最大 q 误差与倾角。
 struct LoopStats {
   uint64_t loop_count{0};
   uint64_t publish_count{0};
@@ -151,15 +148,18 @@ double SecondsSince(const Clock::time_point& t0, const Clock::time_point& t) {
   return std::chrono::duration<double>(t - t0).count();
 }
 
+// 数值限幅。
 double Clamp(double v, double lo, double hi) {
   return std::min(std::max(v, lo), hi);
 }
 
+// 平滑阶跃（3 次 Hermite），用于 stance 相插值。
 double SmoothStep(double x) {
   x = Clamp(x, 0.0, 1.0);
   return x * x * (3.0 - 2.0 * x);
 }
 
+// 最小加加速度（min-jerk）轨迹，用于摆动相插值。
 double MinJerk(double x) {
   x = Clamp(x, 0.0, 1.0);
   return 10.0 * x * x * x - 15.0 * x * x * x * x + 6.0 * x * x * x * x * x;
@@ -167,10 +167,12 @@ double MinJerk(double x) {
 
 bool IsFinite(double v) { return std::isfinite(v); }
 
+// 判断是否为前腿（FL/FR）。
 bool IsFrontLeg(const LegInfo& leg) {
   return leg.leg == Leg::FL || leg.leg == Leg::FR;
 }
 
+// 根据腿与关节索引返回软限位；大腿前后腿范围不同，小腿共用下限。
 JointSoftLimit SoftLimitForJoint(const LegInfo& leg, size_t leg_joint_index) {
   if (leg_joint_index == 0) return {-0.73304, 0.73304};
   if (leg_joint_index == 1) {
@@ -179,6 +181,7 @@ JointSoftLimit SoftLimitForJoint(const LegInfo& leg, size_t leg_joint_index) {
   return {-2.6387, -0.7854};
 }
 
+// 摆动腿每控制周期的单关节目标增量限制，防止阶跃过大。
 double StepLimitForJoint(size_t joint_index, const Args& args) {
   switch (joint_index % 3) {
     case 0:
@@ -190,8 +193,10 @@ double StepLimitForJoint(size_t joint_index, const Args& args) {
   }
 }
 
+// 按腿索引返回腿信息。
 const LegInfo& LegFromIndex(size_t idx) { return kLegs.at(idx); }
 
+// 按 DDS 关节索引返回所属腿信息。
 const LegInfo& LegFromJointIndex(size_t joint_index) {
   for (const auto& leg : kLegs) {
     if (joint_index >= leg.dds_base && joint_index < leg.dds_base + 3) return leg;
@@ -202,6 +207,7 @@ const LegInfo& LegFromJointIndex(size_t joint_index) {
 Vec3 Add(const Vec3& a, const Vec3& b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
 Vec3 Sub(const Vec3& a, const Vec3& b) { return {a.x - b.x, a.y - b.y, a.z - b.z}; }
 
+// 腿部正运动学：给定髋/大腿/小腿关节角，计算机体系足端位置。
 Vec3 CalcLegFkBody(const LegInfo& leg, const std::array<double, 3>& q) {
   const double l1 = leg.side_sign * kAbadLinkLength;
   const double l2 = -kHipLinkLength;
@@ -224,6 +230,7 @@ Vec3 CalcLegFkBody(const LegInfo& leg, const std::array<double, 3>& q) {
   return Add(leg.abad_offset_body, hip_frame);
 }
 
+// 腿部逆运动学：由机体系足端位置解算髋/大腿/小腿关节角；无解返回 false。
 bool CalcLegIkBody(const LegInfo& leg, const Vec3& foot_pos_body, std::array<double, 3>* q_out) {
   const Vec3 p = Sub(foot_pos_body, leg.abad_offset_body);
   const double px = p.x;
@@ -262,6 +269,7 @@ bool CalcLegIkBody(const LegInfo& leg, const Vec3& foot_pos_body, std::array<dou
   return true;
 }
 
+// 由 kStandQ 计算四条腿的站立足端位置，作为步态插值基准。
 std::array<Vec3, kNumLegs> StandFeetBody() {
   std::array<Vec3, kNumLegs> feet{};
   for (size_t i = 0; i < kLegs.size(); ++i) {
@@ -276,6 +284,7 @@ std::array<Vec3, kNumLegs> StandFeetBody() {
   return feet;
 }
 
+// 计算单腿在步态周期中的归一化相位 [0,1)，对角腿相差 0.5。
 double OpenLoopLegPhase(const LegInfo& leg, double gait_time_s, const Args& args) {
   const double period = 1.0 / std::max(args.gait_frequency_hz, 1.0e-9);
   const double offset = (leg.leg == Leg::FL || leg.leg == Leg::RR) ? 0.0 : 0.5;
@@ -284,16 +293,19 @@ double OpenLoopLegPhase(const LegInfo& leg, double gait_time_s, const Args& args
   return phase;
 }
 
+// 判断给定腿当前是否处于摆动相。
 bool IsSwingLeg(const LegInfo& leg, double gait_time_s, const Args& args) {
   const double swing_frac = std::max(1.0 - args.gait_duty, 1.0e-6);
   return OpenLoopLegPhase(leg, gait_time_s, args) < swing_frac;
 }
 
+// 摆动相内部归一化进度 [0,1]。
 double SwingAlpha(const LegInfo& leg, double gait_time_s, const Args& args) {
   const double swing_frac = std::max(1.0 - args.gait_duty, 1.0e-6);
   return Clamp(OpenLoopLegPhase(leg, gait_time_s, args) / swing_frac, 0.0, 1.0);
 }
 
+// 支撑相内部归一化进度 [0,1]；摆动相为 0。
 double StanceAlpha(const LegInfo& leg, double gait_time_s, const Args& args) {
   const double phase = OpenLoopLegPhase(leg, gait_time_s, args);
   const double swing_frac = std::max(1.0 - args.gait_duty, 1.0e-6);
@@ -302,6 +314,7 @@ double StanceAlpha(const LegInfo& leg, double gait_time_s, const Args& args) {
   return Clamp((phase - swing_frac) / stance_frac, 0.0, 1.0);
 }
 
+// 生成四腿接触掩码：1=支撑，0=摆动。
 std::array<int, kNumLegs> ContactMask(double gait_time_s, const Args& args) {
   std::array<int, kNumLegs> mask{};
   for (size_t i = 0; i < kLegs.size(); ++i) {
@@ -310,6 +323,7 @@ std::array<int, kNumLegs> ContactMask(double gait_time_s, const Args& args) {
   return mask;
 }
 
+// 将接触掩码输出为 "1010" 字符串便于日志。
 std::string MaskText(const std::array<int, kNumLegs>& mask) {
   std::string out;
   out.reserve(mask.size());
@@ -317,6 +331,7 @@ std::string MaskText(const std::array<int, kNumLegs>& mask) {
   return out;
 }
 
+// 将 12 关节目标限制在软限位范围内。
 void ApplySoftLimits(std::array<double, kNumJoints>* q) {
   for (const auto& leg : kLegs) {
     for (size_t j = 0; j < 3; ++j) {
@@ -326,6 +341,7 @@ void ApplySoftLimits(std::array<double, kNumJoints>* q) {
   }
 }
 
+// 摆动腿触地转离地瞬间用当前实际 q 重置前一目标，其余关节按步进限幅输出。
 std::array<double, kNumJoints> RateLimitTargets(const std::array<double, kNumJoints>& q_raw,
                                                 std::array<double, kNumJoints> q_prev,
                                                 const std::array<double, kNumJoints>& q_now,
@@ -348,6 +364,7 @@ std::array<double, kNumJoints> RateLimitTargets(const std::array<double, kNumJoi
   return out;
 }
 
+// 根据步态相位计算 12 关节原始目标：stand 模式直接返回 kStandQ；trot 模式对摆动/支撑腿分别插值足端并通过 IK 求解。
 std::array<double, kNumJoints> ComputeRawTarget(const Args& args, double gait_time_s,
                                                 const std::array<Vec3, kNumLegs>& stand_feet,
                                                 const std::array<double, kNumJoints>& q_prev_target,
@@ -422,6 +439,7 @@ void PrintHelp(const char* argv0) {
       << "  --help                                Show this help\n";
 }
 
+// 解析命令行参数。
 Args ParseArgs(int argc, char** argv) {
   Args args;
   for (int i = 1; i < argc; ++i) {
@@ -465,6 +483,7 @@ Args ParseArgs(int argc, char** argv) {
   return args;
 }
 
+// 参数校验：实机运行必须显式声明机器人已支撑并确认风险；限制单次运行时长。
 void ValidateArgs(const Args& args) {
   if (args.help) return;
   if (args.dry_run && args.feedback_bootstrap) {
@@ -507,11 +526,13 @@ void ValidateArgs(const Args& args) {
   }
 }
 
+// 线程安全地拷贝一份 LowState 消息。
 LowStateMsg SnapshotLowState(const std::shared_ptr<LowStateSubscriber>& sub) {
   std::lock_guard<std::mutex> lock(sub->mutex_);
   return sub->msg_;
 }
 
+// 从 LowState 读取 12 关节位置。
 std::array<double, kNumJoints> ReadQ(const LowStateMsg& msg) {
   std::array<double, kNumJoints> q{};
   for (size_t i = 0; i < q.size(); ++i) {
@@ -520,6 +541,7 @@ std::array<double, kNumJoints> ReadQ(const LowStateMsg& msg) {
   return q;
 }
 
+// 从 LowState 读取 12 关节速度。
 std::array<double, kNumJoints> ReadDq(const LowStateMsg& msg) {
   std::array<double, kNumJoints> dq{};
   for (size_t i = 0; i < dq.size(); ++i) {
@@ -528,15 +550,18 @@ std::array<double, kNumJoints> ReadDq(const LowStateMsg& msg) {
   return dq;
 }
 
+// 从 LowState 读取 IMU 四元数（w,x,y,z）。
 std::array<float, 4> ReadImuQuatWxyz(const LowStateMsg& msg) {
   return msg.imu_state().quaternion();
 }
 
+// 从 LowState 读取 IMU 陀螺仪（gx,gy,gz）。
 std::array<double, 3> ReadGyro(const LowStateMsg& msg) {
   const auto gyro = msg.imu_state().gyroscope();
   return {static_cast<double>(gyro[0]), static_cast<double>(gyro[1]), static_cast<double>(gyro[2])};
 }
 
+// 将数组格式化为 [a, b, c] 字符串用于日志输出。
 template <typename ArrayT>
 std::string ArrayText(const ArrayT& values, int precision) {
   std::ostringstream oss;
@@ -549,6 +574,7 @@ std::string ArrayText(const ArrayT& values, int precision) {
   return oss.str();
 }
 
+// 输出丢失反馈的关节列表；无丢失返回 "none"。
 std::string LostFlagsText(const LowStateMsg& msg) {
   std::ostringstream oss;
   bool any = false;
@@ -563,6 +589,7 @@ std::string LostFlagsText(const LowStateMsg& msg) {
   return any ? oss.str() : std::string("none");
 }
 
+// 检查是否存在丢失反馈的电机，可选返回第一个丢失关节名。
 bool HasLostMotor(const LowStateMsg& msg, std::string* lost_joint) {
   for (size_t i = 0; i < kNumJoints; ++i) {
     if (msg.motor_state()[i].lost() != 0u) {
@@ -573,6 +600,7 @@ bool HasLostMotor(const LowStateMsg& msg, std::string* lost_joint) {
   return false;
 }
 
+// 四元数（w,x,y,z）转 roll/pitch/yaw（ZYX 顺序）。
 std::array<double, 3> QuatWxyzToRpy(const std::array<float, 4>& quat) {
   double w = quat[0];
   double x = quat[1];
@@ -598,11 +626,13 @@ std::array<double, 3> QuatWxyzToRpy(const std::array<float, 4>& quat) {
   return {roll, pitch, yaw};
 }
 
+// 由 IMU 四元数 computer body 最大倾斜角（roll/pitch 绝对值最大值）。
 double TiltFromLowState(const LowStateMsg& msg) {
   const auto rpy = QuatWxyzToRpy(msg.imu_state().quaternion());
   return std::max(std::abs(rpy[0]), std::abs(rpy[1]));
 }
 
+// 计算当前关节位置与目标位置的最大绝对误差，可选返回对应关节名。
 double MaxQError(const std::array<double, kNumJoints>& q_now, const std::array<double, kNumJoints>& q_target,
                  std::string* joint_name = nullptr) {
   double max_err = 0.0;
@@ -618,6 +648,7 @@ double MaxQError(const std::array<double, kNumJoints>& q_now, const std::array<d
   return max_err;
 }
 
+// 填充 LowCmd 消息：设置头部、等级标志，并按 mode 填充 12 电机命令（mode=0 时清零）。
 void FillLowCmd(LowCmdMsg& cmd, uint8_t mode, const std::array<double, kNumJoints>& q_target,
                 double kp, double kd) {
   cmd.head() = {0xFE, 0xEF};
@@ -643,6 +674,7 @@ void FillLowCmd(LowCmdMsg& cmd, uint8_t mode, const std::array<double, kNumJoint
   }
 }
 
+// 尝试获取 DDS 发布锁并发布 LowCmd；50ms 超时失败返回 false。
 bool PublishLowCmd(LowCmdPublisher& pub, uint8_t mode, const std::array<double, kNumJoints>& q_target,
                    double kp, double kd, LoopStats* stats, const Clock::time_point& stats_t0) {
   const auto deadline = Clock::now() + std::chrono::milliseconds(50);
@@ -661,6 +693,7 @@ bool PublishLowCmd(LowCmdPublisher& pub, uint8_t mode, const std::array<double, 
   return false;
 }
 
+// 在指定时间内持续发布 mode=0 的 LowCmd，用于安全退出或失能电机。
 void PublishDisableFor(LowCmdPublisher* pub, const Args& args, LoopStats* stats,
                        const Clock::time_point& stats_t0, double seconds) {
   if (!pub || seconds <= 0.0) return;
@@ -673,11 +706,13 @@ void PublishDisableFor(LowCmdPublisher* pub, const Args& args, LoopStats* stats,
   }
 }
 
+// 发布一段 mode=0 的失能指令脉冲（用于异常退出时快速切断电机力矩）。
 void PublishDisableBurst(LowCmdPublisher* pub, const Args& args, LoopStats* stats,
                          const Clock::time_point& stats_t0) {
   PublishDisableFor(pub, args, stats, stats_t0, args.exit_disable_seconds);
 }
 
+// 安全检查：电机丢失、最大位置误差超限、机身倾斜超限均抛异常触发退出。
 void CheckSafety(const LowStateMsg& msg, const std::array<double, kNumJoints>& q_target,
                  const Args& args, LoopStats* stats) {
   std::string lost_joint;
@@ -698,6 +733,7 @@ void CheckSafety(const LowStateMsg& msg, const std::array<double, kNumJoints>& q
   }
 }
 
+// 等待收到无电机丢失的 LowState；超时或被信号中断则抛异常。
 void WaitForValidLowState(const std::shared_ptr<LowStateSubscriber>& sub, const Args& args) {
   const auto deadline = Clock::now() + std::chrono::duration<double>(args.wait_lowstate_s);
   while (g_running && Clock::now() < deadline) {
@@ -712,6 +748,7 @@ void WaitForValidLowState(const std::shared_ptr<LowStateSubscriber>& sub, const 
   throw std::runtime_error("motor feedback is still lost");
 }
 
+// 等待收到任意 LowState（不关心是否丢失电机）。
 void WaitForAnyLowState(const std::shared_ptr<LowStateSubscriber>& sub, const Args& args) {
   const auto deadline = Clock::now() + std::chrono::duration<double>(args.wait_lowstate_s);
   while (g_running && Clock::now() < deadline) {
@@ -722,6 +759,7 @@ void WaitForAnyLowState(const std::shared_ptr<LowStateSubscriber>& sub, const Ar
   throw std::runtime_error("no rt/lowstate received");
 }
 
+// 记录一次新的 LowState 采样，统计其时间间隔与最大倾角。
 void RecordLowStateSample(const LowStateMsg& msg, LoopStats* stats, Clock::time_point* last_sample_t,
                           uint32_t* last_tick) {
   const uint32_t tick = msg.tick();
@@ -739,6 +777,7 @@ void RecordLowStateSample(const LowStateMsg& msg, LoopStats* stats, Clock::time_
   stats->max_tilt = std::max(stats->max_tilt, TiltFromLowState(msg));
 }
 
+// 打印 dry-run 状态：仅观测 LowState，不发布 LowCmd。
 void PrintDryRunState(double elapsed, const LowStateMsg& msg, const LoopStats& stats) {
   const auto q = ReadQ(msg);
   const auto dq = ReadDq(msg);
@@ -756,6 +795,7 @@ void PrintDryRunState(double elapsed, const LowStateMsg& msg, const LoopStats& s
             << "  imu_rpy=" << ArrayText(rpy, 5) << " gyro=" << ArrayText(gyro, 5) << "\n";
 }
 
+// 空跑模式：只订阅 LowState，不创建 LowCmd 发布者，用于验证反馈链路。
 void RunDryRun(const Args& args, const std::shared_ptr<LowStateSubscriber>& sub, LoopStats* stats,
                const Clock::time_point& stats_t0) {
   WaitForAnyLowState(sub, args);
@@ -791,6 +831,7 @@ void RunDryRun(const Args& args, const std::shared_ptr<LowStateSubscriber>& sub,
 }
 
 
+// 打印 feedback-bootstrap 状态：只发布 mode=1、kp=kd=tau=0 以唤醒电机反馈。
 void PrintFeedbackBootstrapState(double elapsed, const LowStateMsg& msg, const LoopStats& stats) {
   const auto q = ReadQ(msg);
   const auto dq = ReadDq(msg);
@@ -809,6 +850,7 @@ void PrintFeedbackBootstrapState(double elapsed, const LowStateMsg& msg, const L
             << "  imu_rpy=" << ArrayText(rpy, 5) << " gyro=" << ArrayText(gyro, 5) << "\n";
 }
 
+// 反馈自举模式：发布 mode=1 但 kp/kd/tau=0，仅用于验证 12 电机反馈正常，不做站立或步态。
 void RunFeedbackBootstrap(const Args& args, const std::shared_ptr<LowStateSubscriber>& sub,
                           LowCmdPublisher& pub, LoopStats* stats, const Clock::time_point& stats_t0) {
   WaitForAnyLowState(sub, args);
@@ -869,6 +911,7 @@ void RunFeedbackBootstrap(const Args& args, const std::shared_ptr<LowStateSubscr
   std::cout << "[LEGBOT-RT][FEEDBACK-BOOTSTRAP] feedback_bootstrap_ok: lost=none.\n";
 }
 
+// 通用定时运行阶段：按 hz 循环调用 target_fn 获取目标关节角，做安全检查并发布 LowCmd。
 template <typename TargetFn>
 void RunTimedPhase(const char* phase_name, double seconds, double hz, const Args& args,
                    const std::shared_ptr<LowStateSubscriber>& sub, LowCmdPublisher& pub, LoopStats* stats,
@@ -899,6 +942,7 @@ void RunTimedPhase(const char* phase_name, double seconds, double hz, const Args
 }
 
 
+// 正常退出时从当前姿态平滑插值到趴下姿态，再进入后续失能流程。
 void RunReturnDownOnExit(double seconds, const Args& args,
                          const std::shared_ptr<LowStateSubscriber>& sub, LowCmdPublisher& pub,
                          LoopStats* stats, const Clock::time_point& stats_t0) {
@@ -945,10 +989,11 @@ void RunReturnDownOnExit(double seconds, const Args& args,
     std::this_thread::sleep_until(next);
   }
 
-  // Hold the final down pose briefly for one control tick before disabling.
+  // 在失能前保持一帧趴下姿态，避免力矩突降。
   PublishLowCmd(pub, 1, kDownQ, args.kp, args.kd, stats, stats_t0);
 }
 
+// 打印运行摘要：退出原因、循环/发布次数、LowState 与发布间隔统计、最大 q 误差与倾角。
 void PrintSummary(const std::string& exit_reason, double elapsed_s, const LoopStats& stats) {
   const auto& times = stats.publish_times_s;
   double mean = std::numeric_limits<double>::quiet_NaN();
@@ -995,7 +1040,7 @@ void PrintSummary(const std::string& exit_reason, double elapsed_s, const LoopSt
             << "max_tilt=" << stats.max_tilt << "\n";
 }
 
-}  // namespace
+}  // 命名空间
 
 int main(int argc, char** argv) {
   std::signal(SIGINT, OnSignal);
@@ -1016,6 +1061,7 @@ int main(int argc, char** argv) {
     }
     ValidateArgs(args);
 
+    // 根据运行模式打印 DDS 主题与模式信息。
     if (args.dry_run) {
       std::cout << "[LEGBOT-RT] DDS topics: subscribe " << kLowStateTopic
                 << "; DRY-RUN: no LowCmd publisher, no " << kLowCmdTopic << " publish\n";
@@ -1033,6 +1079,7 @@ int main(int argc, char** argv) {
               << (args.dry_run ? " DRY-RUN" : "")
               << (args.feedback_bootstrap ? " FEEDBACK-BOOTSTRAP" : "") << "\n";
 
+    // 初始化 DDS 并创建 LowState 订阅者；按模式选择是否创建 LowCmd 发布者。
     unitree::robot::ChannelFactory::Instance()->Init(0, args.network);
     auto lowstate_sub = std::make_shared<LowStateSubscriber>(kLowStateTopic);
     lowstate_sub->set_timeout_ms(static_cast<uint32_t>(std::ceil(args.lowstate_timeout_s * 1000.0)));
@@ -1047,6 +1094,7 @@ int main(int argc, char** argv) {
 
     lowcmd_pub = std::make_unique<LowCmdPublisher>(kLowCmdTopic);
 
+    // 反馈自举模式：验证电机反馈。
     if (args.feedback_bootstrap) {
       RunFeedbackBootstrap(args, lowstate_sub, *lowcmd_pub, &stats, stats_t0);
       elapsed_s = SecondsSince(stats_t0, Clock::now());
@@ -1056,15 +1104,18 @@ int main(int argc, char** argv) {
       return exit_reason == "feedback_bootstrap_ok" || exit_reason == "signal" ? 0 : 1;
     }
 
+    // 实机控制流程：等待有效反馈 ->  startup 斜坡到站立 -> 预保持 -> 步态主循环。
     WaitForValidLowState(lowstate_sub, args);
     auto first_msg = SnapshotLowState(lowstate_sub);
     const auto q_start = ReadQ(first_msg);
     std::array<double, kNumJoints> q_target_prev = q_start;
 
+    // 计算站立足端位置，作为 trot 步态足端插值基准。
     const auto stand_feet = StandFeetBody();
     std::cout << "[LEGBOT-RT] LowState valid; ramp current q -> stand for "
               << args.startup_ramp_seconds << "s, prehold " << args.prehold_seconds << "s\n";
 
+    // 启动斜坡：从当前姿态平滑插值到 kStandQ。
     RunTimedPhase("startup_ramp", args.startup_ramp_seconds, args.cmd_hz, args, lowstate_sub, *lowcmd_pub,
                   &stats, stats_t0, [&](double elapsed, const LowStateMsg&) {
                     const double alpha = SmoothStep(elapsed / std::max(args.startup_ramp_seconds, 1.0e-9));
@@ -1076,10 +1127,12 @@ int main(int argc, char** argv) {
                     return q;
                   });
 
+    // 预保持阶段：稳定在站立姿态。
     q_target_prev = kStandQ;
     RunTimedPhase("prehold", args.prehold_seconds, args.cmd_hz, args, lowstate_sub, *lowcmd_pub, &stats,
                   stats_t0, [&](double, const LowStateMsg&) { return kStandQ; });
 
+    // 步态主循环：计算目标 -> 步进限幅 -> 安全检查 -> 发布 LowCmd。
     auto prev_contact_mask = std::array<int, kNumLegs>{1, 1, 1, 1};
     const auto control_start = Clock::now();
     auto next = control_start;
@@ -1127,6 +1180,7 @@ int main(int argc, char** argv) {
       std::this_thread::sleep_until(next);
     }
 
+    // 退出处理：按选项执行趴下斜坡或直接失能；异常退出时同样先失能。
     if (!g_running && exit_reason != "completed_duration") exit_reason = "signal";
     if (exit_reason == "completed_duration" && args.return_down_on_exit) {
       RunReturnDownOnExit(args.return_ramp_seconds, args, lowstate_sub, *lowcmd_pub, &stats, stats_t0);

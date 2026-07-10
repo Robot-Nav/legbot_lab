@@ -1,3 +1,5 @@
+// 文件用途：Legbot 部署主程序。初始化命令行参数、安全参数、DDS 通信与 FSM，
+// 支持 sim2sim（MuJoCo）与 sim2real（serial_dds_gateway）两种运行模式。
 #include "FSM/CtrlFSM.h"
 #include "FSM/State_Passive.h"
 #include "FSM/State_FixStand.h"
@@ -22,14 +24,14 @@ int main(int argc, char** argv)
     std::cout << "[PHASE1] publish rt/lowcmd, subscribe rt/lowstate\n";
     std::cout << "[PHASE1] terminal 1 must run: dds_to_serial_gateway --network lo\n";
 
-    // Load safety config (joint limits, torque limits, roll/pitch, temperature, etc.)
+    // 加载安全参数（关节限位、力矩限幅、姿态/温度阈值等）。
     deploy::load_safety_config();
 
-    // Unitree DDS Config
+    // 初始化 Unitree DDS 通道工厂。
     unitree::robot::ChannelFactory::Instance()->Init(0, network);
     std::cout << "[PHASE1] DDS ChannelFactory initialized on \"" << network << "\"\n";
 
-    // Check lowcmd channel not occupied by another controller
+    // 检查 lowcmd 通道是否被其他控制器占用，避免多个进程同时发令。
     auto lowcmd_sub = std::make_shared<unitree::robot::go2::subscription::LowCmd>();
     usleep(0.2 * 1e6);
     if (!lowcmd_sub->isTimeout())
@@ -38,7 +40,8 @@ int main(int argc, char** argv)
         unitree::robot::go2::shutdown();
     }
 
-    // Single DDS interface: works for both sim2sim (MuJoCo) and sim2real (gateway)
+    // 统一 DDS 接口：发布 rt/lowcmd，订阅 rt/lowstate。
+    // 连接 MuJoCo 时为 sim2sim；连接 serial_dds_gateway 时为 sim2real。
     auto interface = std::make_shared<DDSInterface>();
     interface->init();
 
@@ -46,7 +49,7 @@ int main(int argc, char** argv)
     FSMState::motor_cmds.resize(12);
     FSMState::motor_states.resize(12);
 
-    // Initialize FSM
+    // 初始化并启动 FSM。
     auto fsm = std::make_unique<CtrlFSM>(param::config["FSM"]);
     fsm->start();
 
@@ -57,6 +60,7 @@ int main(int argc, char** argv)
     std::cout << "===============================================================\n";
     std::cout << "Running Legbot Controller...\n";
 
+    // 主线程保持存活，实际控制在 FSM 周期线程中运行。
     while (true)
     {
         sleep(1);

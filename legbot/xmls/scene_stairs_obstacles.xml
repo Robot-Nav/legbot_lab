@@ -1,8 +1,13 @@
+<!-- 楼梯地形带障碍球导航场景：在楼梯上放置滚球障碍。 -->
 <mujoco model="legbot stairs navigation with obstacles">
+  <!-- 编译器设置：角度单位为弧度，网格目录指向 meshes。 -->
   <compiler angle="radian" meshdir="meshes/" assetdir="."/>
+  <!-- 引入外部模型文件。 -->
   <include file="legbot.xml" />
+  <!-- 场景统计与相机范围参数。 -->
   <statistic center="0 0 0.1" extent="0.8" meansize="0.04" />
 
+  <!-- 可视化渲染参数。 -->
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
     <rgba haze="0.15 0.25 0.35 1" />
@@ -12,6 +17,7 @@
     <quality shadowsize="8192" />
   </visual>
 
+  <!-- 资源定义：网格、纹理、材质与高度场。 -->
   <asset>
     <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
     <hfield name="hfield" file="assets/heightmap_stairs.hfield" size="45 45 3.0 4" />
@@ -19,49 +25,52 @@
       markrgb="0.8 0.8 0.8" width="300" height="300"/>
     <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
     
-    <!-- Obstacle ball textures -->
+    <!-- 障碍球纹理 -->
     <texture type="2d" colorspace="sRGB" name="ball01" file="assets/ball01.png"/>
     <texture type="2d" colorspace="linear" name="ball01_ro" file="assets/ball01_ro.png"/>
     
-    <!-- Obstacle ball materials -->
+    <!-- 障碍球材质 -->
     <material name="MI_ROLLBALL" rgba="1 1 1 1" reflectance="0.5" metallic="0.20000000298023224" roughness="1.0">
       <layer texture="ball01" role="rgb"/>
       <layer texture="ball01_ro" role="orm"/>
     </material>
     <material name="MI_gold" rgba="1.0 0.7726222276687622 0.06890170276165009 1.0" reflectance="0.5" metallic="1.0" roughness="0.15000000596046448"/>
     
-    <!-- Obstacle ball meshes -->
+    <!-- 障碍球网格 -->
     <mesh class="visual" name="V_ROLLBALL" file="../assets/V_ROLLBALL.obj"/>
     <mesh class="visual" name="V_ROLLBALL_in" file="../assets/V_ROLLBALL_in.obj"/>
   </asset>
 
+  <!-- 默认属性模板：几何、关节、电机共享参数。 -->
   <default>
     <default class="C_ROLLBALL">
       <geom type="sphere" rgba="1 1 1 1" size="0.375" density="0" mass="0"/>
     </default>
   </default>
 
+  <!-- 世界坐标系实体：灯光、地面、机器人与地形。 -->
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" />
+    <!-- 地面碰撞体：提供机器人足底接触平面。 -->
     <geom name="ground" pos="0 0 -1.89" size="1 1 1" type="hfield" hfield="hfield"
       material="groundplane" />
     
-    <!-- Obstacle balls placed on stairs terrain -->
-    <!-- Ball 1: Left side, high position -->
+    <!-- 楼梯障碍球：放置在楼梯地形上的滚动障碍物。 -->
+    <!-- 障碍球 1：左侧高位。 -->
     <body name="obstacle_ball_1" pos="-2.0 1.0 0.2">
       <geom class="C_ROLLBALL"/>
       <geom class="visual" mesh="V_ROLLBALL" pos="0.0 0.0 0.0" quat="0.5000000596046448 -0.5 0.5 0.4999999403953552" material="MI_ROLLBALL"/>
       <geom class="visual" mesh="V_ROLLBALL_in" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="MI_gold"/>
     </body>
     
-    <!-- Ball 2: Center, high position -->
+    <!-- 障碍球 2：中间高位。 -->
     <body name="obstacle_ball_2" pos="0.0 2.5 0.5">
       <geom class="C_ROLLBALL"/>
       <geom class="visual" mesh="V_ROLLBALL" pos="0.0 0.0 0.0" quat="0.5000000596046448 -0.5 0.5 0.4999999403953552" material="MI_ROLLBALL"/>
       <geom class="visual" mesh="V_ROLLBALL_in" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="MI_gold"/>
     </body>
     
-    <!-- Ball 3: Right side, very high position -->
+    <!-- 障碍球 3：右侧更高位。 -->
     <body name="obstacle_ball_3" pos="2.0 4.0 0.8">
       <geom class="C_ROLLBALL"/>
       <geom class="visual" mesh="V_ROLLBALL" pos="0.0 0.0 0.0" quat="0.5000000596046448 -0.5 0.5 0.4999999403953552" material="MI_ROLLBALL"/>
@@ -69,6 +78,7 @@
     </body>
   </worldbody>
 
+  <!-- 传感器：关节状态、IMU 与接触检测。 -->
   <sensor>
     <contact name="FR_foot_contact" geom2="FR" geom1="ground" data="normal" num="1" />
     <contact name="FL_foot_contact" geom2="FL" geom1="ground" data="normal" num="1" />

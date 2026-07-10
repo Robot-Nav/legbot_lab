@@ -1,5 +1,7 @@
 #pragma once
 
+// IMU 陀螺仪静止偏置在线标定与死区滤波（sim2real 方案 A：网关侧负责偏置）。
+
 #include <array>
 #include <chrono>
 #include <cmath>
@@ -7,7 +9,6 @@
 
 namespace serial_dds_gateway {
 
-// Primary gyro bias calibration for sim2real (scheme A: gateway owns bias).
 class ImuGyroFilter {
  public:
   ImuGyroFilter() { Reset(); }
@@ -46,6 +47,7 @@ class ImuGyroFilter {
 
       const double elapsed =
           std::chrono::duration<double>(std::chrono::steady_clock::now() - start_).count();
+      // 标定完成条件：时间到且样本数足够。
       if ((calib_seconds_ <= 0.0 || elapsed >= calib_seconds_) && sample_count_ >= min_samples_) {
         const double n = static_cast<double>(sample_count_);
         bias_[0] = static_cast<float>(sum_[0] / n);
@@ -61,6 +63,7 @@ class ImuGyroFilter {
       }
     }
 
+    // 标定完成前使用累计均值做临时偏置，完成后使用最终偏置。
     const float bx = calib_done_ ? bias_[0]
                                  : static_cast<float>(sum_[0] / std::max(1, sample_count_));
     const float by = calib_done_ ? bias_[1]

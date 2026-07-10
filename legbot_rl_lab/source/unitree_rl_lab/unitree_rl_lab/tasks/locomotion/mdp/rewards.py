@@ -1,16 +1,17 @@
+# 自定义 MDP 奖励函数：覆盖能量、姿态、脚部接触、步态、镜像等奖励项。
 # 启用未来类型注解特性
 from __future__ import annotations
 
-# 导入PyTorch张量操作库
+# 导入张量计算库
 import torch
 # 导入类型检查相关模块
 from typing import TYPE_CHECKING
 
-# 尝试从Isaac Lab数学工具库导入四元数逆旋转函数
+# 从数学工具库导入四元数逆旋转函数，兼容不同版本函数名
 try:
     from isaaclab.utils.math import quat_apply_inverse
 except ImportError:
-    # 如果导入失败，使用备用函数名
+    # 回退到旧版函数名
     from isaaclab.utils.math import quat_rotate_inverse as quat_apply_inverse
 # 导入机器人关节和刚体类
 from isaaclab.assets import Articulation, RigidObject

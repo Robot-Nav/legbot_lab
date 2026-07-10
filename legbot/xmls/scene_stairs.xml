@@ -1,8 +1,13 @@
+<!-- 楼梯地形导航场景：加载机器人并铺设高度场楼梯地面。 -->
 <mujoco model="legbot stairs navigation scene">
+  <!-- 编译器设置：角度单位为弧度，网格目录指向 meshes。 -->
   <compiler angle="radian" meshdir="meshes/" assetdir="."/>
+  <!-- 引入外部模型文件。 -->
   <include file="legbot.xml" />
+  <!-- 场景统计与相机范围参数。 -->
   <statistic center="0 0 0.1" extent="0.8" meansize="0.04" />
 
+  <!-- 可视化渲染参数。 -->
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
     <rgba haze="0.15 0.25 0.35 1" />
@@ -12,6 +17,7 @@
     <quality shadowsize="8192" />
   </visual>
 
+  <!-- 资源定义：网格、纹理、材质与高度场。 -->
   <asset>
     <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
     <hfield name="hfield" file="assets/heightmap_stairs.hfield" size="45 45 3.0 4" />
@@ -20,12 +26,15 @@
     <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
   </asset>
 
+  <!-- 世界坐标系实体：灯光、地面、机器人与地形。 -->
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" />
+    <!-- 地面碰撞体：提供机器人足底接触平面。 -->
     <geom name="ground" pos="0 0 -1.89" size="1 1 1" type="hfield" hfield="hfield"
       material="groundplane" />
   </worldbody>
 
+  <!-- 传感器：关节状态、IMU 与接触检测。 -->
   <sensor>
     <contact name="FR_foot_contact" geom2="FR" geom1="ground" data="normal" num="1" />
     <contact name="FL_foot_contact" geom2="FL" geom1="ground" data="normal" num="1" />

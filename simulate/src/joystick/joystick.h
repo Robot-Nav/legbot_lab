@@ -12,6 +12,9 @@
 //
 // Copyright Drew Noakes 2013-2016
 
+// Linux 手柄事件读取头文件
+// 封装 /dev/input/js* 非阻塞读取，提供按键与摇杆状态缓存。
+
 #ifndef __JOYSTICK_H__
 #define __JOYSTICK_H__
 
@@ -25,139 +28,86 @@
 #include "unistd.h"
 
 
-#define JS_EVENT_BUTTON 0x01 // button pressed/released
-#define JS_EVENT_AXIS 0x02   // joystick moved
-#define JS_EVENT_INIT 0x80   // initial state of device
+#define JS_EVENT_BUTTON 0x01 // 按键按下或释放
+#define JS_EVENT_AXIS 0x02   // 摇杆或扳机轴变化
+#define JS_EVENT_INIT 0x80   // 设备初始状态事件
 
+// 单个手柄事件结构，对应 linux/joystick.h 的 js_event
 class JoystickEvent
 {
 public:
-  /** Minimum value of axes range */
-  static const short MIN_AXES_VALUE = -32768;
+  static const short MIN_AXES_VALUE = -32768;  // 摇杆最小值
+  static const short MAX_AXES_VALUE = 32767;   // 摇杆最大值
 
-  /** Maximum value of axes range */
-  static const short MAX_AXES_VALUE = 32767;
+  unsigned int time;   // 事件时间戳，单位毫秒
+  short value;         // 事件数值：按键为 0/1，轴为 MIN_AXES_VALUE ~ MAX_AXES_VALUE
+  unsigned char type;  // 事件类型：按键、轴或初始状态
+  unsigned char number;// 按键或轴编号
 
-  /**
-   * The timestamp of the event, in milliseconds.
-   */
-  unsigned int time;
-
-  /**
-   * The value associated with this joystick event.
-   * For buttons this will be either 1 (down) or 0 (up).
-   * For axes, this will range between MIN_AXES_VALUE and MAX_AXES_VALUE.
-   */
-  short value;
-
-  /**
-   * The event type.
-   */
-  unsigned char type;
-
-  /**
-   * The axis/button number.
-   */
-  unsigned char number;
-
-  /**
-   * Returns true if this event is the result of a button press.
-   */
+  // 判断是否为按键事件
   bool isButton()
   {
     return (type & JS_EVENT_BUTTON) != 0;
   }
 
-  /**
-   * Returns true if this event is the result of an axis movement.
-   */
+  // 判断是否为轴事件
   bool isAxis()
   {
     return (type & JS_EVENT_AXIS) != 0;
   }
 
-  /**
-   * Returns true if this event is part of the initial state obtained when
-   * the joystick is first connected to.
-   */
+  // 判断是否为设备连接时注入的初始状态事件
   bool isInitialState()
   {
     return (type & JS_EVENT_INIT) != 0;
   }
 
-  /**
-   * The ostream inserter needs to be a friend so it can access the
-   * internal data structures.
-   */
+  // 声明友元，允许流输出访问内部字段
   friend std::ostream &operator<<(std::ostream &os, const JoystickEvent &e);
 };
 
-/**
- * Stream insertion function so you can do this:
- *    cout << event << endl;
- */
+// 流输出函数，便于直接打印调试：cout << event << endl;
 std::ostream &operator<<(std::ostream &os, const JoystickEvent &e);
 
-/**
- * Represents a joystick device. Allows data to be sampled from it.
- */
+// Linux 手柄设备封装类
 class Joystick
 {
 private:
   void openPath(std::string devicePath, bool blocking = false);
-  int _fd;
+  int _fd;  // 设备文件描述符
 
 public:
   ~Joystick();
 
-  /**
-   * Initialises an instance for the first joystick: /dev/input/js0
-   */
+  // 默认打开第一个手柄 /dev/input/js0
   Joystick();
 
-  /**
-   * Initialises an instance for the joystick with the specified,
-   * zero-indexed number.
-   */
+  // 根据编号打开 /dev/input/js{joystickNumber}
   Joystick(int joystickNumber);
 
-  /**
-   * Initialises an instance for the joystick device specified.
-   */
+  // 根据完整设备路径打开
   Joystick(std::string devicePath);
 
-  /**
-   * Joystick objects cannot be copied
-   */
+  // 禁止拷贝，避免文件描述符重复关闭
   Joystick(Joystick const &) = delete;
 
-  /**
-   * Joystick objects can be moved
-   */
+  // 允许移动语义
   Joystick(Joystick &&) = default;
 
-  /**
-   * Initialises an instance for the joystick device specified and provide
-   * the option of blocking I/O.
-   */
+  // 指定设备路径，并可选择阻塞模式
   Joystick(std::string devicePath, bool blocking);
 
-  /**
-   * Returns true if the joystick was found and may be used, otherwise false.
-   */
+  // 检测手柄是否成功打开
   bool isFound();
 
-  /**
-   * Attempts to populate the provided JoystickEvent instance with data
-   * from the joystick. Returns true if data is available, otherwise false.
-   */
-
+  // 读取一次事件并更新内部缓存，应在主循环中高频调用
   void getState();
 
-  JoystickEvent event_;
-  int button_[20] = {0};
-  int axis_[10] = {0};
+  JoystickEvent event_;  // 最近一次事件
+  int button_[20] = {0}; // 按键状态缓存，索引对应手柄按键编号
+  int axis_[10] = {0};   // 轴状态缓存，索引对应手柄轴编号
 
+  // 从内核读取单个事件，返回 true 表示读取成功
   bool sample(JoystickEvent *event);
 };
 

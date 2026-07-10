@@ -1,6 +1,5 @@
-// Copyright (c) 2025, Unitree Robotics Co., Ltd.
-// All rights reserved.
-
+// 文件用途：FSM 基类与状态工厂注册。所有具体状态继承 BaseState，
+// 并通过 REGISTER_FSM 宏在启动时自动注册到全局工厂表中。
 #pragma once
 
 #include <boost/bimap.hpp>
@@ -8,8 +7,11 @@
 #include <any>
 #include <utility>
 
+// 状态 ID 与状态名字符串之间的双向映射，用于配置解析与日志输出。
 inline boost::bimap<int, std::string> FSMStringMap;
 
+// FSM 状态基类。每个状态拥有 enter / pre_run / run / post_run / exit 生命周期，
+// 并维护一组切换条件 registered_checks。
 class BaseState
 {
 public:
@@ -42,6 +44,7 @@ inline FsmMap& getFsmMap() {
     return fsmMap;
 }
 
+// 自动注册状态到全局工厂表，使 CtrlFSM 可通过状态类型名动态创建实例。
 #define REGISTER_FSM(Derived) \
     inline std::shared_ptr<BaseState> __factory_##Derived(int s, std::string ss) {      \
         return std::make_shared<Derived>(s, ss);                                        \

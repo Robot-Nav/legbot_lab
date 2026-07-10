@@ -1,3 +1,4 @@
+// 文件用途：非阻塞键盘输入封装。在独立线程中读取终端按键，供 FSM 状态切换或调试使用。
 #pragma once
 
 #include <string>
@@ -8,10 +9,6 @@
 #include <thread>
 
 
-/**
- * @brief Maintain a keyboard reading thread.
- * And get the latest key value.
- */
 class Keyboard
 {
 public:
@@ -54,39 +51,28 @@ public:
     _last_key = _key;
   }
 
-  /**
-   * @brief Get the current key value
-   * 
-   * @return std::string 
-   */
+  // 获取当前按键字符串。
   std::string key() const { return _key; };
 
-  /**
-   * @brief Get the String object from keyboard 
-   * 
-   * @param slogan Used to prompt the user for input
-   * @return std::string 
-   */
+  // 暂停后台读取，阻塞获取一行输入（用于交互式提示）。
   std::string getString(std::string slogan)
   {
-    // Stop reading keyboard value
+    // 暂停后台按键读取
     _running = false;
     _pauseKey();
 
     std::string stringtemp;
-    std::cout << slogan << std::endl;// prompt
+    std::cout << slogan << std::endl;
     std::getline(std::cin, stringtemp);
 
-    // Restart reading keyboard value
+    // 恢复后台按键读取
     _startKey();
     _running = true;
 
     return stringtemp;
   }
 
-  /**
-   * flags; available after update()
-   */
+  // 按键事件标志，调用 update() 后有效。
   bool on_pressed = false;
   bool on_released = false;
 
@@ -107,15 +93,13 @@ public:
 
       if(select(fileno(stdin)+1, &_fd_set, NULL, NULL, &_tv))
       {
-        // Read the key value into _c
+        // 读取一个字符到 _c
         int res = read( fileno(stdin), &_c, 1 );
 
-        // Parser the key value
+        // 解析按键：转义序列为方向键
         if(_c != '\033') {
-          // This is a normal key
           _key = _c;
         }else{
-          // This is a special key
           int m = read(fileno(stdin), &_c, 1);
           if(_c == '[')
           {
@@ -133,22 +117,17 @@ public:
       }else{
         _key = "";
       }
-      // std::cout << "key: "<< key() << std::endl;
     }
   }
 
-  /**
-   * @brief Restore keyboard default settings.
-   */
+  // 恢复终端默认设置（规范模式 + 回显）。
   void _pauseKey()
   {
     tcsetattr( fileno( stdin ), TCSANOW, &_oldSettings );
     _running = false;
   }
 
-  /**
-   * @brief Disable canonical mode and echoing of input characters.
-   */
+  // 关闭规范模式与回显，实现非阻塞单字符读取。
   void _startKey()
   {
     tcsetattr( fileno( stdin ), TCSANOW, &_newSettings );

@@ -1,3 +1,5 @@
+// IMU 串口帧解析实现：EB 90 A5 FF 头、6×float32 LE、CRC16-Modbus、80 7F 尾。
+
 #include "imu_framer.hpp"
 
 #include <fcntl.h>
@@ -39,6 +41,7 @@ speed_t ToTermiosBaud(int baudrate) {
   }
 }
 
+// 从缓冲区指定偏移读 float32 little-endian。
 float ReadFloatLe(const std::vector<uint8_t>& bytes, size_t offset) {
   uint32_t raw = static_cast<uint32_t>(bytes[offset]) | (static_cast<uint32_t>(bytes[offset + 1]) << 8) |
                  (static_cast<uint32_t>(bytes[offset + 2]) << 16) |
@@ -62,6 +65,7 @@ bool HasHeaderAt(const std::vector<uint8_t>& bytes, size_t offset) {
 
 }  // namespace
 
+// ZYX 欧拉角转四元数：依次绕 Z(yaw)、Y(pitch)、X(roll) 旋转。
 Quaternion EulerYprToQuaternion(double yaw, double pitch, double roll) {
   const double cy = std::cos(yaw * 0.5);
   const double sy = std::sin(yaw * 0.5);
@@ -128,6 +132,7 @@ std::vector<ImuSample> ImuFramer::ReadAvailableSamples() {
   return ParseBuffer(rx_buf_);
 }
 
+// CRC16-Modbus：初值 0xFFFF，多项式 0xA001。
 uint16_t ImuFramer::Crc16Modbus(const std::vector<uint8_t>& data) {
   uint16_t crc = 0xFFFF;
   for (const auto byte : data) {
@@ -143,6 +148,7 @@ uint16_t ImuFramer::Crc16Modbus(const std::vector<uint8_t>& data) {
   return crc;
 }
 
+// 从缓冲区中查找帧头、校验尾与 CRC，解析 yaw/pitch/roll/gz/gy/gx。
 std::vector<ImuSample> ImuFramer::ParseBuffer(std::vector<uint8_t>& rx_buf) {
   std::vector<ImuSample> out;
 
@@ -167,7 +173,7 @@ std::vector<ImuSample> ImuFramer::ParseBuffer(std::vector<uint8_t>& rx_buf) {
     }
 
     if (rx_buf[kImuFrameLen - 2] != kImuTail[0] || rx_buf[kImuFrameLen - 1] != kImuTail[1]) {
-      rx_buf.erase(rx_buf.begin());
+      rx_buf.erase(rx_buf.begin());  // 尾不匹配，丢弃一字节重新同步
       continue;
     }
 
@@ -176,12 +182,12 @@ std::vector<ImuSample> ImuFramer::ParseBuffer(std::vector<uint8_t>& rx_buf) {
         static_cast<uint16_t>(rx_buf[crc_offset] | (static_cast<uint16_t>(rx_buf[crc_offset + 1]) << 8));
     const std::vector<uint8_t> crc_data(rx_buf.begin(), rx_buf.begin() + static_cast<std::ptrdiff_t>(crc_offset));
     if (received_crc != Crc16Modbus(crc_data)) {
-      rx_buf.erase(rx_buf.begin());
+      rx_buf.erase(rx_buf.begin());  // CRC 失败，丢弃一字节重新同步
       continue;
     }
 
     const size_t data_offset = kImuHeader.size();
-    // Wire order: yaw, pitch, roll, gz, gy, gx (float32 LE each).
+    // 串口顺序：yaw, pitch, roll, gz, gy, gx（每个 float32 LE）。
     ImuSample sample;
     sample.yaw = ReadFloatLe(rx_buf, data_offset + 0 * kBytesPerFloat);
     sample.pitch = ReadFloatLe(rx_buf, data_offset + 1 * kBytesPerFloat);

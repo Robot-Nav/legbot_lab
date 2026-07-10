@@ -1,17 +1,17 @@
-<!-- world.xml -->
-<!-- 无灯光，纯场景碰撞 -->
+<!-- 世界场景纯碰撞组合文件：无灯光，仅用于碰撞检测。 -->
 <mujoco>
     <asset>
     <model name="section01C" file="section01/0120_C_section01.xml"/>
     <model name="section02C" file="section02/0120_C_section02.xml"/>
     <model name="section03C" file="section03/0122_C_section03.xml"/>
   </asset>
+  <!-- 世界坐标系实体：挂载纯碰撞地形。 -->
   <worldbody>
-
-    <!-- 加载碰撞体场景文件 -->
-    <!-- 为了能辨认，带有基础材质 -->
+    <!-- 挂载第一段碰撞地形。 -->
     <attach model="section01C" prefix="0"/>
+    <!-- 挂载第二段碰撞地形。 -->
     <attach model="section02C" prefix="1"/>
+    <!-- 挂载第三段碰撞地形。 -->
     <attach model="section03C" prefix="2"/>
   </worldbody>
 </mujoco>

@@ -1,5 +1,5 @@
-# Per-motor type1 commands: joint,q,dq,kp,kd,tau
-# Copy and edit for your test. Unknown joints are ignored; missing joints keep CLI defaults.
+# 每路电机 type1 指令：joint,q,dq,kp,kd,tau
+# 复制并根据测试需要编辑；未知关节被忽略，缺失关节保持 CLI 默认值。
 joint,q,dq,kp,kd,tau
 FR_hip_joint,0.10,0.0,0.0,0.5,0.0
 FR_thigh_joint,0.80,0.0,0.0,0.5,0.0

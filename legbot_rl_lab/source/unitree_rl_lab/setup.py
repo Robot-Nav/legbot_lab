@@ -1,22 +1,21 @@
-"""Installation script for the 'unitree_rl_lab' python package."""
+"""unitree_rl_lab Python 包的安装脚本。"""
 
 import os
 import toml
 
 from setuptools import setup
 
-# Obtain the extension data from the extension.toml file
+# 从 extension.toml 读取扩展元数据
 EXTENSION_PATH = os.path.dirname(os.path.realpath(__file__))
-# Read the extension.toml file
 EXTENSION_TOML_DATA = toml.load(os.path.join(EXTENSION_PATH, "config", "extension.toml"))
 
-# Minimum dependencies required prior to installation
+# 安装前必须满足的依赖
 INSTALL_REQUIRES = [
-    # NOTE: Add dependencies
+    # 按需补充依赖
     "psutil",
 ]
 
-# Installation operation
+# 执行安装
 setup(
     name="unitree_rl_lab",
     packages=["unitree_rl_lab"],

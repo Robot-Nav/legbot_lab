@@ -1,4 +1,4 @@
-// Fatu Phase-1 DDS 串口网关：订阅 rt/lowcmd，发布 rt/lowstate；
+// Fatu 第一阶段 DDS 串口网关：订阅 rt/lowcmd，发布 rt/lowstate；
 // 经灵足 USB-CAN 串口驱动 12 路电机，可选独立 IMU 串口。
 
 #include "imu_framer.hpp"
@@ -288,7 +288,7 @@ void ImuRxLoop(ImuFramer& framer, ImuGyroFilter& gyro_filter, ImuCache& imu_cach
   }
 }
 
-}  // namespace
+}  // 命名空间
 
 void PrintPhase1Banner(const Args& args, bool dual_motor_serial) {
   std::cout << "\n========== Fatu Phase-1: DDS Serial Gateway ==========\n";
@@ -412,7 +412,7 @@ int main(int argc, char** argv) {
     // 检测 motor_cmd.mode 边沿，触发 type3/4
     std::unordered_map<uint8_t, bool> mode_nonzero_prev;
     for (auto j : kJointOrder) mode_nonzero_prev[JointCanId(j)] = false;
-    // CAN 电机 ID → motor_cache 下标 [0..11]
+    // CAN 电机 ID 到 12 电机反馈缓存下标的映射。
     std::unordered_map<uint8_t, size_t> canid_to_index;
     for (size_t i = 0; i < kJointOrder.size(); ++i) {
       canid_to_index[JointCanId(kJointOrder[i])] = i;

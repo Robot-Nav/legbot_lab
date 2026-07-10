@@ -1,14 +1,16 @@
+<!-- 第二段地形碰撞模型（0126 版本）：蓝色半透明调试材质。 -->
 <mujoco>
 
+  <!-- 资源定义：网格、纹理、材质与高度场。 -->
   <asset>
 
-    <!-- Textures -->
+    <!-- 纹理 -->
     <hfield name="hfield_terrain" file="assets/H_section_02_0122.png" size="5 1.5 0.1 0" />
 
     <!-- 蓝色半透明材质 -->
     <material name="CollisionBlue2" rgba="0.1 0.1 1.0 0.8" specular="0.3" shininess="0.5"/>
 
-    <!-- Collision meshes -->
+    <!-- 碰撞网格 -->
     <mesh class="collision" name="C_cone_mesh_001" file="assets/C_cone_mesh_001.stl"/>
     <mesh class="collision" name="C_cone_mesh_002" file="assets/C_cone_mesh_002.stl"/>
     <mesh class="collision" name="C_cone_mesh_003" file="assets/C_cone_mesh_003.stl"/>
@@ -22,6 +24,7 @@
     <mesh class="collision" name="C_logo_mesh_002" file="assets/C_logo_mesh_002.stl"/>
   </asset>
 
+  <!-- 默认属性模板：几何、关节、电机共享参数。 -->
   <default>
       <default class="collision">
         <geom type="mesh" material="CollisionBlue2" group="1" contype="1" conaffinity="1"/>
@@ -352,8 +355,11 @@
       </default>
   </default>
 
+  <!-- 世界坐标系实体：第二段地形碰撞体。 -->
   <worldbody>
+    <!-- 地形根节点：聚合当前段落所有静态碰撞体。 -->
     <body name="ground_root">
+      <!-- A 段地板：提供站立平面。 -->
       <body name="B_Adiban" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <!-- <geom name="Adiban_001" class="C_Adiban_001"/> -->
         <!-- <geom name="Adiban_002" class="C_Adiban_002"/> -->
@@ -362,6 +368,7 @@
         <!-- <geom name="Adiban_005" class="C_Adiban_005"/> -->
       </body>
 
+      <!-- B 段锥桶障碍。 -->
       <body name="B_BCone" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="BCone_001" class="C_cone_mesh_001"/>
         <geom name="BCone_002" class="C_cone_mesh_002"/>
@@ -372,10 +379,12 @@
         <geom name="BCone_007" class="C_cone_mesh_007"/>
         <geom name="BCone_008" class="C_cone_mesh_008"/>
       </body>
+      <!-- B 段边界。 -->
       <body name="B_Bbianjie" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="Bbianjie_001" class="C_Bbianjie_001"/>
         <geom name="Bbianjie_002" class="C_Bbianjie_002"/>
       </body>
+      <!-- B 段桥墩支撑结构。 -->
       <body name="B_Bbridge_diji" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="Bbridge_diji_001" class="C_bridge_diji_cube_001"/>
         <geom name="Bbridge_diji_002" class="C_bridge_diji_cube_002"/>
@@ -386,6 +395,7 @@
         <geom name="Bbridge_diji_007" class="C_bridge_diji_cylinder_003"/>
         <geom name="Bbridge_diji_008" class="C_bridge_diji_cylinder_004"/>
       </body>
+      <!-- B 段地板。 -->
       <body name="B_Bdiban" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="Bdiban_001" class="C_Bdiban_001"/>
         <geom name="Bdiban_002" class="C_Bdiban_002"/>
@@ -393,6 +403,7 @@
         <geom name="Bdiban_004" class="C_Bdiban_004"/>
         <geom name="Bdiban_005" class="C_Bdiban_005"/>
       </body>
+      <!-- B 段地形：高度场起伏路面。 -->
       <body name="B_Bdixing" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="V_Bdixing_Plane" type="hfield" hfield="hfield_terrain"
               pos="0 10.3296 1.2941" quat="1 0 0 0"
@@ -400,6 +411,7 @@
               contype="1" conaffinity="1"
               friction="0.8" solref="0.02 1" condim="3"/>
       </body>
+      <!-- B 段坡道。 -->
       <body name="B_Bpo" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="Bpo_001" class="C_Bpo"/>
         <geom name="Bpo_002" class="C_Bpo_sphere_001"/>
@@ -408,10 +420,12 @@
         <geom name="Bpo_005" class="C_Bpo_sphere_004"/>
         <geom name="Bpo_006" class="C_Bpo_sphere_005"/>
       </body>
+      <!-- B 段台阶与标志装饰。 -->
       <body name="B_Bstep_logo" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="Bstep_logo_001" class="C_logo_mesh_001"/>
         <geom name="Bstep_logo_002" class="C_logo_mesh_002"/>
       </body>
+      <!-- B 段桥梁：包含桥面与桥梯。 -->
       <body name="B_bridge" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="bridge_001" class="C_bridge_cube_001"/>
         <geom name="bridge_002" class="C_bridge_cube_002"/>
@@ -443,6 +457,7 @@
         <geom name="bridge_028" class="C_bridge_step_022"/>
         <geom name="bridge_029" class="C_bridge_step_023"/>
       </body>
+      <!-- B 段左侧上行楼梯。 -->
       <body name="B_left_stair1" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="left_stair1_001" class="C_left_stair1_001"/>
         <geom name="left_stair1_002" class="C_left_stair1_002"/>
@@ -455,6 +470,7 @@
         <geom name="left_stair1_009" class="C_left_stair1_009"/>
         <geom name="left_stair1_010" class="C_left_stair1_010"/>
       </body>
+      <!-- B 段左侧下行楼梯。 -->
       <body name="B_left_stair2" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="left_stair2_001" class="C_left_stair2_001"/>
         <geom name="left_stair2_002" class="C_left_stair2_002"/>
@@ -467,6 +483,7 @@
         <geom name="left_stair2_009" class="C_left_stair2_009"/>
         <geom name="left_stair2_010" class="C_left_stair2_010"/>
       </body>
+      <!-- B 段右侧上行楼梯。 -->
       <body name="B_right_stair1" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="right_stair1_001" class="C_right_stair1_001"/>
         <geom name="right_stair1_002" class="C_right_stair1_002"/>
@@ -479,6 +496,7 @@
         <geom name="right_stair1_009" class="C_right_stair1_009"/>
         <geom name="right_stair1_010" class="C_right_stair1_010"/>
       </body>
+      <!-- B 段右侧下行楼梯。 -->
       <body name="B_right_stair2" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="right_stair2_001" class="C_right_stair2_001"/>
         <geom name="right_stair2_002" class="C_right_stair2_002"/>
@@ -491,6 +509,7 @@
         <geom name="right_stair2_009" class="C_right_stair2_009"/>
         <geom name="right_stair2_010" class="C_right_stair2_010"/>
       </body>
+      <!-- B 段楼梯地基。 -->
       <body name="B_stair_digi" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
         <geom name="stair_digi_001" class="C_stair_diji_001"/>
         <geom name="stair_digi_002" class="C_stair_diji_002"/>

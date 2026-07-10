@@ -1,5 +1,8 @@
 #pragma once
 
+// 仿真参数配置头文件
+// 负责从 YAML 配置文件和命令行读取仿真、DDS 通信、手柄及弹性绳参数。
+
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <yaml-cpp/yaml.h>
@@ -8,23 +11,25 @@
 namespace param
 {
 
+// 仿真全局配置结构体
 inline struct SimulationConfig
 {
-    std::filesystem::path robot_scene;
+    std::filesystem::path robot_scene;  // 机器人场景 XML 文件路径
 
-    int domain_id;
-    std::string interface;
+    int domain_id;                      // DDS 域 ID，隔离不同仿真实例
+    std::string interface;              // DDS 网络接口名称
 
-    int use_joystick;
-    std::string joystick_type;
-    std::string joystick_device;
-    int joystick_bits;
+    int use_joystick;                   // 是否启用手柄或键盘输入
+    std::string joystick_type;          // 手柄类型：xbox / switch / keyboard
+    std::string joystick_device;        // 手柄设备节点路径
+    int joystick_bits;                  // 摇杆量化位数，用于归一化到 [-1, 1]
 
-    int print_scene_information;
+    int print_scene_information;        // 是否打印模型结构信息，便于调试传感器索引
 
-    int enable_elastic_band;
-    int band_attached_link = 0;
+    int enable_elastic_band;            // 是否启用弹性绳约束
+    int band_attached_link = 0;         // 弹性绳在 base 上的作用起始索引，等于 6 * body_id
 
+    // 从 YAML 加载配置，字段缺失时直接退出，避免后续运行出现未定义行为
     void load_from_yaml(const std::string &filename)
     {
         auto cfg = YAML::LoadFile(filename);
@@ -48,18 +53,19 @@ inline struct SimulationConfig
     }
 } config;
 
-/* ---------- Command Line Parameters ---------- */
+// 命令行参数解析命名空间
 namespace po = boost::program_options;
 
-//※ This function must be called at the beginning of main() function
+// 解析命令行参数，可覆盖 YAML 中的 domain_id、interface、scene
+// 该函数需在 main 函数起始阶段调用
 inline po::variables_map helper(int argc, char** argv)
 {
     po::options_description desc("Legbot Mujoco");
     desc.add_options()
-        ("help,h", "Show help message")
-        ("domain_id,i", po::value<int>(&config.domain_id), "DDS domain ID; -i 0")
-        ("network,n", po::value<std::string>(&config.interface), "DDS network interface; -n eth0")
-        ("scene,s", po::value<std::filesystem::path>(&config.robot_scene), "Robot scene file; -s scene_terrain.xml")
+        ("help,h", "显示帮助信息")
+        ("domain_id,i", po::value<int>(&config.domain_id), "DDS 域 ID；示例：-i 0")
+        ("network,n", po::value<std::string>(&config.interface), "DDS 网络接口；示例：-n eth0")
+        ("scene,s", po::value<std::filesystem::path>(&config.robot_scene), "机器人场景文件；示例：-s scene_terrain.xml")
     ;
 
     po::variables_map vm;

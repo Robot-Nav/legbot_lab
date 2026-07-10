@@ -1,3 +1,5 @@
+// 串口帧收发与解析实现：termios 配置、写重连、45 54 头 / 0D 0A 尾拆帧。
+
 #include "serial_framer.hpp"
 
 #include <fcntl.h>
@@ -14,6 +16,7 @@
 namespace serial_dds_gateway {
 
 namespace {
+// 常用波特率到 termios 速率的映射；2000000 需系统支持 B2000000。
 speed_t ToTermiosBaud(int baudrate) {
   switch (baudrate) {
     case 115200:
@@ -33,11 +36,12 @@ speed_t ToTermiosBaud(int baudrate) {
   }
 }
 
-constexpr int kMaxWriteAttempts = 5;
-constexpr auto kEagainBackoff = std::chrono::microseconds(200);
-constexpr auto kRetryBackoff = std::chrono::milliseconds(2);
-constexpr auto kReopenDelay = std::chrono::milliseconds(50);
+constexpr int kMaxWriteAttempts = 5;                              // 单次写最大重试次数
+constexpr auto kEagainBackoff = std::chrono::microseconds(200);   // EAGAIN 退避
+constexpr auto kRetryBackoff = std::chrono::milliseconds(2);      // 写失败重试间隔
+constexpr auto kReopenDelay = std::chrono::milliseconds(50);      // 串口重开前等待
 
+// 可恢复 IO 错误：EI/O、ENODEV、EBADF。
 bool IsRecoverableIoError(int err) {
   return err == EIO || err == ENODEV || err == EBADF;
 }
@@ -89,9 +93,9 @@ bool SerialFramer::OpenPortLocked() {
   cfsetispeed(&tty, baud);
   cfsetospeed(&tty, baud);
 
-  tty.c_cflag |= (CLOCAL | CREAD);
-  tty.c_cflag &= ~CRTSCTS;
-  tty.c_cc[VMIN] = 0;
+  tty.c_cflag |= (CLOCAL | CREAD);    // 忽略调制解调器控制线，启用接收
+  tty.c_cflag &= ~CRTSCTS;            // 禁用硬件流控
+  tty.c_cc[VMIN] = 0;                 // 非阻塞读
   tty.c_cc[VTIME] = 0;
 
   if (tcsetattr(fd_, TCSANOW, &tty) != 0) {
@@ -115,13 +119,14 @@ bool SerialFramer::ReopenPortLocked() {
   return true;
 }
 
+// 将 SerialFrame 编码为带帧头帧尾的字节流。
 std::vector<uint8_t> SerialFramer::EncodeBytes(const SerialFrame& frame, std::array<uint8_t, 2> header,
                                               std::array<uint8_t, 2> tail) {
   if (frame.data.size() > 8) {
     throw std::runtime_error("serial frame data > 8 bytes");
   }
   std::vector<uint8_t> payload;
-  payload.reserve(2 + 1 + 4 + 1 + frame.data.size() + 2);
+  payload.reserve(2 + 1 + 4 + 1 + frame.data.size() + 2);  // 头 + channel/type/id/master/dlc + data + 尾
   payload.push_back(header[0]);
   payload.push_back(header[1]);
   payload.push_back(frame.channel);
@@ -136,6 +141,7 @@ std::vector<uint8_t> SerialFramer::EncodeBytes(const SerialFrame& frame, std::ar
   return payload;
 }
 
+// 底层写 payload，遇到可恢复错误时自动重开串口。
 bool SerialFramer::WritePayloadLocked(const std::vector<uint8_t>& payload) {
   if (payload.empty()) {
     return true;
@@ -218,10 +224,11 @@ std::vector<SerialFrame> SerialFramer::ReadAvailableFrames() {
   return ReadAvailableFramesLocked();
 }
 
+// 从缓冲区中查找帧头，按 dlc 拆帧；校验失败则丢弃一字节继续同步。
 std::vector<SerialFrame> SerialFramer::ParseBuffer(std::vector<uint8_t>& rx_buf, std::array<uint8_t, 2> header,
                                                    std::array<uint8_t, 2> tail) {
   std::vector<SerialFrame> out;
-  constexpr size_t kMin = 2 + 1 + 4 + 1 + 2;
+  constexpr size_t kMin = 2 + 1 + 4 + 1 + 2;  // 头 + channel + type + id(2) + master + dlc + 尾
 
   while (rx_buf.size() >= kMin) {
     auto start = rx_buf.end();
@@ -242,14 +249,14 @@ std::vector<SerialFrame> SerialFramer::ParseBuffer(std::vector<uint8_t>& rx_buf,
 
     const uint8_t dlc = rx_buf[7];
     if (dlc > 8) {
-      rx_buf.erase(rx_buf.begin());
+      rx_buf.erase(rx_buf.begin());  // 非法 dlc，丢弃头字节重新同步
       continue;
     }
     const size_t frame_len = 2 + 1 + 4 + 1 + dlc + 2;
     if (rx_buf.size() < frame_len) break;
 
     if (rx_buf[frame_len - 2] != tail[0] || rx_buf[frame_len - 1] != tail[1]) {
-      rx_buf.erase(rx_buf.begin());
+      rx_buf.erase(rx_buf.begin());  // 尾不匹配，丢弃头字节重新同步
       continue;
     }
 

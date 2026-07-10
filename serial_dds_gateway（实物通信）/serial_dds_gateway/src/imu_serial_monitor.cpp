@@ -1,3 +1,5 @@
+// IMU 串口实时监听：读取 /dev/myttyIMU，打印 yaw/pitch/roll、陀螺与四元数。
+
 #include "imu_framer.hpp"
 
 #include <atomic>
@@ -56,6 +58,7 @@ Args ParseArgs(int argc, char** argv) {
   return args;
 }
 
+// 根据 --degrees 切换输出单位。
 double MaybeDegrees(double radians, bool degrees) {
   constexpr double kRadToDeg = 57.29577951308232;
   return degrees ? radians * kRadToDeg : radians;

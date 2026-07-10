@@ -1,3 +1,4 @@
+# Go2 速度跟踪运动环境配置，基于 Isaac Lab ManagerBasedRLEnv。
 import math
 
 import isaaclab.sim as sim_utils
@@ -21,125 +22,100 @@ from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 from unitree_rl_lab.assets.robots.unitree import UNITREE_GO2_CFG as ROBOT_CFG
 from unitree_rl_lab.tasks.locomotion import mdp
 
+# 鹅卵石道路地形生成器配置（当前仅启用平坦地形，可按需扩展）
 COBBLESTONE_ROAD_CFG = terrain_gen.TerrainGeneratorCfg(
-    size=(8.0, 8.0),
-    border_width=20.0,
-    num_rows=10,
-    num_cols=20,
-    horizontal_scale=0.1,
-    vertical_scale=0.005,
-    slope_threshold=0.75,
-    difficulty_range=(0.0, 1.0),
-    use_cache=False,
+    size=(8.0, 8.0),                # 地形块大小
+    border_width=20.0,               # 边界宽度
+    num_rows=10,                     # 行数
+    num_cols=20,                     # 列数
+    horizontal_scale=0.1,            # 水平缩放
+    vertical_scale=0.005,            # 垂直缩放
+    slope_threshold=0.75,            # 坡度阈值
+    difficulty_range=(0.0, 1.0),     # 难度范围
+    use_cache=False,                 # 不使用缓存
     sub_terrains={
-        "flat": terrain_gen.MeshPlaneTerrainCfg(proportion=0.1),
-        # "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
-        #     proportion=0.1, noise_range=(0.01, 0.06), noise_step=0.01, border_width=0.25
-        # ),
-        # "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(
-        #     proportion=0.1, slope_range=(0.0, 0.4), platform_width=2.0, border_width=0.25
-        # ),
-        # "hf_pyramid_slope_inv": terrain_gen.HfInvertedPyramidSlopedTerrainCfg(
-        #     proportion=0.1, slope_range=(0.0, 0.4), platform_width=2.0, border_width=0.25
-        # ),
-        # "boxes": terrain_gen.MeshRandomGridTerrainCfg(
-        #     proportion=0.2, grid_width=0.45, grid_height_range=(0.05, 0.2), platform_width=2.0
-        # ),
-        # "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
-        #     proportion=0.2,
-        #     step_height_range=(0.05, 0.23),
-        #     step_width=0.3,
-        #     platform_width=3.0,
-        #     border_width=1.0,
-        #     holes=False,
-        # ),
-        # "pyramid_stairs_inv": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
-        #     proportion=0.2,
-        #     step_height_range=(0.05, 0.23),
-        #     step_width=0.3,
-        #     platform_width=3.0,
-        #     border_width=1.0,
-        #     holes=False,
-        # ),
+        "flat": terrain_gen.MeshPlaneTerrainCfg(proportion=0.1),  # 平坦地形占比
     },
 )
 
 
 @configclass
 class RobotSceneCfg(InteractiveSceneCfg):
-    """Configuration for the terrain scene with a legged robot."""
+    """足式机器人地形场景配置"""
 
-    # ground terrain
+    # 地形导入器配置
     terrain = TerrainImporterCfg(
-        prim_path="/World/ground",
-        terrain_type="generator",  # "plane", "generator"
-        terrain_generator=COBBLESTONE_ROAD_CFG,  # None, ROUGH_TERRAINS_CFG
-        max_init_terrain_level=1,
-        collision_group=-1,
+        prim_path="/World/ground",                     # 地形 prim 路径
+        terrain_type="generator",                       # 地形类型为生成器
+        terrain_generator=COBBLESTONE_ROAD_CFG,        # 使用鹅卵石地形生成器
+        max_init_terrain_level=1,                      # 最大初始地形等级
+        collision_group=-1,                             # 碰撞组
         physics_material=sim_utils.RigidBodyMaterialCfg(
-            friction_combine_mode="multiply",
-            restitution_combine_mode="multiply",
-            static_friction=1.0,
-            dynamic_friction=1.0,
+            friction_combine_mode="multiply",          # 摩擦力组合模式
+            restitution_combine_mode="multiply",       # 恢复系数组合模式
+            static_friction=1.0,                       # 静摩擦系数
+            dynamic_friction=1.0,                      # 动摩擦系数
         ),
         visual_material=sim_utils.MdlFileCfg(
             mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
-            project_uvw=True,
-            texture_scale=(0.25, 0.25),
+            project_uvw=True,                          # 投影 UVW
+            texture_scale=(0.25, 0.25),                # 纹理缩放
         ),
-        debug_vis=False,
+        debug_vis=False,                               # 关闭调试可视化
     )
-    # robots
+    # 机器人配置，替换 prim 路径以支持多环境
     robot: ArticulationCfg = ROBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
-    # sensors
+    # 高度扫描器（射线投射），用于地形感知
     height_scanner = RayCasterCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/base",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
-        ray_alignment="yaw",
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
-        debug_vis=False,
-        mesh_prim_paths=["/World/ground"],
+        prim_path="{ENV_REGEX_NS}/Robot/base",         # 安装在机器人基座上
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),  # 偏移量
+        ray_alignment="yaw",                            # 射线对齐方式
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),  # 网格模式
+        debug_vis=False,                                # 关闭调试可视化
+        mesh_prim_paths=["/World/ground"],             # 检测的地面网格
     )
+    # 接触力传感器，用于检测脚部接触
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
-    # lights
+    # 天空光照配置
     sky_light = AssetBaseCfg(
         prim_path="/World/skyLight",
         spawn=sim_utils.DomeLightCfg(
-            intensity=750.0,
-            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+            intensity=750.0,                            # 光照强度
+            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",  # 天空纹理
         ),
     )
 
 
 @configclass
 class EventCfg:
-    """Configuration for events."""
+    """事件配置，用于环境随机化"""
 
-    # startup
+    # 随机化物理材质参数
     physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
-        mode="startup",
+        mode="startup",                                  # 启动时执行
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.3, 1.2),
-            "dynamic_friction_range": (0.3, 1.2),
-            "restitution_range": (0.0, 0.15),
-            "num_buckets": 64,
+            "static_friction_range": (0.3, 1.2),       # 静摩擦范围
+            "dynamic_friction_range": (0.3, 1.2),      # 动摩擦范围
+            "restitution_range": (0.0, 0.15),          # 恢复系数范围
+            "num_buckets": 64,                         # 桶数量
         },
     )
 
+    # 随机增加基座质量
     add_base_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="base"),
             "mass_distribution_params": (-1.0, 3.0),
-            "operation": "add",
+            "operation": "add",                         # 增加操作
         },
     )
 
-    # reset
+    # 施加外部力/力矩
     base_external_force_torque = EventTerm(
         func=mdp.apply_external_force_torque,
         mode="reset",
@@ -150,11 +126,12 @@ class EventCfg:
         },
     )
 
+    # 复位机器人基座状态
     reset_base = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
+            "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},  # 位置和偏航范围
             "velocity_range": {
                 "x": (0.0, 0.0),
                 "y": (0.0, 0.0),
@@ -166,60 +143,70 @@ class EventCfg:
         },
     )
 
+    # 复位机器人关节
     reset_robot_joints = EventTerm(
         func=mdp.reset_joints_by_scale,
         mode="reset",
         params={
-            "position_range": (1.0, 1.0),
-            "velocity_range": (-1.0, 1.0),
+            "position_range": (1.0, 1.0),               # 位置范围
+            "velocity_range": (-1.0, 1.0),              # 速度范围
         },
     )
 
-    # interval
+    # 随机推动机器人
     push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
-        mode="interval",
-        interval_range_s=(5.0, 10.0),
-        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
+        mode="interval",                                 # 间隔模式
+        interval_range_s=(5.0, 10.0),                   # 间隔时间范围
+        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},  # 速度范围
     )
 
 
 @configclass
 class CommandsCfg:
-    """Command specifications for the MDP."""
+    """MDP 指令配置"""
 
+    # 基座速度指令
     base_velocity = mdp.UniformLevelVelocityCommandCfg(
         asset_name="robot",
-        resampling_time_range=(10.0, 10.0),
-        rel_standing_envs=0.1,
-        debug_vis=True,
+        resampling_time_range=(10.0, 10.0),             # 重采样时间
+        rel_standing_envs=0.1,                           # 站立环境比例
+        debug_vis=True,                                  # 开启调试可视化
         ranges=mdp.UniformLevelVelocityCommandCfg.Ranges(
-            lin_vel_x=(-0.1, 0.1), lin_vel_y=(-0.1, 0.1), ang_vel_z=(-1, 1)
+            lin_vel_x=(-0.1, 0.1),                      # 线速度 X 范围
+            lin_vel_y=(-0.1, 0.1),                      # 线速度 Y 范围
+            ang_vel_z=(-1, 1)                           # 角速度 Z 范围
         ),
         limit_ranges=mdp.UniformLevelVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.4, 0.4), ang_vel_z=(-1.0, 1.0)
+            lin_vel_x=(-1.0, 1.0),                      # 线速度 X 限制
+            lin_vel_y=(-0.4, 0.4),                      # 线速度 Y 限制
+            ang_vel_z=(-1.0, 1.0),                      # 角速度 Z 限制
         ),
     )
 
 
 @configclass
 class ActionsCfg:
-    """Action specifications for the MDP."""
+    """MDP 动作配置"""
 
+    # 关节位置动作
     JointPositionAction = mdp.JointPositionActionCfg(
-        asset_name="robot", joint_names=[".*"], scale=0.25, use_default_offset=True, clip={".*": (-100.0, 100.0)}
+        asset_name="robot",                              # 机器人名称
+        joint_names=[".*"],                              # 所有关节
+        scale=0.25,                                      # 动作缩放
+        use_default_offset=True,                         # 使用默认偏移
+        clip={".*": (-100.0, 100.0)},                    # 动作裁剪范围
     )
 
 
 @configclass
 class ObservationsCfg:
-    """Observation specifications for the MDP."""
+    """MDP 观测配置"""
 
     @configclass
     class PolicyCfg(ObsGroup):
-        """Observations for policy group."""
+        """策略网络观测组"""
 
-        # observation terms (order preserved)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, scale=0.2, clip=(-100, 100), noise=Unoise(n_min=-0.2, n_max=0.2))
         projected_gravity = ObsTerm(func=mdp.projected_gravity, clip=(-100, 100), noise=Unoise(n_min=-0.05, n_max=0.05))
         velocity_commands = ObsTerm(
@@ -232,16 +219,14 @@ class ObservationsCfg:
         last_action = ObsTerm(func=mdp.last_action, clip=(-100, 100))
 
         def __post_init__(self):
-            # self.history_length = 5
-            self.enable_corruption = True
-            self.concatenate_terms = True
+            self.enable_corruption = True               # 启用观测扰动
+            self.concatenate_terms = True               # 拼接观测项
 
-    # observation groups
     policy: PolicyCfg = PolicyCfg()
 
     @configclass
     class CriticCfg(ObsGroup):
-        """Observations for critic group."""
+        """评论家网络观测组（特权观测）"""
 
         base_lin_vel = ObsTerm(func=mdp.base_lin_vel, clip=(-100, 100))
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, scale=0.2, clip=(-100, 100))
@@ -253,23 +238,15 @@ class ObservationsCfg:
         joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, scale=0.05, clip=(-100, 100))
         joint_effort = ObsTerm(func=mdp.joint_effort, scale=0.01, clip=(-100, 100))
         last_action = ObsTerm(func=mdp.last_action, clip=(-100, 100))
-        # height_scanner = ObsTerm(func=mdp.height_scan,
-        #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
-        #     clip=(-1.0, 5.0),
-        # )
 
-        # def __post_init__(self):
-        #     self.history_length = 5
-
-    # privileged observations
     critic: CriticCfg = CriticCfg()
 
 
 @configclass
 class RewardsCfg:
-    """Reward terms for the MDP."""
+    """MDP 奖励函数配置"""
 
-    # -- task
+    # -- 任务奖励：跟踪速度指令
     track_lin_vel_xy = RewTerm(
         func=mdp.track_lin_vel_xy_exp, weight=1.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
@@ -277,37 +254,37 @@ class RewardsCfg:
         func=mdp.track_ang_vel_z_exp, weight=0.75, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
 
-    # -- base
-    base_linear_velocity = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
-    base_angular_velocity = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-0.001)
-    joint_acc = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
-    joint_torques = RewTerm(func=mdp.joint_torques_l2, weight=-2e-4)
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
-    dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-10.0)
-    energy = RewTerm(func=mdp.energy, weight=-2e-5)
+    # -- 基座与关节惩罚
+    base_linear_velocity = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)        # 垂直速度惩罚
+    base_angular_velocity = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)    # 俯仰/横滚角速度惩罚
+    joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-0.001)                # 关节速度惩罚
+    joint_acc = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)              # 关节加速度惩罚
+    joint_torques = RewTerm(func=mdp.joint_torques_l2, weight=-2e-4)         # 关节力矩惩罚
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.1)              # 动作变化率惩罚
+    dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-10.0)        # 关节位置限位惩罚
+    energy = RewTerm(func=mdp.energy, weight=-2e-5)                          # 能量消耗惩罚
 
-    # -- robot
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-2.5)
+    # -- 机器人姿态奖励
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-2.5) # 基座姿态偏离惩罚
 
     joint_pos = RewTerm(
         func=mdp.joint_position_penalty,
         weight=-0.7,
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "stand_still_scale": 5.0,
-            "velocity_threshold": 0.3,
+            "stand_still_scale": 5.0,                    # 静止时惩罚缩放
+            "velocity_threshold": 0.3,                   # 速度阈值
         },
     )
 
-    # -- feet
+    # -- 脚部奖励
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
         weight=0.1,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
             "command_name": "base_velocity",
-            "threshold": 0.5,
+            "threshold": 0.5,                            # 空中时间阈值
         },
     )
     air_time_variance = RewTerm(
@@ -323,16 +300,8 @@ class RewardsCfg:
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
         },
     )
-    # feet_contact_forces = RewTerm(
-    #     func=mdp.contact_forces,
-    #     weight=-0.02,
-    #     params={
-    #         "threshold": 100.0,
-    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
-    #     },
-    # )
 
-    # -- other
+    # -- 其他惩罚：非期望接触
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-1,
@@ -345,58 +314,51 @@ class RewardsCfg:
 
 @configclass
 class TerminationsCfg:
-    """Termination terms for the MDP."""
+    """MDP 终止条件配置"""
 
-    time_out = DoneTerm(func=mdp.time_out, time_out=True)
+    time_out = DoneTerm(func=mdp.time_out, time_out=True)                    # 超时终止
     base_contact = DoneTerm(
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
-    )
-    bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.8})
+    )                                                                        # 基座接触终止
+    bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.8})  # 姿态异常终止
 
 
 @configclass
 class CurriculumCfg:
-    """Curriculum terms for the MDP."""
+    """课程学习配置"""
 
-    terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
-    lin_vel_cmd_levels = CurrTerm(mdp.lin_vel_cmd_levels)
+    terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)                  # 地形难度课程
+    lin_vel_cmd_levels = CurrTerm(mdp.lin_vel_cmd_levels)                   # 速度指令课程
 
 
 @configclass
 class RobotEnvCfg(ManagerBasedRLEnvCfg):
-    """Configuration for the locomotion velocity-tracking environment."""
+    """速度跟踪运动环境配置"""
 
-    # Scene settings
-    scene: RobotSceneCfg = RobotSceneCfg(num_envs=4096, env_spacing=2.5)
-    # Basic settings
-    observations: ObservationsCfg = ObservationsCfg()
-    actions: ActionsCfg = ActionsCfg()
-    commands: CommandsCfg = CommandsCfg()
-    # MDP settings
-    rewards: RewardsCfg = RewardsCfg()
-    terminations: TerminationsCfg = TerminationsCfg()
-    events: EventCfg = EventCfg()
-    curriculum: CurriculumCfg = CurriculumCfg()
+    scene: RobotSceneCfg = RobotSceneCfg(num_envs=4096, env_spacing=2.5)   # 场景配置
+    observations: ObservationsCfg = ObservationsCfg()                       # 观测配置
+    actions: ActionsCfg = ActionsCfg()                                      # 动作配置
+    commands: CommandsCfg = CommandsCfg()                                   # 指令配置
+    rewards: RewardsCfg = RewardsCfg()                                      # 奖励配置
+    terminations: TerminationsCfg = TerminationsCfg()                       # 终止条件配置
+    events: EventCfg = EventCfg()                                           # 事件配置
+    curriculum: CurriculumCfg = CurriculumCfg()                             # 课程配置
 
     def __post_init__(self):
-        """Post initialization."""
-        # general settings
-        self.decimation = 4
-        self.episode_length_s = 20.0
-        # simulation settings
-        self.sim.dt = 0.005
-        self.sim.render_interval = self.decimation
-        self.sim.physics_material = self.scene.terrain.physics_material
+        """后初始化"""
+        self.decimation = 4                                                # 控制降采样率
+        self.episode_length_s = 20.0                                        # 回合时长
+        self.sim.dt = 0.005                                                 # 仿真步长
+        self.sim.render_interval = self.decimation                         # 渲染间隔
+        self.sim.physics_material = self.scene.terrain.physics_material    # 物理材质
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
 
-        # update sensor update periods
-        # we tick all the sensors based on the smallest update period (physics update period)
+        # 传感器更新周期配置
         self.scene.contact_forces.update_period = self.sim.dt
         self.scene.height_scanner.update_period = self.decimation * self.sim.dt
 
-        # check if terrain levels curriculum is enabled - if so, enable curriculum for terrain generator
-        # this generates terrains with increasing difficulty and is useful for training
+        # 地形课程配置
         if getattr(self.curriculum, "terrain_levels", None) is not None:
             if self.scene.terrain.terrain_generator is not None:
                 self.scene.terrain.terrain_generator.curriculum = True
@@ -407,9 +369,11 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
 
 @configclass
 class RobotPlayEnvCfg(RobotEnvCfg):
+    """部署/测试环境配置"""
+
     def __post_init__(self):
         super().__post_init__()
-        self.scene.num_envs = 32
-        self.scene.terrain.terrain_generator.num_rows = 2
-        self.scene.terrain.terrain_generator.num_cols = 1
-        self.commands.base_velocity.ranges = self.commands.base_velocity.limit_ranges
+        self.scene.num_envs = 32                                              # 减少环境数量
+        self.scene.terrain.terrain_generator.num_rows = 2                    # 减少地形行数
+        self.scene.terrain.terrain_generator.num_cols = 1                    # 减少地形列数
+        self.commands.base_velocity.ranges = self.commands.base_velocity.limit_ranges  # 使用全部速度范围

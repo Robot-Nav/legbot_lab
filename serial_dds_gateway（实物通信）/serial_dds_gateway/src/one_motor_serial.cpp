@@ -1,3 +1,5 @@
+// 单电机串口收发测试：可选使能/失能/清故障后发送 type1，并打印 type2 反馈。
+
 #include "lingzu_serial.hpp"
 #include "lingzu_motor_protocol.hpp"
 #include "motor_map.hpp"
@@ -110,4 +112,3 @@ int main(int argc, char** argv) {
     return 1;
   }
 }
-

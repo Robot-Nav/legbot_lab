@@ -1,3 +1,5 @@
+<!-- 文件用途：Sim2Real 实机部署操作指南，含架构、编译、运行、标定、键盘操作、安全清单与故障排查。 -->
+
 # 第一阶段：香橙派6 单机 DDS 实机（Sim to Real）
 
 > **全部进程**在香橙派上运行，DDS 使用本机回环 `lo`，不经过 PC。
@@ -148,8 +150,8 @@ cd /home/fatu06/workspace/fatuDog/serial_dds_gateway
   --joint-bias-calib-seconds 2
 
 在线：
+./build/dds_to_serial_gateway   --serial-port-a /dev/myttyCAN0   --serial-port-b /dev/myttyCAN1   --baudrate 2000000   --imu-port /dev/myttyIMU   --imu-baudrate 921600   --network lo   --channel 0x00   --master-id 0x00FD   --tick-hz 500   --send-disable-on-exit   --imu-gyro-calib-seconds 4   --imu-gyro-deadzone 0.03   --joint-bias-calib   --joint-bias-calib-seconds 2
 
-多加一行  --joint-bias-calib \
 ```
 
 首次标定用上面命令；已有 `config/joint_prone_bias.fatu.txt` 时见下文 [方式 B](#422-方式-b固定-bias-配置文件推荐重复开机)（`--joint-bias-load-file` + `--no-joint-bias-calib`）。

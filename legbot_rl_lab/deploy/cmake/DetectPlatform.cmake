@@ -1,5 +1,5 @@
-# Detect host CPU and select prebuilt third-party package names.
-# Used by legbot_ctrl (ONNX Runtime). Build on the target machine (x86_64 PC or aarch64 Orange Pi).
+# 检测主机 CPU 架构，并选择预编译第三方包名称。
+# 供 legbot_ctrl（ONNX Runtime）使用。在目标机器（x86_64 PC 或 aarch64 香橙派）上构建。
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
   set(LEGBOT_CPU_ARCH "aarch64")

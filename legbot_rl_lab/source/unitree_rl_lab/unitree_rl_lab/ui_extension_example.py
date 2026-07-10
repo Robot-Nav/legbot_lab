@@ -1,18 +1,17 @@
+# Omniverse 扩展 UI 示例：展示如何在扩展启用时创建简单计数器窗口。
 import omni.ext
 
 
-# Functions and vars are available to other extension as usual in python: `example.python_ext.some_public_function(x)`
+# 其他扩展可通过常规 Python 方式访问该函数：example.python_ext.some_public_function(x)
 def some_public_function(x: int):
-    print("[unitree_rl_lab] some_public_function was called with x: ", x)
+    print("[unitree_rl_lab] some_public_function 被调用，参数 x: ", x)
     return x**x
 
 
-# Any class derived from `omni.ext.IExt` in top level module (defined in `python.modules` of `extension.toml`) will be
-# instantiated when extension gets enabled and `on_startup(ext_id)` will be called. Later when extension gets disabled
-# on_shutdown() is called.
+# 任何派生自 omni.ext.IExt 的顶层类，在扩展启用时会实例化并调用 on_startup(ext_id)。
+# 扩展禁用时调用 on_shutdown()。
 class ExampleExtension(omni.ext.IExt):
-    # ext_id is current extension id. It can be used with extension manager to query additional information, like where
-    # this extension is located on filesystem.
+    # ext_id 为当前扩展 ID，可用于查询扩展在文件系统中的位置等信息。
     def on_startup(self, ext_id):
         print("[unitree_rl_lab] startup")
 

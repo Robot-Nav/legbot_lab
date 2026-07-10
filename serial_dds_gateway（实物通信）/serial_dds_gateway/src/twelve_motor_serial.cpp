@@ -1,3 +1,5 @@
+// 双串口 12 电机测试：使能/失能/清故障后周期性发送 type1，汇总 type2 反馈。
+
 #include "lingzu_motor_protocol.hpp"
 #include "lingzu_serial.hpp"
 #include "motor_map.hpp"
@@ -92,6 +94,7 @@ size_t MotorIndex(uint8_t motor_id) {
   return JointIndex(it->second);
 }
 
+// 加载 CSV：支持 joint,q,dq,kp,kd,tau 或直接 q,dq,kp,kd,tau。
 void LoadCommandsFile(const std::string& path, std::array<MotorCmdSpec, 12>& cmds) {
   std::ifstream in(path);
   if (!in) throw std::runtime_error("cannot open commands file: " + path);
@@ -105,7 +108,7 @@ void LoadCommandsFile(const std::string& path, std::array<MotorCmdSpec, 12>& cmd
     if (line.empty() || line[0] == '#') continue;
 
     const auto cols = SplitCsv(line);
-    if (cols.size() == 6 && (cols[0] == "joint" || cols[1] == "q")) continue;  // header
+    if (cols.size() == 6 && (cols[0] == "joint" || cols[1] == "q")) continue;  // 跳过表头
 
     size_t index = 0;
     size_t value_offset = 0;
@@ -196,6 +199,7 @@ Args ParseArgs(int argc, char** argv) {
   return a;
 }
 
+// 电机串口接收线程：约 1ms 轮询，解码 type2 写入缓存。
 void RxLoop(SerialFramer& framer, const RangeSpec& ranges, const std::unordered_map<uint8_t, size_t>& canid_to_index,
             std::array<MotorFeedbackCache, 12>& cache, std::mutex& cache_mutex, std::atomic<uint64_t>& rx_frames,
             std::atomic<uint64_t>& type2_frames, std::atomic<uint64_t>& decode_errors) {
@@ -242,6 +246,7 @@ void WriteToMotor(SerialFramer& framer_a, SerialFramer& framer_b, uint8_t can_id
   FramerForBus(framer_a, framer_b, MotorSerialBusForCanId(can_id)).WriteFrame(frame);
 }
 
+// 向全部 12 路电机发送 type3/4。
 void SendType34All(SerialFramer& framer_a, SerialFramer& framer_b, const Args& args, uint8_t mode_code,
                    uint8_t data0 = 0) {
   const uint8_t master = static_cast<uint8_t>(args.master_id);
@@ -252,6 +257,7 @@ void SendType34All(SerialFramer& framer_a, SerialFramer& framer_b, const Args& a
   }
 }
 
+// 向全部 12 路电机发送 type1。
 void SendType1All(SerialFramer& framer_a, SerialFramer& framer_b, const Args& args, const RangeSpec& ranges,
                   const std::array<MotorCmdSpec, 12>& motor_cmds) {
   for (size_t i = 0; i < kJointOrder.size(); ++i) {

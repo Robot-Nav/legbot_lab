@@ -1,5 +1,4 @@
-<!-- world.xml -->
-<!-- 结合了视觉模型和碰撞体 -->
+<!-- 世界场景组合文件：聚合视觉模型与碰撞模型。 -->
 <mujoco>
     <visual>
         <map zfar="200"/>
@@ -11,9 +10,13 @@
 <!--        <model name="section01CP" file="section01/0126_CP_section01.xml"/>-->
     </asset>
 
+  <!-- 世界坐标系实体：挂载视觉与碰撞地形模型。 -->
   <worldbody>
+    <!-- 挂载第一段碰撞地形。 -->
     <attach model="section01C" prefix="0"/>
+    <!-- 挂载第一段视觉地形。 -->
     <attach model="section01V" prefix="1"/>
+    <!-- 挂载基础地面。 -->
     <attach model="baseground" prefix="3"/>
 <!--    <attach model="section01CP" prefix="2"/>-->
   </worldbody>

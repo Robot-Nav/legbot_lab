@@ -8,6 +8,7 @@ namespace serial_dds_gateway {
 
 namespace {
 
+// 检查帧类型与数据长度，type1/type2 均需 8 字节数据。
 void RequireData8(const SerialFrame& frame, const char* context) {
   if (frame.frame_type != kLingzuCanStandardFrame && frame.frame_type != kLingzuCanExtendedFrame) {
     throw std::runtime_error(std::string(context) + ": unsupported CAN serial frame type");
@@ -17,10 +18,12 @@ void RequireData8(const SerialFrame& frame, const char* context) {
   }
 }
 
+// 大端 16 位无符号整数读取。
 uint16_t U16BE(const std::vector<uint8_t>& data, size_t offset) {
   return static_cast<uint16_t>((static_cast<uint16_t>(data[offset]) << 8) | data[offset + 1]);
 }
 
+// 标准帧的力矩存放在 id_field（16 位）中；扩展帧的力矩字段为 0。
 double TauFromSerialFrame(const SerialFrame& frame, const RangeSpec& ranges) {
   if (frame.frame_type == kLingzuCanStandardFrame) {
     const uint8_t motor_id = frame.master_id;
@@ -30,7 +33,7 @@ double TauFromSerialFrame(const SerialFrame& frame, const RangeSpec& ranges) {
   return 0.0;
 }
 
-}  // namespace
+}  // 命名空间
 
 uint8_t MotorIdFromSerialFrame(const SerialFrame& frame) {
   if (frame.frame_type == kLingzuCanStandardFrame) {
@@ -42,6 +45,7 @@ uint8_t MotorIdFromSerialFrame(const SerialFrame& frame) {
   throw std::runtime_error("unsupported CAN serial frame type");
 }
 
+// 构造扩展 type1 串口帧（旧版/调试）。
 SerialFrame EncodeType1SerialFrame(uint8_t channel, uint8_t master_id, const Type1Command& cmd,
                                    const RangeSpec& ranges) {
   const auto encoded = encode_type1(cmd, ranges);
@@ -54,6 +58,7 @@ SerialFrame EncodeType1SerialFrame(uint8_t channel, uint8_t master_id, const Typ
   };
 }
 
+// 构造标准 type1 串口帧：CAN ID 放 master_id，力矩放 id_field。
 SerialFrame EncodeType1StandardSerialFrame(uint8_t channel, const Type1Command& cmd, const RangeSpec& ranges) {
   const auto encoded = encode_type1(cmd, ranges);
   const auto fields = split_can_id(encoded.first);
@@ -80,6 +85,7 @@ Type1Command DecodeType1SerialFrame(const SerialFrame& frame, const RangeSpec& r
   };
 }
 
+// 构造 type3/4 模式帧：帧类型即模式码，id_field 为主机 ID，master_id 为电机 ID。
 SerialFrame BuildMotorModeFrame(uint8_t channel, uint8_t master_id, uint8_t motor_id, uint8_t mode_code,
                                 uint8_t data0) {
   std::vector<uint8_t> data(8, 0);
@@ -109,4 +115,4 @@ Type2Feedback DecodeType2SerialFrame(const SerialFrame& frame, const RangeSpec& 
   };
 }
 
-}  // namespace serial_dds_gateway
+}  // 命名空间 serial_dds_gateway

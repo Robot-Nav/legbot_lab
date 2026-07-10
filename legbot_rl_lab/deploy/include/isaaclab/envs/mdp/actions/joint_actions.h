@@ -1,6 +1,4 @@
-// Copyright (c) 2025, Unitree Robotics Co., Ltd.
-// All rights reserved.
-
+// 文件用途：关节动作项。将策略网络输出按配置进行缩放、偏移与裁剪，得到目标关节位置/速度。
 #pragma once
 
 #include <eigen3/Eigen/Dense>
@@ -11,6 +9,7 @@
 namespace isaaclab
 {
 
+// 基础关节动作：对原始动作依次进行 scale、offset、clip。
 class JointAction : public ActionTerm
 {
 public:
@@ -38,7 +37,6 @@ public:
 
     virtual void process_actions(std::vector<float> actions)
     {
-        // TODO: modify action by joint_ids
         _raw_actions = actions;
         for(int i(0); i<_action_dim; ++i)
         {
@@ -81,18 +79,19 @@ public:
     }
 
 protected:
-    int _action_dim;
-    std::vector<int> _joint_ids;
+    int _action_dim;                    // 动作维度
+    std::vector<int> _joint_ids;        // 受控关节索引（当前未使用）
 
-    std::vector<float> _raw_actions;
-    std::vector<float> _processed_actions;
+    std::vector<float> _raw_actions;       // 网络原始输出
+    std::vector<float> _processed_actions; // 缩放/偏移/裁剪后的目标量
 
-    std::vector<float> _scale;
-    std::vector<float> _offset;
-    std::vector<std::vector<float> > _clip;
+    std::vector<float> _scale;          // 缩放系数
+    std::vector<float> _offset;         // 偏移量
+    std::vector<std::vector<float> > _clip; // 每维上下限
 };
 
 
+// 关节位置动作：输出直接作为目标关节角度。
 class JointPositionAction : public JointAction
 {
 public:
@@ -102,6 +101,7 @@ public:
     }
 };
 
+// 关节速度动作：输出作为目标关节速度（当前实现与位置动作相同，由外层解释）。
 class JointVelocityAction : public JointAction
 {
 public:

@@ -1,26 +1,30 @@
+<!-- 滚球障碍物模型：用于场景中的滚动球碰撞体。 -->
 <mujoco>
+  <!-- 编译器设置：角度单位为弧度，网格目录指向 meshes。 -->
   <compiler angle="radian" assetdir="assets" autolimits="true"/>
 
+  <!-- 资源定义：网格、纹理、材质与高度场。 -->
   <asset>
 
-    <!-- Textures -->
+    <!-- 纹理 -->
     <texture type="2d" colorspace="sRGB" name="ball01" file="ball01.png"/>
     <texture type="2d" colorspace="linear" name="ball01_ro" file="ball01_ro.png"/>
 
-    <!-- Materials -->
+    <!-- 材质 -->
     <material name="MI_ROLLBALL" rgba="1 1 1 1" reflectance="0.5" metallic="0.20000000298023224" roughness="1.0">
       <layer texture="ball01" role="rgb"/>
       <layer texture="ball01_ro" role="orm"/>
     </material>
     <material name="MI_gold" rgba="1.0 0.7726222276687622 0.06890170276165009 1.0" reflectance="0.5" metallic="1.0" roughness="0.15000000596046448"/>
 
-    <!-- Visual meshes -->
+    <!-- 视觉网格 -->
     <mesh class="visual" name="V_ROLLBALL" file="V_ROLLBALL.obj"/>
     <mesh class="visual" name="V_ROLLBALL_in" file="V_ROLLBALL_in.obj"/>
 
-    <!-- Collision meshes -->
+    <!-- 碰撞网格 -->
   </asset>
 
+  <!-- 默认属性模板：几何、关节、电机共享参数。 -->
   <default>
       <default class="visual">
         <geom type="mesh" contype="0" conaffinity="0" group="2" density="0"/>
@@ -33,20 +37,26 @@
       </default>
   </default>
 
+  <!-- 世界坐标系实体：滚球障碍物主体。 -->
   <worldbody>
 
+    <!-- 视觉场景主体或碰撞代理体。 -->
     <body name="B_body" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
       <geom class="C_ROLLBALL"/>
       <geom class="visual" mesh="V_ROLLBALL" pos="0.0 0.0 0.0" quat="0.5000000596046448 -0.5 0.5 0.4999999403953552" material="MI_ROLLBALL"/>
       <geom class="visual" mesh="V_ROLLBALL_in" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="MI_gold"/>
     </body>
   </worldbody>
+  <!-- 接触规则：自定义碰撞排除或包含。 -->
   <contact>
   </contact>
+  <!-- 等式约束配置。 -->
   <equality>
   </equality>
+  <!-- 肌腱配置。 -->
   <tendon>
   </tendon>
+  <!-- 执行器：驱动各关节的力矩电机。 -->
   <actuator>
   </actuator>
 </mujoco>

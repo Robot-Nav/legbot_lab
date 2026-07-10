@@ -1,27 +1,38 @@
-**/build/
-**/.vscode/
-**/__pycache__/
-**/log/
-**/logs/
-**/outputs/
-**/install/
+# 构建产物与 IDE 配置
+**/build/              # 各模块编译输出目录
+**/.vscode/           # VS Code 本地配置
+**/__pycache__/       # Python 字节码缓存
+
+# 训练与运行日志
+**/log/               # 单数日志目录
+**/logs/              # 复数日志目录
+**/outputs/           # 推理/导出输出
+**/install/           # 安装产物
+
+# 第三方 MuJoCo 源码（由用户自行放置）
 simulate/mujoco
-*.pyc
-*.o
-*.a
-*.so
-*.bin
-*.db
-*.db-shm
-*.db-wal
-*.zip
-.vscode/
-*.hfield
-*.usd
-*.pack
-events.out.tfevents.*
+
+# 编译中间文件
+*.pyc                 # Python 编译产物
+*.o                   # C/C++ 目标文件
+*.a                   # 静态库
+*.so                  # 动态库
+*.bin                 # 二进制固件/数据
+*.db                  # SQLite 数据库
+*.db-shm              # SQLite shared-memory
+*.db-wal              # SQLite write-ahead log
+*.zip                 # 压缩包
+*.pack                # Git pack 中间文件
+
+# 编辑器与生成文件
+.vscode/              # VS Code 工作区配置
+*.hfield              # MuJoCo 高度场二进制
+*.usd                 # USD 导出帧/场景
+events.out.tfevents.* # TensorBoard 事件文件
+
+# 备份/参考目录与归档
 unitree_rl_lab.zip
-unitree_rl_lab（实物部署）/
-unitree_rl_lab（GO2参考）/
-legbot_rl_lab/宇树onnx/
-legbot_rl_lab/deploy参考/
+unitree_rl_lab（实物部署）/   # 实物部署分支副本
+unitree_rl_lab（GO2参考）/    # Go2 参考副本
+legbot_rl_lab/宇树onnx/       # 宇树 onnx 模型备份
+legbot_rl_lab/deploy参考/     # 部署参考代码

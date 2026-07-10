@@ -1,3 +1,4 @@
+# 环境配置解析工具：根据任务名从注册表中加载并覆盖默认配置。
 from isaaclab.envs import DirectRLEnvCfg, ManagerBasedRLEnvCfg
 from isaaclab_tasks.utils.parse_cfg import load_cfg_from_registry
 
@@ -9,37 +10,35 @@ def parse_env_cfg(
     use_fabric: bool | None = None,
     entry_point_key: str = "env_cfg_entry_point",
 ) -> ManagerBasedRLEnvCfg | DirectRLEnvCfg:
-    """Parse configuration for an environment and override based on inputs.
+    """解析并覆盖指定任务的配置。
 
-    Args:
-        task_name: The name of the environment.
-        device: The device to run the simulation on. Defaults to "cuda:0".
-        num_envs: Number of environments to create. Defaults to None, in which case it is left unchanged.
-        use_fabric: Whether to enable/disable fabric interface. If false, all read/write operations go through USD.
-            This slows down the simulation but allows seeing the changes in the USD through the USD stage.
-            Defaults to None, in which case it is left unchanged.
+    参数：
+        task_name: 任务/环境名称。
+        device: 运行仿真的设备，默认为 "cuda:0"。
+        num_envs: 环境数量。为 None 时保持默认值不变。
+        use_fabric: 是否启用 Fabric 接口。为 False 时通过 USD 读写，便于可视化但速度较慢。
+                    为 None 时保持默认值不变。
+        entry_point_key: 注册表中配置入口的键名。
 
-    Returns:
-        The parsed configuration object.
+    返回：
+        解析后的环境配置对象。
 
-    Raises:
-        RuntimeError: If the configuration for the task is not a class. We assume users always use a class for the
-            environment configuration.
+    异常：
+        RuntimeError: 若配置不是类，则抛出异常（本函数要求使用类作为配置）。
     """
-    # load the default configuration
+    # 加载默认配置
     cfg = load_cfg_from_registry(task_name, entry_point_key)
 
-    # check that it is not a dict
-    # we assume users always use a class for the configuration
+    # 要求配置必须是类而非字典
     if isinstance(cfg, dict):
-        raise RuntimeError(f"Configuration for the task: '{task_name}' is not a class. Please provide a class.")
+        raise RuntimeError(f"任务 '{task_name}' 的配置不是类，请提供类配置。")
 
-    # simulation device
+    # 设置仿真设备
     cfg.sim.device = device
-    # disable fabric to read/write through USD
+    # 是否启用 Fabric
     if use_fabric is not None:
         cfg.sim.use_fabric = use_fabric
-    # number of environments
+    # 覆盖环境数量
     if num_envs is not None:
         cfg.scene.num_envs = num_envs
 

@@ -1,3 +1,5 @@
+// 文件用途：策略观察项注册。每个 REGISTER_OBSERVATION 宏定义一个观察源，
+// 由 ObservationManager 按配置顺序拼接成完整观察向量输入 ONNX 模型。
 #pragma once
 
 #include "isaaclab/envs/manager_based_rl_env.h"
@@ -7,6 +9,7 @@ namespace isaaclab
 namespace mdp
 {
 
+// 机体角速度（机体坐标系）。
 REGISTER_OBSERVATION(base_ang_vel)
 {
     auto & asset = env->robot;
@@ -14,6 +17,7 @@ REGISTER_OBSERVATION(base_ang_vel)
     return std::vector<float>(data.data(), data.data() + data.size());
 }
 
+// 投影重力向量（机体坐标系），反映机体姿态。
 REGISTER_OBSERVATION(projected_gravity)
 {
     auto & asset = env->robot;
@@ -21,6 +25,7 @@ REGISTER_OBSERVATION(projected_gravity)
     return std::vector<float>(data.data(), data.data() + data.size());
 }
 
+// 当前关节位置（可选按 joint_ids 子集）。
 REGISTER_OBSERVATION(joint_pos)
 {
     auto & asset = env->robot;
@@ -52,6 +57,7 @@ REGISTER_OBSERVATION(joint_pos)
     return data;
 }
 
+// 相对默认姿态的关节位置，通常作为策略主要观察。
 REGISTER_OBSERVATION(joint_pos_rel)
 {
     auto & asset = env->robot;
@@ -80,6 +86,7 @@ REGISTER_OBSERVATION(joint_pos_rel)
     return data;
 }
 
+// 关节速度（可选按 joint_ids 子集）。
 REGISTER_OBSERVATION(joint_vel_rel)
 {
     auto & asset = env->robot;
@@ -99,12 +106,14 @@ REGISTER_OBSERVATION(joint_vel_rel)
     return std::vector<float>(data.data(), data.data() + data.size());
 }
 
+// 上一周期动作，用于时域一致性。
 REGISTER_OBSERVATION(last_action)
 {
     auto data = env->action_manager->action();
     return std::vector<float>(data.data(), data.data() + data.size());
 };
 
+// 速度指令：由手柄摇杆映射，并限幅在配置范围内。
 REGISTER_OBSERVATION(velocity_commands)
 {
     std::vector<float> obs(3, 0.0f);
@@ -121,6 +130,7 @@ REGISTER_OBSERVATION(velocity_commands)
     return obs;
 }
 
+// 步态相位：按周期输出 sin/cos，为周期性运动提供时钟信号。
 REGISTER_OBSERVATION(gait_phase)
 {
     float period = params["period"].as<float>();
@@ -135,6 +145,7 @@ REGISTER_OBSERVATION(gait_phase)
     return obs;
 }
 
+// 地形高度扫描：若未提供则返回与配置维度一致的全零向量。
 REGISTER_OBSERVATION(height_scan)
 {
     auto & asset = env->robot;

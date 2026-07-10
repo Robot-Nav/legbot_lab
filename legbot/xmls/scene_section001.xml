@@ -1,12 +1,16 @@
 <?xml version="1.0" ?>
+<!-- Section001 测试场景：分别挂载视觉模型与碰撞模型。 -->
 <mujoco model="legbot navigation - section01">
+  <!-- 编译器设置：角度单位为弧度，网格目录指向 meshes。 -->
   <compiler angle="radian" meshdir="meshes/" autolimits="true"/>
   
   <!-- 引入legbot机器人 -->
   <include file="legbot.xml" />
   
+  <!-- 场景统计与相机范围参数。 -->
   <statistic center="0 0 0.1" extent="12" meansize="0.04" />
 
+  <!-- 可视化渲染参数。 -->
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
     <rgba haze="0.15 0.25 0.35 1" />
@@ -16,6 +20,7 @@
     <quality shadowsize="8192" />
   </visual>
 
+  <!-- 资源定义：网格、纹理、材质与高度场。 -->
   <asset>
     <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
     
@@ -24,15 +29,18 @@
     <model name="section01C" file="0131_C_section01.xml"/>  <!-- 碰撞模型 -->
   </asset>
 
+  <!-- 世界坐标系实体：灯光、地面、机器人与地形。 -->
   <worldbody>
     <light pos="0 0 10" dir="0 0 -1" directional="true" />
     
     <!-- 直接加载模型，不嵌套在body中 -->
     <attach model="section01V" prefix="V_"/>   <!-- 视觉模型前缀V_ -->
+    <!-- 挂载外部地形模型到当前世界。 -->
     <attach model="section01C" prefix="C_"/>   <!-- 碰撞模型前缀C_ -->
     
   </worldbody>
 
+  <!-- 传感器：关节状态、IMU 与接触检测。 -->
   <sensor>
     <!-- 传感器配置 -->
     <contact name="FR_foot_contact" subtree1="FR_foot" subtree2="C_B_BODY" data="normal" num="1" />

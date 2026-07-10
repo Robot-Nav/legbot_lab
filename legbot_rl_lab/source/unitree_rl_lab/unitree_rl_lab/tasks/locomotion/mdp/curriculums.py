@@ -1,3 +1,4 @@
+# 自定义 MDP 课程学习项：根据训练表现动态扩展速度指令范围。
 from __future__ import annotations
 
 import torch
@@ -13,6 +14,19 @@ def lin_vel_cmd_levels(
     env_ids: Sequence[int],
     reward_term_name: str = "track_lin_vel_xy",
 ) -> torch.Tensor:
+    """根据 X/Y 方向线速度跟踪奖励，逐步扩展线速度指令范围。
+
+    每个完整 episode 结束时，如果平均奖励超过阈值，则在限制范围内
+    增加线速度指令的绝对值，实现从简单到复杂的课程调度。
+
+    参数：
+        env: 管理器式强化学习环境。
+        env_ids: 需要更新课程的环境索引。
+        reward_term_name: 用于评估的奖励项名称。
+
+    返回：
+        当前 X 方向线速度上限（标量张量）。
+    """
     command_term = env.command_manager.get_term("base_velocity")
     ranges = command_term.cfg.ranges
     limit_ranges = command_term.cfg.limit_ranges
@@ -42,6 +56,16 @@ def ang_vel_cmd_levels(
     env_ids: Sequence[int],
     reward_term_name: str = "track_ang_vel_z",
 ) -> torch.Tensor:
+    """根据偏航角速度跟踪奖励，逐步扩展角速度指令范围。
+
+    参数：
+        env: 管理器式强化学习环境。
+        env_ids: 需要更新课程的环境索引。
+        reward_term_name: 用于评估的奖励项名称。
+
+    返回：
+        当前 Z 方向角速度上限（标量张量）。
+    """
     command_term = env.command_manager.get_term("base_velocity")
     ranges = command_term.cfg.ranges
     limit_ranges = command_term.cfg.limit_ranges

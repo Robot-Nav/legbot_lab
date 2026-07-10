@@ -1,3 +1,7 @@
+// 用途：灵足 USB-CAN 串口成帧器实现。
+// 说明：按 header(45 54) + channel + frame_type + id_field + master_id + dlc + data + tail(0D 0A) 格式收发；
+//       写失败时自动重开串口，读循环按帧头帧尾拆帧。
+
 #include "serial_framer.hpp"
 
 #include <fcntl.h>
@@ -14,6 +18,7 @@
 namespace serial_dds_gateway {
 
 namespace {
+// 将常用波特率映射为 termios 速率常量；不支持的速率直接抛异常。
 speed_t ToTermiosBaud(int baudrate) {
   switch (baudrate) {
     case 115200:
@@ -33,15 +38,17 @@ speed_t ToTermiosBaud(int baudrate) {
   }
 }
 
+// 写失败重试参数：最多 5 次，EAGAIN 退避 200us，重试间隔 2ms，重开串口前等待 50ms。
 constexpr int kMaxWriteAttempts = 5;
 constexpr auto kEagainBackoff = std::chrono::microseconds(200);
 constexpr auto kRetryBackoff = std::chrono::milliseconds(2);
 constexpr auto kReopenDelay = std::chrono::milliseconds(50);
 
+// 可恢复 IO 错误：串口掉线、设备移除或句柄异常时重开。
 bool IsRecoverableIoError(int err) {
   return err == EIO || err == ENODEV || err == EBADF;
 }
-}  // namespace
+}  // 命名空间
 
 SerialFramer::SerialFramer(std::string port, int baudrate, std::array<uint8_t, 2> header, std::array<uint8_t, 2> tail)
     : port_(std::move(port)), baudrate_(baudrate), header_(header), tail_(tail) {
@@ -66,6 +73,7 @@ void SerialFramer::Close() {
   }
 }
 
+// 打开串口并配置为原始模式、本地连接、无流控、非阻塞读写。
 bool SerialFramer::OpenPortLocked() {
   if (fd_ >= 0) {
     ::close(fd_);
@@ -115,6 +123,7 @@ bool SerialFramer::ReopenPortLocked() {
   return true;
 }
 
+// 将 SerialFrame 编码为字节流：帧头 + channel + frame_type + id_field(2B) + master_id + dlc + data + 帧尾。
 std::vector<uint8_t> SerialFramer::EncodeBytes(const SerialFrame& frame, std::array<uint8_t, 2> header,
                                               std::array<uint8_t, 2> tail) {
   if (frame.data.size() > 8) {
@@ -136,6 +145,7 @@ std::vector<uint8_t> SerialFramer::EncodeBytes(const SerialFrame& frame, std::ar
   return payload;
 }
 
+// 带重试的串口写操作：遇到 EAGAIN 短暂退避，遇到可恢复错误时重开串口后再写。
 bool SerialFramer::WritePayloadLocked(const std::vector<uint8_t>& payload) {
   if (payload.empty()) {
     return true;
@@ -190,6 +200,7 @@ bool SerialFramer::WriteFrame(const SerialFrame& frame) {
   return WritePayloadLocked(EncodeBytes(frame, header_, tail_));
 }
 
+// 非阻塞读取串口原始字节并拆帧；串口异常时尝试重开。
 std::vector<SerialFrame> SerialFramer::ReadAvailableFramesLocked() {
   if (fd_ < 0 && !ReopenPortLocked()) {
     return ExtractFrames();
@@ -218,6 +229,7 @@ std::vector<SerialFrame> SerialFramer::ReadAvailableFrames() {
   return ReadAvailableFramesLocked();
 }
 
+// 从接收缓冲区中按帧头/帧尾拆出完整帧；非法 dlc 或尾不匹配时丢弃首字节继续搜索。
 std::vector<SerialFrame> SerialFramer::ParseBuffer(std::vector<uint8_t>& rx_buf, std::array<uint8_t, 2> header,
                                                    std::array<uint8_t, 2> tail) {
   std::vector<SerialFrame> out;
@@ -267,4 +279,4 @@ std::vector<SerialFrame> SerialFramer::ParseBuffer(std::vector<uint8_t>& rx_buf,
 
 std::vector<SerialFrame> SerialFramer::ExtractFrames() { return ParseBuffer(rx_buf_, header_, tail_); }
 
-}  // namespace serial_dds_gateway
+}  // 命名空间 serial_dds_gateway

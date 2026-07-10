@@ -9,11 +9,11 @@ from isaaclab.utils.types import ArticulationActions
 
 
 class UnitreeActuator(DelayedPDActuator):
-    """Unitree actuator class that implements a torque-speed curve for the actuators.
+    """Unitree 执行器类，实现带力矩-转速曲线的电机模型。
 
-    The torque-speed curve is defined as follows:
+    力矩-转速曲线定义如下：
 
-            Torque Limit, N·m
+            力矩上限，N·m
                 ^
     Y2──────────|
                 |──────────────Y1
@@ -21,24 +21,24 @@ class UnitreeActuator(DelayedPDActuator):
                 |              │ \
                 |              │  \
                 |              |   \
-    ------------+--------------|------> velocity: rad/s
+    ------------+--------------|------> 转速：rad/s
                               X1   X2
 
-    - Y1: Peak Torque Test (Torque and Speed in the Same Direction)
-    - Y2: Peak Torque Test (Torque and Speed in the Opposite Direction)
-    - X1: Maximum Speed at Full Torque (T-N Curve Knee Point)
-    - X2: No-Load Speed Test
+    - Y1：峰值扭矩（力矩与转速同向）
+    - Y2：峰值扭矩（力矩与转速反向）
+    - X1：满力矩时的最高转速（T-N 曲线拐点）
+    - X2：空载转速
 
-    - Fs: Static friction coefficient
-    - Fd: Dynamic friction coefficient
-    - Va: Velocity at which the friction is fully activated
+    - Fs：静摩擦系数
+    - Fd：动摩擦系数
+    - Va：摩擦完全激活时的转速
     """
 
     cfg: UnitreeActuatorCfg
 
     armature: torch.Tensor
-    """The armature of the actuator joints. Shape is (num_envs, num_joints).
-        armature = J2 + J1 * i2 ^ 2 + Jr * (i1 * i2) ^ 2
+    """执行器关节的等效转动惯量，形状为 (num_envs, num_joints)。
+        armature = J2 + J1 * i2^2 + Jr * (i1 * i2)^2
     """
 
     def __init__(self, cfg: UnitreeActuatorCfg, *args, **kwargs):
@@ -101,32 +101,30 @@ class UnitreeActuator(DelayedPDActuator):
 
 @configclass
 class UnitreeActuatorCfg(DelayedPDActuatorCfg):
-    """
-    Configuration for Unitree actuators.
-    """
+    """Unitree 执行器配置基类。"""
 
     class_type: type = UnitreeActuator
 
     X1: float = 1e9
-    """Maximum Speed at Full Torque(T-N Curve Knee Point) Unit: rad/s"""
+    """满力矩最高转速（T-N 曲线拐点），单位：rad/s"""
 
     X2: float = 1e9
-    """No-Load Speed Test Unit: rad/s"""
+    """空载转速，单位：rad/s"""
 
     Y1: float = MISSING
-    """Peak Torque Test(Torque and Speed in the Same Direction) Unit: N*m"""
+    """峰值扭矩（力矩与转速同向），单位：N·m"""
 
     Y2: float | None = None
-    """Peak Torque Test(Torque and Speed in the Opposite Direction) Unit: N*m"""
+    """峰值扭矩（力矩与转速反向），单位：N·m"""
 
     Fs: float = 0.0
-    """ Static friction coefficient """
+    """静摩擦系数"""
 
     Fd: float = 0.0
-    """ Dynamic friction coefficient """
+    """动摩擦系数"""
 
     Va: float = 0.01
-    """ Velocity at which the friction is fully activated """
+    """摩擦完全激活时的转速"""
 
 
 @configclass
@@ -159,7 +157,7 @@ class UnitreeActuatorCfg_Go2HV(UnitreeActuatorCfg):
 
 @configclass
 class UnitreeActuatorCfg_N7520_14p3(UnitreeActuatorCfg):
-    # Decimal point cannot be used as variable name, use `p` instead
+    # 变量名不能包含小数点，用 p 代替
     X1 = 22.63
     X2 = 35.52
     Y1 = 71
@@ -170,15 +168,15 @@ class UnitreeActuatorCfg_N7520_14p3(UnitreeActuatorCfg):
 
     """
     | rotor  | 0.489e-4 kg·m²
-    | gear_1 | 0.098e-4 kg·m² | ratio | 4.5
-    | gear_2 | 0.533e-4 kg·m² | ratio | 48/22+1
+    | gear_1 | 0.098e-4 kg·m² | 减速比 | 4.5
+    | gear_2 | 0.533e-4 kg·m² | 减速比 | 48/22+1
     """
     armature = 0.01017752
 
 
 @configclass
 class UnitreeActuatorCfg_N7520_22p5(UnitreeActuatorCfg):
-    # Decimal point cannot be used as variable name, use `p` instead
+    # 变量名不能包含小数点，用 p 代替
     X1 = 14.5
     X2 = 22.7
     Y1 = 111.0
@@ -189,8 +187,8 @@ class UnitreeActuatorCfg_N7520_22p5(UnitreeActuatorCfg):
 
     """
     | rotor  | 0.489e-4 kg·m²
-    | gear_1 | 0.109e-4 kg·m² | ratio | 4.5
-    | gear_2 | 0.738e-4 kg·m² | ratio | 5.0
+    | gear_1 | 0.109e-4 kg·m² | 减速比 | 4.5
+    | gear_2 | 0.738e-4 kg·m² | 减速比 | 5.0
     """
     armature = 0.025101925
 
@@ -204,8 +202,8 @@ class UnitreeActuatorCfg_N5010_16(UnitreeActuatorCfg):
 
     """
     | rotor  | 0.084e-4 kg·m²
-    | gear_1 | 0.015e-4 kg·m² | ratio | 4
-    | gear_2 | 0.068e-4 kg·m² | ratio | 4
+    | gear_1 | 0.015e-4 kg·m² | 减速比 | 4
+    | gear_2 | 0.068e-4 kg·m² | 减速比 | 4
     """
     armature = 0.0021812
 
@@ -222,8 +220,8 @@ class UnitreeActuatorCfg_N5020_16(UnitreeActuatorCfg):
 
     """
     | rotor  | 0.139e-4 kg·m²
-    | gear_1 | 0.017e-4 kg·m² | ratio | 46/18+1
-    | gear_2 | 0.169e-4 kg·m² | ratio | 56/16+1
+    | gear_1 | 0.017e-4 kg·m² | 减速比 | 46/18+1
+    | gear_2 | 0.169e-4 kg·m² | 减速比 | 56/16+1
     """
     armature = 0.003609725
 
@@ -240,8 +238,8 @@ class UnitreeActuatorCfg_W4010_25(UnitreeActuatorCfg):
 
     """
     | rotor  | 0.068e-4 kg·m²
-    | gear_1 |                | ratio | 5
-    | gear_2 |                | ratio | 5
+    | gear_1 |                | 减速比 | 5
+    | gear_2 |                | 减速比 | 5
     """
     armature = 0.00425
 

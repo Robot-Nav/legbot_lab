@@ -1,14 +1,20 @@
 #pragma once
 
+// 物理仿真输入设备适配头文件
+// 将 XBOX、Switch 手柄或键盘输入映射为宇树 UnitreeJoystick 统一接口，
+// 供 bridge 线程发布无线控制器状态。
+
 #include <iostream>
 #include <unitree/dds_wrapper/common/unitree_joystick.hpp>
 #include "joystick/joystick.h"
 #include <memory>
 #include <GLFW/glfw3.h>
 
+// MuJoCo 渲染窗口全局句柄，KeyboardJoystick 通过 glfwGetKey 读取按键
 extern GLFWwindow* g_sim_window;
 
 
+// XBOX 手柄适配：将 Linux js_event 按键/轴索引映射到 UnitreeJoystick
 class XBoxJoystick : public unitree::common::UnitreeJoystick
 {
 public:
@@ -20,26 +26,30 @@ public:
 			std::cout << "Error: Joystick open failed." << std::endl;
 			exit(1);
 		}
-        max_value_ = 1 << (bits - 1);
+        max_value_ = 1 << (bits - 1);  // 有符号摇杆最大值，用于归一化
 	}
 
     void update() override
     {
         js_->getState();
+        // 功能按键映射
         back(js_->button_[6]);
         start(js_->button_[7]);
         LB(js_->button_[4]);
         RB(js_->button_[5]);
         A(js_->button_[0]);
-        B(js_->button_[1]); 
+        B(js_->button_[1]);
         X(js_->button_[2]);
         Y(js_->button_[3]);
+        // 方向键为轴 6/7，负值表示上/左
         up(js_->axis_[7] < 0);
         down(js_->axis_[7] > 0);
         left(js_->axis_[6] < 0);
         right(js_->axis_[6] > 0);
+        // 扳机为轴 2/5，压下后值大于 0
         LT(js_->axis_[2] > 0);
         RT(js_->axis_[5] > 0);
+        // 摇杆轴 0/1/3/4，Y 轴取反以符合前正后负约定
         lx(double(js_->axis_[0]) / max_value_);
         ly(-double(js_->axis_[1]) / max_value_);
         rx(double(js_->axis_[3]) / max_value_);
@@ -50,6 +60,7 @@ private:
 	int max_value_;
 };
 
+// 键盘适配：使用 GLFW 按键模拟手柄，便于无手柄时调试
 class KeyboardJoystick : public unitree::common::UnitreeJoystick
 {
 public:
@@ -61,11 +72,13 @@ public:
 
 		float lx_val = 0.0f, ly_val = 0.0f, rx_val = 0.0f, ry_val = 0.0f;
 
+		// WASD 控制左摇杆（机体前后左右平移）
 		if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS) ly_val += 1.0f;
 		if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS) ly_val -= 1.0f;
 		if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS) lx_val -= 1.0f;
 		if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS) lx_val += 1.0f;
 
+		// 方向键控制右摇杆（机体旋转/俯仰）
 		if (glfwGetKey(window_, GLFW_KEY_UP)    == GLFW_PRESS) ry_val += 1.0f;
 		if (glfwGetKey(window_, GLFW_KEY_DOWN)  == GLFW_PRESS) ry_val -= 1.0f;
 		if (glfwGetKey(window_, GLFW_KEY_LEFT)  == GLFW_PRESS) rx_val -= 1.0f;
@@ -81,6 +94,7 @@ public:
 		LT(lt_val);
 		RT(rt_val);
 
+		// 动作按键映射
 		A((glfwGetKey(window_, GLFW_KEY_SPACE)       == GLFW_PRESS) ? 1 : 0);
 		B((glfwGetKey(window_, GLFW_KEY_LEFT_SHIFT)  == GLFW_PRESS) ? 1 : 0);
 		X((glfwGetKey(window_, GLFW_KEY_F)           == GLFW_PRESS) ? 1 : 0);
@@ -94,6 +108,7 @@ public:
 		F1((glfwGetKey(window_, GLFW_KEY_1)          == GLFW_PRESS) ? 1 : 0);
 		F2((glfwGetKey(window_, GLFW_KEY_2)          == GLFW_PRESS) ? 1 : 0);
 
+		// 方向键同时映射到方向按键位，保持与手柄语义一致
 		up((glfwGetKey(window_, GLFW_KEY_UP)         == GLFW_PRESS) ? 1 : 0);
 		down((glfwGetKey(window_, GLFW_KEY_DOWN)     == GLFW_PRESS) ? 1 : 0);
 		left((glfwGetKey(window_, GLFW_KEY_LEFT)     == GLFW_PRESS) ? 1 : 0);
@@ -105,6 +120,7 @@ private:
 };
 
 
+// Switch Pro 手柄适配，轴/按键索引与 XBOX 不同
 class SwitchJoystick : public unitree::common::UnitreeJoystick
 {
 public:
@@ -116,26 +132,30 @@ public:
 			std::cout << "Error: Joystick open failed." << std::endl;
 			exit(1);
 		}
-        max_value_ = 1 << (bits - 1);
+        max_value_ = 1 << (bits - 1);  // 有符号摇杆最大值，用于归一化
 	}
 
     void update() override
     {
         js_->getState();
+        // 功能按键映射
         back(js_->button_[10]);
         start(js_->button_[11]);
         LB(js_->button_[6]);
         RB(js_->button_[7]);
         A(js_->button_[0]);
-        B(js_->button_[1]); 
+        B(js_->button_[1]);
         X(js_->button_[3]);
         Y(js_->button_[4]);
+        // 方向键为轴 6/7
         up(js_->axis_[7] < 0);
         down(js_->axis_[7] > 0);
         left(js_->axis_[6] < 0);
         right(js_->axis_[6] > 0);
+        // Switch 扳机由轴 4/5 表示
         LT(js_->axis_[5] > 0);
         RT(js_->axis_[4] > 0);
+        // 摇杆轴 0/1/2/3，Y 轴取反
         lx(double(js_->axis_[0]) / max_value_);
         ly(-double(js_->axis_[1]) / max_value_);
         rx(double(js_->axis_[2]) / max_value_);

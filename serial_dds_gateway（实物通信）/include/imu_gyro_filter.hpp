@@ -7,7 +7,8 @@
 
 namespace serial_dds_gateway {
 
-// Primary gyro bias calibration for sim2real (scheme A: gateway owns bias).
+// IMU 陀螺仪偏置标定与死区滤波器（sim2real 方案 A：由网关负责偏置）。
+// 启动后保持静止，累积采样并计算平均零偏；标定完成后输出减去零偏并经死区处理的角速度。
 class ImuGyroFilter {
  public:
   ImuGyroFilter() { Reset(); }
@@ -38,6 +39,7 @@ class ImuGyroFilter {
       return {gx, gy, gz};
     }
 
+    // 标定阶段：累加采样，满足时间与样本数后计算零偏。
     if (!calib_done_) {
       sum_[0] += static_cast<double>(gx);
       sum_[1] += static_cast<double>(gy);
@@ -61,6 +63,7 @@ class ImuGyroFilter {
       }
     }
 
+    // 标定前用当前均值作为临时零偏，标定后用最终零偏。
     const float bx = calib_done_ ? bias_[0]
                                  : static_cast<float>(sum_[0] / std::max(1, sample_count_));
     const float by = calib_done_ ? bias_[1]
@@ -89,4 +92,4 @@ class ImuGyroFilter {
   bool logged_done_{false};
 };
 
-}  // namespace serial_dds_gateway
+}  // 命名空间 serial_dds_gateway

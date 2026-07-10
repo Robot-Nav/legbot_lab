@@ -11,6 +11,7 @@ using namespace serial_dds_gateway;
 
 namespace {
 
+// 小端 float32 写入辅助函数。
 void PushFloatLe(std::vector<uint8_t>& out, float value) {
   uint8_t bytes[4]{};
   std::memcpy(bytes, &value, sizeof(value));
@@ -19,6 +20,7 @@ void PushFloatLe(std::vector<uint8_t>& out, float value) {
 
 bool Close(double a, double b, double eps = 1e-5) { return std::fabs(a - b) <= eps; }
 
+// 按 IMU 线序构造一帧：yaw, pitch, roll, gz, gy, gx。
 std::vector<uint8_t> BuildFrame(float yaw, float pitch, float roll, float gz, float gy, float gx) {
   std::vector<uint8_t> frame = {0xEB, 0x90, 0xA5, 0xFF};
   PushFloatLe(frame, yaw);
@@ -35,12 +37,13 @@ std::vector<uint8_t> BuildFrame(float yaw, float pitch, float roll, float gz, fl
   return frame;
 }
 
-}  // namespace
+}  // 命名空间
 
 int main() {
   int failures = 0;
 
-  auto rx = BuildFrame(0.1F, -0.2F, 0.3F, 3.0F, 2.0F, 1.0F);  // wire: gz, gy, gx
+  // 测试帧解析：线序为 gz, gy, gx，解析后应分别对应 gx, gy, gz。
+  auto rx = BuildFrame(0.1F, -0.2F, 0.3F, 3.0F, 2.0F, 1.0F);
   const auto samples = ImuFramer::ParseBuffer(rx);
   if (samples.size() != 1 || !rx.empty()) {
     std::cerr << "[FAIL] IMU frame parse count/buffer\n";
@@ -74,6 +77,7 @@ int main() {
     std::cout << "[PASS] yaw/pitch/roll use ZYX quaternion convention\n";
   }
 
+  // 测试 CRC 错误帧应被拒绝。
   auto bad_crc = BuildFrame(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F);
   bad_crc[10] ^= 0xFF;
   const auto bad_samples = ImuFramer::ParseBuffer(bad_crc);
@@ -84,6 +88,7 @@ int main() {
     std::cout << "[PASS] IMU parser rejects bad CRC frames\n";
   }
 
+  // 测试陀螺零偏标定：10 个相同样本后零偏应等于该值，再次 Apply 输出经死区后为 0。
   {
     ImuGyroFilter filter;
     filter.Configure(true, 0.0, 0.02, 10);

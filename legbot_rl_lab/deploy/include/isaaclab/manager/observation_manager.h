@@ -1,6 +1,4 @@
-// Copyright (c) 2025, Unitree Robotics Co., Ltd.
-// All rights reserved.
-
+// 文件用途：观察管理器。按配置组织多组观察项，每组观察项计算后拼接成 ONNX 输入张量。
 #pragma once
 
 #include <eigen3/Eigen/Dense>
@@ -19,6 +17,7 @@ inline ObsMap& observations_map() {
     return instance;
 }
 
+// 注册观察项宏：声明函数、在静态注册器中将函数指针加入全局表、再定义函数体。
 #define REGISTER_OBSERVATION(name) \
     inline std::vector<float> name(ManagerBasedRLEnv* env, YAML::Node params); \
     inline struct name##_registrar { \
@@ -71,6 +70,7 @@ public:
 
         if(use_gym_history)
         {
+            // gym 风格历史展开：按时间步拼接各观察项。
             for(int h = 0; h < group_terms[0].history_length; ++h)
             {
                 for(auto & term : group_terms)
@@ -82,6 +82,7 @@ public:
         }
         else
         {
+            // 默认：只拼接最新观察。
             for(const auto & term : group_terms)
             {
                 auto obs_ = term.get();
@@ -94,10 +95,10 @@ public:
 protected:
     void _prapare_terms()
     {
-        // check whether have multiple input
-        bool only_one_input = this->cfg.begin()->second["params"].IsDefined(); // trick to check
+        // 通过第一个条目的二级结构判断是单组输入还是多组输入。
+        bool only_one_input = this->cfg.begin()->second["params"].IsDefined();
         if(only_one_input) {
-            group_obs_term_cfgs_["obs"] = _prepare_group_terms(this->cfg); // default group name
+            group_obs_term_cfgs_["obs"] = _prepare_group_terms(this->cfg); // 默认组名
         } else {
             for(auto group = this->cfg.begin(); group != this->cfg.end(); ++group)
             {
@@ -110,7 +111,7 @@ protected:
     std::vector<ObservationTermCfg> _prepare_group_terms(const YAML::Node & group_cfg)
     {
         std::vector<ObservationTermCfg> terms;
-        bool scale_first = false; // isaaclab default: clip first
+        bool scale_first = false; // Isaac Lab 默认先裁剪后缩放
         for(auto it = group_cfg.begin(); it != group_cfg.end(); ++it)
         {
             std::string key = it->first.as<std::string>();
@@ -118,12 +119,12 @@ protected:
                 scale_first = it->second.as<bool>();
                 continue;
             }
-            if(it->first.as<std::string>() == "use_gym_history") { // set only once
+            if(it->first.as<std::string>() == "use_gym_history") { // 仅设置一次
                 use_gym_history = it->second.as<bool>();
                 continue;
             }
 
-            /*** observation terms ***/
+            // 初始化观察项
             const auto term_yaml_cfg = it->second;
             ObservationTermCfg term_cfg;
             term_cfg.params = term_yaml_cfg["params"];
@@ -155,8 +156,8 @@ protected:
     const YAML::Node cfg;
     ManagerBasedRLEnv* env;
 
-    // whether to use gym type
-    bool use_gym_history = false; // Manually set in the configuration file
+    // 是否在输出时按 gym 风格展开历史帧（在配置文件中手动设置）。
+    bool use_gym_history = false;
 
 private:
     std::unordered_map<std::string, std::vector<ObservationTermCfg>> group_obs_term_cfgs_;

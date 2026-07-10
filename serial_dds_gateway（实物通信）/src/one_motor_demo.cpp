@@ -1,3 +1,6 @@
+// 用途：协议编解码本地自测，无需串口硬件。
+// 说明：构造一个 type1 命令并编码，再合成一个 type2 反馈帧并解码，验证 float<->uint 映射。
+
 #include "protocol_codec.hpp"
 
 #include <array>
@@ -9,6 +12,7 @@ using namespace serial_dds_gateway;
 int main() {
   RangeSpec ranges;
 
+  // 构造测试用 type1 控制命令。
   Type1Command cmd{
       .motor_id = 0x01,
       .q = 1.20,
@@ -27,7 +31,7 @@ int main() {
   }
   std::cout << std::dec << "\n";
 
-  // Build synthetic type2 frame and decode.
+  // 手工构造 type2 反馈帧并解码，验证编解码对称性。
   const auto q_u16 = float_to_uint(1.15, ranges.q_min, ranges.q_max, 16);
   const auto dq_u16 = float_to_uint(0.75, ranges.dq_min, ranges.dq_max, 16);
   const auto tau_u16 = float_to_uint(2.20, ranges.tau_min, ranges.tau_max, 16);

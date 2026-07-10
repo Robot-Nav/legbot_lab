@@ -1,17 +1,21 @@
+<!-- 第一段地形碰撞代理模型（0131 版本）：圆柱代理体。 -->
 <mujoco>
+  <!-- 编译器设置：角度单位为弧度，网格目录指向 meshes。 -->
   <compiler angle="radian" assetdir="assets" autolimits="true"/>
 
+  <!-- 资源定义：网格、纹理、材质与高度场。 -->
   <asset>
 
-    <!-- Textures -->
+    <!-- 纹理 -->
 
-    <!-- Materials -->
+    <!-- 材质 -->
 
-    <!-- Visual meshes -->
+    <!-- 视觉网格 -->
 
-    <!-- Collision meshes -->
+    <!-- 碰撞网格 -->
   </asset>
 
+  <!-- 默认属性模板：几何、关节、电机共享参数。 -->
   <default>
       <default class="visual">
         <geom type="mesh" contype="0" conaffinity="0" group="2" density="0"/>
@@ -24,8 +28,10 @@
       </default>
   </default>
 
+  <!-- 世界坐标系实体：第一段地形碰撞代理体。 -->
   <worldbody>
 
+    <!-- 场景主体代理圆柱。 -->
     <body name="B_BODY" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
       <geom name="Cylinder01" class="C_SECTION01_Cylinder"/>
     </body>

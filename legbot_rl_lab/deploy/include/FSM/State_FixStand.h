@@ -1,3 +1,5 @@
+// 文件用途：FSM 固定站立状态。通过分段线性插值将机器人从当前姿态平滑引导到目标姿态，
+// 作为进入速度控制（RL 策略）前的准备状态，同时记录 50Hz CSV 诊断数据。
 #pragma once
 
 #include "FSMState.h"
@@ -17,6 +19,7 @@ public:
     State_FixStand(int state, std::string state_string = "FixStand")
     : FSMState(state, state_string)
     {
+        // 读取插值时间点与目标关节角度序列，二者长度必须一致。
         ts_ = param::config["FSM"]["FixStand"]["ts"].as<std::vector<float>>();
         qs_ = param::config["FSM"]["FixStand"]["qs"].as<std::vector<std::vector<float>>>();
         assert(ts_.size() == qs_.size());
@@ -28,6 +31,7 @@ public:
 
     void enter()
     {
+        // 配置 PD 参数：站立姿态刚度较大，保证插值过程中姿态稳定。
         static auto kp = param::config["FSM"]["FixStand"]["kp"].as<std::vector<float>>();
         static auto kd = param::config["FSM"]["FixStand"]["kd"].as<std::vector<float>>();
         for(int i(0); i < kp.size() && i < (int)motor_cmds.size(); ++i)
@@ -39,6 +43,7 @@ public:
             motor_cmds[i].tau = 0;
         }
 
+        // 插值起点 q0 设为当前实际关节角度，保证轨迹连续。
         std::vector<float> q0;
         for(int i(0); i < kp.size() && i < (int)motor_states.size(); ++i) {
             q0.push_back(motor_states[i].q);
@@ -46,7 +51,7 @@ public:
         qs_[0] = q0;
         t0_ = (double)unitree::common::GetCurrentTimeMillisecond() * 1e-3;
 
-        // CSV logger init
+        // 初始化 CSV 日志器。
         log_tick_ = 0;
         csv_t0_ = std::chrono::steady_clock::now();
         csv_logger_.reset();
@@ -81,7 +86,7 @@ public:
             motor_cmds[i].tau = 0;
         }
 
-        // CSV diagnosis logging at 50Hz
+        // 在设定时长内按 50Hz 记录 CSV 诊断数据（每 20 个 1kHz 周期一次）。
         if (csv_logger_ && t <= fixstand_log_seconds_) {
             if (++log_tick_ >= 20) {
                 log_tick_ = 0;
@@ -99,7 +104,7 @@ public:
     }
 
 private:
-    static constexpr int kLogEveryTicks = 20;  // FSM 1kHz -> 50Hz
+    static constexpr int kLogEveryTicks = 20;  // 1kHz / 20 = 50Hz
 
     void logFixStandSample(float t_sec)
     {
@@ -107,7 +112,7 @@ private:
         row.phase = "fixstand";
         row.t_sec = t_sec;
 
-        // projected gravity from IMU quaternion
+        // 由 IMU 四元数计算机体坐标系下的投影重力。
         Eigen::Quaternionf quat(
             FSMState::imu_state.quaternion[0],
             FSMState::imu_state.quaternion[1],
@@ -121,10 +126,12 @@ private:
         row.ang_vel[1] = FSMState::imu_state.gyroscope[1];
         row.ang_vel[2] = FSMState::imu_state.gyroscope[2];
 
+        // 电机顺序原始数据。
         for (int mot = 0; mot < 12 && mot < (int)motor_states.size(); ++mot) {
             row.q_motor_raw[mot] = motor_states[mot].q_raw;
             row.temperature[mot] = motor_states[mot].temperature;
         }
+        // 策略顺序数据。
         for (int i = 0; i < 12 && i < (int)motor_cmds.size(); ++i) {
             row.q_target[i] = motor_cmds[i].q;
             row.q_actual[i] = (i < (int)motor_states.size()) ? motor_states[i].q : 0.f;
@@ -139,13 +146,13 @@ private:
         csv_logger_->write_row(row);
     }
 
-    double t0_{0.0};
-    int log_tick_{0};
-    float fixstand_log_seconds_{10.0f};
-    std::vector<float> ts_;
-    std::vector<std::vector<float>> qs_;
-    std::unique_ptr<DeployCsvLogger> csv_logger_;
-    std::chrono::steady_clock::time_point csv_t0_{};
+    double t0_{0.0};                                   // 进入状态的起始时间（秒）
+    int log_tick_{0};                                  // CSV 采样计数
+    float fixstand_log_seconds_{10.0f};                // CSV 记录时长
+    std::vector<float> ts_;                            // 插值时间点
+    std::vector<std::vector<float>> qs_;               // 对应目标关节角度
+    std::unique_ptr<DeployCsvLogger> csv_logger_;      // CSV 日志器
+    std::chrono::steady_clock::time_point csv_t0_{};   // 日志起始时刻
 };
 
 REGISTER_FSM(State_FixStand)

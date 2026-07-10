@@ -1,3 +1,5 @@
+// serial_frame_codec.js 回归测试：标准帧、扩展反馈帧、type3/4 模式帧编解码校验。
+
 import {
   decodeType1Command,
   decodeType2Feedback,
@@ -15,9 +17,10 @@ function assert(condition, message) {
 }
 
 function close(actual, expected, eps, message) {
-  assert(Math.abs(actual - expected) <= eps, `${message}: got ${actual}, expected ${expected}`);
+  assert(Math.abs(actual - expected) <= eps, `${message}: 实际 ${actual}, 期望 ${expected}`);
 }
 
+// 标准 type1 零扭矩帧：tau=-17（量化 0x0000），CAN ID=0x20。
 const standardZero = "45 54 00 01 00 00 20 08 00 00 00 00 00 00 00 00 0d 0a";
 const standard = parseSerialFrame(standardZero);
 assert(standard.channel === 0, "standard channel");
@@ -41,6 +44,7 @@ const encodedStandard = encodeStandardType1Frame({
 });
 assert(toHex(encodedStandard) === toHex(standard.bytes), "standard re-encode");
 
+// 扩展 type2 反馈帧：q/dq/tau/temp。
 const extendedFeedback = "45 54 01 02 00 20 fd 08 a3 5b 7f ac 7f ff 01 22 0d 0a";
 const extended = parseSerialFrame(extendedFeedback);
 assert(extended.channel === 1, "extended channel");
@@ -55,6 +59,7 @@ close(feedback.dq, -0.1121, 0.001, "feedback dq");
 close(feedback.tau, -0.0003, 0.001, "feedback tau");
 close(feedback.tempC, 29.0, 0.01, "feedback temp");
 
+// type3 使能帧。
 const enableHex = "45 54 00 03 00 fd 7f 08 00 00 00 00 00 00 00 00 0d 0a";
 const enable = parseSerialFrame(enableHex);
 const enableMode = decodeModeFrame(enable);
@@ -65,6 +70,7 @@ assert(enableMode.clearFault === false, "enable clear fault");
 assert(toHex(encodeModeFrame({ channel: 0, mode: 3, masterId: 0xfd, motorId: 0x7f })) === toHex(enable.bytes),
   "enable re-encode");
 
+// type4 清故障帧：Byte0=1。
 const clearFaultHex = "45 54 00 04 00 fd 7f 08 01 00 00 00 00 00 00 00 0d 0a";
 const clearFault = parseSerialFrame(clearFaultHex);
 const clearFaultMode = decodeModeFrame(clearFault);

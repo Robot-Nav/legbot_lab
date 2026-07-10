@@ -1,3 +1,5 @@
+// 灵足串口帧回归测试：解析/重编码 golden frame、type1/type2 编解码、12 电机映射与 bias 校验。
+
 #include "joint_motor_bias.hpp"
 #include "lingzu_motor_protocol.hpp"
 #include "lingzu_serial.hpp"
@@ -29,8 +31,7 @@ void PrintHex(const std::vector<uint8_t>& v) {
 int main() {
   int failures = 0;
 
-  // Golden capture from Lingzu RS02 USB-CAN serial protocol:
-  // ET + channel + frame_type + id_field + master_id + dlc + data + CRLF.
+  // 灵足 RS02 USB-CAN 串口 golden frame：ET + channel + type + id_field + master_id + dlc + data + CRLF。
   const std::vector<uint8_t> kGolden = {
       0x45, 0x54, 0x01, 0x02, 0x00, 0x20, 0xFD, 0x08, 0xA3, 0x5B, 0x7F,
       0xAC, 0x7F, 0xFF, 0x01, 0x22, 0x0D, 0x0A,
@@ -52,7 +53,7 @@ int main() {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x0D, 0x0A,
   };
 
-  // 1) Parse golden buffer as USB-CAN fields, not as a 32-bit CAN ID.
+  // 1) 将 golden 按 USB-CAN 字段解析（不作为 32 位 CAN ID）。
   auto buf = kGolden;
   const auto parsed = SerialFramer::ParseBuffer(buf);
   if (parsed.size() != 1) {
@@ -69,7 +70,7 @@ int main() {
     }
   }
 
-  // 2) Decode payload as type1 motion-control command.
+  // 2) 将数据区按 type1 运控帧解码。
   const auto cmd = DecodeType1SerialFrame(parsed.front());
   auto close = [](double a, double b, double eps) { return std::fabs(a - b) <= eps; };
   if (cmd.motor_id != 0x20 || !close(cmd.q, 3.4713, 0.001) || !close(cmd.dq, -0.1121, 0.001) ||
@@ -80,7 +81,7 @@ int main() {
     std::cout << "[PASS] type1 payload decodes q/dq/kp/kd\n";
   }
 
-  // 3) Re-encode the decoded command and require byte-for-byte equality.
+  // 3) 重新编码并逐字节对比。
   const auto reencoded_frame = EncodeType1SerialFrame(1, 0xFD, cmd);
   const auto encoded = SerialFramer::EncodeBytes(reencoded_frame);
   if (!BytesEq(encoded, kGolden)) {
@@ -93,7 +94,7 @@ int main() {
     std::cout << "[PASS] type1 re-encodes golden bytes\n";
   }
 
-  // 4) Feedback decoding uses the same serial envelope but type2 data semantics.
+  // 4) 同一串口包按 type2 反馈语义解码。
   const auto fb = DecodeType2SerialFrame(parsed.front());
   if (fb.motor_id != 0x20 || !close(fb.q, 3.4713, 0.001) || !close(fb.dq, -0.1121, 0.001) ||
       !close(fb.tau, -0.0003, 0.001) || !close(fb.temp_c, 29.0, 0.01)) {
@@ -184,6 +185,7 @@ int main() {
     std::cout << "[PASS] type4 clear fault frame sets Byte0=1\n";
   }
 
+  // 校验全部 12 路电机映射。
   for (auto joint_name : kJointOrder) {
     const auto motor_it = kJointToCanId.find(joint_name);
     if (motor_it == kJointToCanId.end()) {
@@ -217,6 +219,7 @@ int main() {
     std::cout << "[PASS] 12-motor type1/feedback ID mapping\n";
   }
 
+  // 校验 A/B 串口总线分配。
   const std::unordered_map<uint8_t, MotorSerialBus> expected_bus = {
       {11, MotorSerialBus::A}, {21, MotorSerialBus::A}, {31, MotorSerialBus::A},
       {13, MotorSerialBus::A}, {23, MotorSerialBus::A}, {33, MotorSerialBus::A},
@@ -233,7 +236,7 @@ int main() {
     std::cout << "[PASS] two motor serial bus split maps A=FR/RR and B=FL/RL\n";
   }
 
-  // Fatu log session: motor raw q -> sign*scale -> bias -> model q
+  // 使用 fatu 样机 log 校验：电机原始 q -> 方向*减速比 -> bias -> 模型 q。
   constexpr std::array<float, 12> kLogMotorRawQ = {
       0.1398f, 1.2518f, -2.3295f, -0.1448f, -1.1719f, 2.3261f,
       -0.1206f, 1.1963f, -2.4293f, 0.1325f, -1.1472f, 2.3672f,

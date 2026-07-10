@@ -12,6 +12,9 @@
 //
 // Copyright Drew Noakes 2013-2016
 
+// Linux 手柄事件读取实现
+// 打开 /dev/input/js* 设备，非阻塞轮询事件并维护按键/轴状态。
+
 #include "joystick.h"
 
 Joystick::Joystick()
@@ -38,7 +41,7 @@ Joystick::Joystick(std::string devicePath, bool blocking)
 
 void Joystick::openPath(std::string devicePath, bool blocking)
 {
-  // Open the device using either blocking or non-blocking
+  // 非阻塞模式避免读取时阻塞主循环；阻塞模式仅在不依赖渲染线程时使用
   _fd = open(devicePath.c_str(), blocking ? O_RDONLY : O_RDONLY | O_NONBLOCK);
 }
 
@@ -49,8 +52,7 @@ bool Joystick::sample(JoystickEvent *event)
   if (bytes == -1)
     return false;
 
-  // NOTE if this condition is not met, we're probably out of sync and this
-  // Joystick instance is likely unusable
+  // 读取长度必须与结构体一致，否则说明事件流失步，应重新打开设备
   return bytes == sizeof(*event);
 }
 

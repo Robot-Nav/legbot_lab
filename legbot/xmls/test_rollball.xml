@@ -1,39 +1,46 @@
+<!-- 滚球测试场景：单独验证滚球物理行为。 -->
 <mujoco model="rollball test">
+  <!-- 编译器设置：角度单位为弧度，网格目录指向 meshes。 -->
   <compiler angle="radian" meshdir="assets" texturedir="assets" autolimits="true"/>
   
+  <!-- 全局物理选项：接触锥、积分比率等。 -->
   <option timestep="0.01" gravity="0 0 -9.81"/>
   
+  <!-- 可视化渲染参数。 -->
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
     <rgba haze="0.15 0.25 0.35 1"/>
     <global azimuth="120" elevation="-20"/>
   </visual>
 
+  <!-- 场景统计与相机范围参数。 -->
   <statistic center="0 0 1" extent="3"/>
 
+  <!-- 资源定义：网格、纹理、材质与高度场。 -->
   <asset>
-    <!-- Ground texture -->
+    <!-- 地面纹理 -->
     <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
     <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
       markrgb="0.8 0.8 0.8" width="300" height="300"/>
     <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
 
-    <!-- Rollball textures -->
+    <!-- 滚球纹理 -->
     <texture type="2d" colorspace="sRGB" name="ball01" file="ball01.png"/>
     <texture type="2d" colorspace="linear" name="ball01_ro" file="ball01_ro.png"/>
 
-    <!-- Rollball materials -->
+    <!-- 滚球材质 -->
     <material name="MI_ROLLBALL" rgba="1 1 1 1" reflectance="0.5" metallic="0.20000000298023224" roughness="1.0">
       <layer texture="ball01" role="rgb"/>
       <layer texture="ball01_ro" role="orm"/>
     </material>
     <material name="MI_gold" rgba="1.0 0.7726222276687622 0.06890170276165009 1.0" reflectance="0.5" metallic="1.0" roughness="0.15000000596046448"/>
 
-    <!-- Rollball meshes -->
+    <!-- 滚球网格 -->
     <mesh class="visual" name="V_ROLLBALL" file="V_ROLLBALL.obj"/>
     <mesh class="visual" name="V_ROLLBALL_in" file="V_ROLLBALL_in.obj"/>
   </asset>
 
+  <!-- 默认属性模板：几何、关节、电机共享参数。 -->
   <default>
     <default class="visual">
       <geom type="mesh" contype="0" conaffinity="0" group="2" density="0"/>
@@ -46,11 +53,13 @@
     </default>
   </default>
 
+  <!-- 世界坐标系实体：滚球测试场景。 -->
   <worldbody>
     <light pos="0 0 3" dir="0 0 -1" directional="true"/>
+    <!-- 地面碰撞体：提供机器人足底接触平面。 -->
     <geom name="ground" size="5 5 0.05" type="plane" material="groundplane"/>
     
-    <!-- Rollball at 1m height -->
+    <!-- 滚球初始高度 1 米。 -->
     <body name="B_rollball" pos="0.0 0.0 1.0">
       <freejoint/>
       <geom class="C_ROLLBALL"/>

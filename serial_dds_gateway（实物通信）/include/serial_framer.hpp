@@ -10,14 +10,16 @@
 
 namespace serial_dds_gateway {
 
+// 灵足 USB-CAN 串口帧语义结构。
 struct SerialFrame {
-  uint8_t channel{0};
-  uint8_t frame_type{kLingzuCanExtendedFrame};
-  uint16_t id_field{0};  // Extended frame ID/control field; standard frame keeps this at 0.
-  uint8_t master_id{0xFD};  // Extended: master/source ID. Standard: CAN ID byte per RS02 USB-CAN format.
-  std::vector<uint8_t> data;  // 0..8
+  uint8_t channel{0};                         // 通道字节
+  uint8_t frame_type{kLingzuCanExtendedFrame}; // 帧类型：01 标准 / 02 扩展 / 03 使能 / 04 失能
+  uint16_t id_field{0};                       // 扩展帧：ID/控制字段；标准帧：承载 16 位数据。
+  uint8_t master_id{0xFD};                    // 扩展帧：主机/源地址；标准帧：CAN ID 字节。
+  std::vector<uint8_t> data;                  // 有效载荷，0..8 字节
 };
 
+// 串口成帧器：负责打开串口、按 header/tail 打包/拆包、写失败时自动重开。
 class SerialFramer {
  public:
   SerialFramer(std::string port, int baudrate, std::array<uint8_t, 2> header = kLingzuUsbHeader,
@@ -30,11 +32,11 @@ class SerialFramer {
   bool IsOpen() const;
   const std::string& port() const { return port_; }
   void Close();
-  // Returns false after retries exhausted (gateway keeps running).
+  // 写帧；重试耗尽后返回 false，网关侧仍继续运行。
   bool WriteFrame(const SerialFrame& frame);
   std::vector<SerialFrame> ReadAvailableFrames();
 
-  // Encode/decode without opening a port (unit tests).
+  // 无需打开串口即可使用的编解码接口（单元测试用）。
   static std::vector<uint8_t> EncodeBytes(const SerialFrame& frame,
                                           std::array<uint8_t, 2> header = kLingzuUsbHeader,
                                           std::array<uint8_t, 2> tail = kLingzuUsbTail);
@@ -59,4 +61,4 @@ class SerialFramer {
   std::vector<SerialFrame> ExtractFrames();
 };
 
-}  // namespace serial_dds_gateway
+}  // 命名空间 serial_dds_gateway

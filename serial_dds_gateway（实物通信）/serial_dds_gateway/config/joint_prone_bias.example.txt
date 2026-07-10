@@ -1,12 +1,12 @@
-# Joint bias in MODEL space (joint-model), motor order FR/FL/RR/RL hip/thigh/calf.
-# bias[i] = (gear_scale[i] * q_motor_measured[i]) - q_reference[i]
-# Copy ONE line of 12 floats to joint_prone_bias.txt after calibration.
+# 模型空间 joint bias（关节坐标系），电机顺序 FR/FL/RR/RL，每腿 hip/thigh/calf。
+# bias[i] = gear_scale[i] * q_motor_measured[i] - q_reference[i]
+# 标定后从网关日志复制一行 12 个浮点数到 joint_prone_bias.txt。
 #
-# Get values from gateway log:
+# 可从网关日志获取：
 #   [INFO] joint bias (joint-model space): [ ... ]
 #
-# Or compute: bias = "joint q after gear" - reference (see joint_prone_reference.example.txt)
+# 或手动计算：bias = "经减速比后的关节 q" - 参考值（见 joint_prone_reference.example.txt）。
 #
-# Below: placeholder (all zero = no extra offset). Replace with your robot's calibrated line.
+# 下方为占位符（全 0 表示无额外偏移），请替换为实际机器人标定值。
 
 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000

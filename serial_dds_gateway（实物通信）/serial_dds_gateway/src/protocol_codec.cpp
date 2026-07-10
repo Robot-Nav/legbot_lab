@@ -1,3 +1,5 @@
+// type1/type2 CAN 量化编解码实现：16 位定点、29 位 CAN ID 拆装。
+
 #include "protocol_codec.hpp"
 
 #include <algorithm>
@@ -12,8 +14,8 @@ double clampd(double x, double lo, double hi) {
 }  // namespace
 
 uint16_t float_to_uint(double x, double x_min, double x_max, int bits) {
-  const auto levels = (1u << bits) - 1u;
-  x = clampd(x, x_min, x_max);
+  const auto levels = (1u << bits) - 1u;          // 量化级数
+  x = clampd(x, x_min, x_max);                    // 钳位防越界
   const double span = x_max - x_min;
   const auto v = static_cast<uint32_t>(std::llround((x - x_min) * levels / span));
   return static_cast<uint16_t>(std::min<uint32_t>(v, levels));
@@ -21,10 +23,11 @@ uint16_t float_to_uint(double x, double x_min, double x_max, int bits) {
 
 double uint_to_float(uint16_t u, double x_min, double x_max, int bits) {
   const auto levels = (1u << bits) - 1u;
-  const auto v = std::min<uint32_t>(u, levels);
+  const auto v = std::min<uint32_t>(u, levels);  // 防止异常大值
   return x_min + (x_max - x_min) * (static_cast<double>(v) / levels);
 }
 
+// 29 位 CAN ID：mode[28:24] + data16[23:8] + id8[7:0]。
 uint32_t build_can_id(uint8_t mode, uint16_t data16, uint8_t id8) {
   return (static_cast<uint32_t>(mode & 0x1F) << 24) | (static_cast<uint32_t>(data16) << 8) |
          static_cast<uint32_t>(id8);
@@ -38,6 +41,7 @@ CanIdFields split_can_id(uint32_t can_id) {
   };
 }
 
+// type1 编码：数据区依次为大端 q, dq, kp, kd；CAN ID 携带 tau 与 motor_id。
 std::pair<uint32_t, std::array<uint8_t, 8>> encode_type1(const Type1Command& cmd, const RangeSpec& ranges) {
   const uint16_t q_u16 = float_to_uint(cmd.q, ranges.q_min, ranges.q_max, 16);
   const uint16_t dq_u16 = float_to_uint(cmd.dq, ranges.dq_min, ranges.dq_max, 16);
@@ -58,6 +62,7 @@ std::pair<uint32_t, std::array<uint8_t, 8>> encode_type1(const Type1Command& cmd
   return {can_id, data};
 }
 
+// type2 解码：数据区为大端 q, dq, tau, temp_x10。
 Type2Feedback decode_type2(uint32_t can_id, const std::array<uint8_t, 8>& data, const RangeSpec& ranges) {
   const auto fields = split_can_id(can_id);
   if (fields.mode != 2) {
@@ -78,4 +83,3 @@ Type2Feedback decode_type2(uint32_t can_id, const std::array<uint8_t, 8>& data, 
 }
 
 }  // namespace serial_dds_gateway
-

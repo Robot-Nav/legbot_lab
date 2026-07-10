@@ -1,3 +1,4 @@
+# 注册 Unitree Go2 速度跟踪 Gym 环境。
 import gymnasium as gym
 
 gym.register(

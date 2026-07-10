@@ -1,26 +1,26 @@
-# Safety protection: real hardware cannot trust network outputs directly.
-# Every command is clamped and every feedback is monitored for runaway conditions.
+# 文件用途：Legbot 控制器配置文件。包含安全保护阈值、FSM 状态机、关节映射与策略目录。
+# 安全保护：真实硬件不能直接信任网络输出，所有指令都需限幅，所有反馈都需监控。
 safety:
   enabled: true
-  action_clip: 100.0          # policy output raw clip range
-  torque_limit: 40.0         # Nm, applied to commanded tau
-  tau_est_limit: 45.0        # Nm, monitored measured torque -> Passive if exceeded
-  velocity_limit: 30.0       # rad/s, monitored joint velocity -> Passive if exceeded
-  # Delta limit per control tick (1kHz): prevents NN output spikes from commanding
-  # sudden large position/velocity jumps. 0.05 rad/tick ~ 50 rad/s equivalent.
-  delta_q_limit_per_tick: 0.05    # rad/tick, |q_des[t] - q_des[t-1]| clamp
-  delta_dq_limit_per_tick: 1.0   # rad/s per tick, |dq_des[t] - dq_des[t-1]| clamp
-  roll_threshold: 0.5        # rad (~28 deg), IMU roll -> Passive if exceeded
-  pitch_threshold: 0.5       # rad (~28 deg), IMU pitch -> Passive if exceeded
-  temperature_limit: 80.0    # degC, motor temperature -> Passive if exceeded
-  # joint position limits (motor order: FR,FL,RR,RL), used for q_des clip
+  action_clip: 100.0          # 策略原始输出限幅范围
+  torque_limit: 40.0         # 力矩指令上限（Nm）
+  tau_est_limit: 45.0        # 估计力矩监测阈值（Nm），超过则进入 Passive
+  velocity_limit: 30.0       # 关节速度监测阈值（rad/s），超过则进入 Passive
+  # 单控制周期（1kHz）变化率限制：防止神经网络输出突变导致位置/速度跳变。
+  # 0.05 rad/周期 约等价于 50 rad/s，裕量较大，可酌情收紧。
+  delta_q_limit_per_tick: 0.05    # 单周期位置最大变化量（rad），|q_des[t] - q_des[t-1]|
+  delta_dq_limit_per_tick: 1.0   # 单周期速度最大变化量（rad/s），|dq_des[t] - dq_des[t-1]|
+  roll_threshold: 0.5        # 横滚角阈值（rad，约 28°），超过则进入 Passive
+  pitch_threshold: 0.5       # 俯仰角阈值（rad，约 28°），超过则进入 Passive
+  temperature_limit: 80.0    # 电机温度阈值（℃），超过则进入 Passive
+  # 关节位置限幅（电机顺序 FR,FL,RR,RL），用于 q_des 限幅
   joint_pos_lower: [-0.5, -1.5, -2.7, -0.5, -1.5, -2.7, -0.5, -1.5, -2.7, -0.5, -1.5, -2.7]
   joint_pos_upper: [ 0.5,  1.5, -0.5,  0.5,  1.5, -0.5,  0.5,  1.5, -0.5,  0.5,  1.5, -0.5]
 
-# Layer diagnosis: FixStand CSV + Velocity CSV (enable with --csv-log)
+# 分层诊断：FixStand CSV + Velocity CSV（通过 --csv-log 启用）
 diagnostics:
   fixstand_log_seconds: 10.0
-  velocity_log_seconds: 0.0    # 0 = log entire Velocity state
+  velocity_log_seconds: 0.0    # 0 表示全程记录 Velocity 状态
 
 FSM:                                                        # 有限状态机配置
   _:                                                          # 状态列表
@@ -35,7 +35,7 @@ FSM:                                                        # 有限状态机配
   Passive:                                                    # 被动状态配置
     transitions:
       FixStand: LT + A.on_pressed                             # 长按 LT + A 键 → FixStand
-    mode: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]                # motor mode (1=enabled)
+    mode: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]                # 电机模式（1=使能）
     kp: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]                  # 被动状态无位置刚度
     kd: [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]                 # 被动状态 PD 阻尼
 
@@ -70,4 +70,4 @@ FSM:                                                        # 有限状态机配
   Velocity:                                                   # 速度控制状态配置
     transitions:
       Passive: LT + B.on_pressed                              # 长按 LT + B 键 → Passive
-    policy_dir: ../../../logs/rsl_rl/unitree_legbot_velocity/2026-07-05_16-54-46 # 指定使用该日期的模型
+    policy_dir: ../../../logs/rsl_rl/unitree_legbot_velocity/2026-07-09_09-16-11 # 指定使用该日期的模型

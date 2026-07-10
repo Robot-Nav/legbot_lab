@@ -1,5 +1,4 @@
-// Fatu Phase-1 DDS 串口网关：订阅 rt/lowcmd，发布 rt/lowstate；
-// 经灵足 USB-CAN 串口驱动 12 路电机，可选独立 IMU 串口。
+// Fatu 第一阶段 DDS-串口网关：订阅 rt/lowcmd，发布 rt/lowstate；经灵足 USB-CAN 驱动 12 电机，可选 IMU 串口。
 
 #include "imu_framer.hpp"
 #include "imu_gyro_filter.hpp"
@@ -33,28 +32,28 @@ using namespace serial_dds_gateway;
 
 namespace {
 
-// SIGINT/SIGTERM 时置 false，主循环与 RX 线程退出
+// SIGINT/SIGTERM 信号处理：置全局标志后主循环与 RX 线程退出。
 std::atomic<bool> g_running{true};
 
 constexpr const char* kDefaultJointBiasFile = "config/joint_prone_bias.fatu.txt";
 
-// 单路电机 type2 反馈（电机编码器空间）
+// 单路电机 type2 反馈缓存（电机编码器空间）。
 struct MotorFeedbackCache {
   float q{0.0f};
   float dq{0.0f};
   float tau_est{0.0f};
   uint8_t temperature{0};
-  bool seen{false};  // 是否至少收到过一帧 type2
+  bool seen{false};  // 是否已收到至少一帧 type2
 };
 
-// IMU 解析结果（四元数 w,x,y,z + 滤波后陀螺仪）
+// IMU 解析缓存：四元数 w,x,y,z 与滤波后陀螺仪（机体坐标系 gx,gy,gz）。
 struct ImuCache {
   std::array<float, 4> quaternion{1.0F, 0.0F, 0.0F, 0.0F};
   std::array<float, 3> gyroscope{0.0F, 0.0F, 0.0F};
   bool seen{false};
 };
 
-// 运行统计，[STAT] 每秒打印；多线程通过 atomic 更新
+// 网关运行统计，每秒 [STAT] 打印；多线程通过 atomic 更新。
 struct GatewayStats {
   std::atomic<uint64_t> rx_frames{0};
   std::atomic<uint64_t> rx_a_frames{0};
@@ -73,7 +72,7 @@ struct GatewayStats {
   std::atomic<uint64_t> tx_write_errors{0};  // 串口 write 失败（如 USB 掉线 EIO）
 };
 
-// 析构时 join 后台线程
+// RAII 线程守卫：析构时停止并 join 后台线程。
 struct RunningThreadGuard {
   std::thread& thread;
   explicit RunningThreadGuard(std::thread& t) : thread(t) {}
@@ -91,44 +90,43 @@ uint8_t JointCanId(std::string_view joint) {
   return it->second;
 }
 
-// 命令行配置
+// 命令行配置参数。
 struct Args {
-  std::string serial_port;       // 单串口（legacy）
-  std::string serial_port_a;     // 双串口 A：FR+RR
-  std::string serial_port_b;     // 双串口 B：FL+RL
-  int baudrate = 2000000;       // 2M 是默认值，也可以使用 921600 或 115200
+  std::string serial_port;       // 单串口 legacy 模式
+  std::string serial_port_a;     // 双串口 A：FR + RR
+  std::string serial_port_b;     // 双串口 B：FL + RL
+  int baudrate = 2000000;
   std::string imu_port;
-  int imu_baudrate = 921600;   // 921600 是默认值，也可以使用 2000000 或 115200
-  std::string network = "lo";    // DDS 网卡，实机与 fatu_ctrl 一致用 lo
+  int imu_baudrate = 921600;
+  std::string network = "lo";    // DDS 网卡，与 fatu_ctrl 一致
   uint8_t channel = 0x00;        // 灵足帧 channel 字节
   uint16_t master_id = 0x00FD;
-  double tick_hz = 500.0;        // 主循环：发 type1 + 发布 lowstate 的频率
-  bool enable_on_start = false;  // 启动即 type3 使能（实机一般由 FSM 控制）
-  bool disable_on_exit = false;  // Ctrl+C 时 type4 失能 12 路
-  bool wait_lowcmd = false;      // 等 lowcmd 再发 lowstate（实机易与 fatu_ctrl 死锁）
-  bool imu_gyro_calib = true;   // 是否启用 IMU 陀螺仪静止偏置标定
-  double imu_gyro_calib_seconds = 2.0;  // 静止偏置标定时间
-  double imu_gyro_deadzone = 0.03;  // 静止偏置标定死区
-  bool joint_bias_calib = false;  // 上电在线标定趴姿 joint bias
-  double joint_bias_calib_seconds = 2.0;  // 在线标定时间
-  double joint_bias_calib_timeout_seconds = 60.0;  // 在线标定超时时间
+  double tick_hz = 500.0;        // 主循环频率：type1 发送 + lowstate 发布
+  bool enable_on_start = false;  // 启动即发送 type3 使能
+  bool disable_on_exit = false;  // 退出时发送 type4 失能 12 电机
+  bool wait_lowcmd = false;      // 等待 lowcmd 发布者再开始发布 lowstate
+  bool imu_gyro_calib = true;    // 启用 IMU 陀螺静止偏置标定
+  double imu_gyro_calib_seconds = 2.0;
+  double imu_gyro_deadzone = 0.03;  // 陀螺死区，rad/s
+  bool joint_bias_calib = false;    // 上电在线标定趴姿 joint bias
+  double joint_bias_calib_seconds = 2.0;
+  double joint_bias_calib_timeout_seconds = 60.0;
   std::string joint_bias_reference;
-  std::string joint_bias_reference_file;  // 在线标定参考文件
+  std::string joint_bias_reference_file;
   std::string joint_bias_load_file = kDefaultJointBiasFile;  // 加载已保存 bias 文件
 };
 
-// 解析命令行参数，填充 Args；末尾校验串口模式互斥
+// 解析命令行参数并校验串口模式互斥。
 Args ParseArgs(int argc, char** argv) {
   Args a;
   for (int i = 1; i < argc; ++i) {
     std::string k = argv[i];
-    // 读取当前选项的下一个参数；缺失则抛异常
     auto need = [&](const char* name) {
       if (i + 1 >= argc) throw std::runtime_error(std::string("missing value for ") + name);
       return std::string(argv[++i]);
     };
 
-    // --- 串口与总线 ---
+    // 串口与总线
     if (k == "--serial-port") a.serial_port = need("--serial-port");
     else if (k == "--serial-port-a") a.serial_port_a = need("--serial-port-a");
     else if (k == "--serial-port-b") a.serial_port_b = need("--serial-port-b");
@@ -136,23 +134,23 @@ Args ParseArgs(int argc, char** argv) {
     else if (k == "--imu-port") a.imu_port = need("--imu-port");
     else if (k == "--imu-baudrate") a.imu_baudrate = std::stoi(need("--imu-baudrate"));
 
-    // --- DDS 与灵足帧参数 ---
+    // DDS 与灵足帧参数
     else if (k == "--network") a.network = need("--network");
     else if (k == "--channel") a.channel = static_cast<uint8_t>(std::stoi(need("--channel"), nullptr, 0));
     else if (k == "--master-id") a.master_id = static_cast<uint16_t>(std::stoi(need("--master-id"), nullptr, 0));
     else if (k == "--tick-hz") a.tick_hz = std::stod(need("--tick-hz"));
 
-    // --- 启停行为（布尔开关，无额外参数）---
+    // 启停行为
     else if (k == "--send-enable-on-start") a.enable_on_start = true;
     else if (k == "--send-disable-on-exit") a.disable_on_exit = true;
     else if (k == "--wait-lowcmd") a.wait_lowcmd = true;
 
-    // --- IMU 陀螺滤波 ---
+    // IMU 陀螺滤波
     else if (k == "--no-imu-gyro-calib") a.imu_gyro_calib = false;
     else if (k == "--imu-gyro-calib-seconds") a.imu_gyro_calib_seconds = std::stod(need("--imu-gyro-calib-seconds"));
     else if (k == "--imu-gyro-deadzone") a.imu_gyro_deadzone = std::stod(need("--imu-gyro-deadzone"));
 
-    // --- 关节 bias：在线标定或加载文件 ---
+    // 关节 bias：在线标定或加载文件
     else if (k == "--no-joint-bias-calib") a.joint_bias_calib = false;
     else if (k == "--joint-bias-calib") a.joint_bias_calib = true;
     else if (k == "--joint-bias-calib-seconds")
@@ -166,7 +164,7 @@ Args ParseArgs(int argc, char** argv) {
     else if (k == "--no-joint-bias-file") a.joint_bias_load_file.clear();
   }
 
-  // 串口模式三选一：单口 legacy，或双口 a+b，不可混用
+  // 串口模式三选一：单口 legacy 或双口 a+b，不可混用。
   const bool has_legacy = !a.serial_port.empty();
   const bool has_a = !a.serial_port_a.empty();
   const bool has_b = !a.serial_port_b.empty();
@@ -183,7 +181,7 @@ Args ParseArgs(int argc, char** argv) {
   return a;
 }
 
-// type3 使能 / type4 失能
+// 构造 type3/4 模式帧。
 SerialFrame BuildType34(uint8_t mode, uint8_t motor_id, uint8_t master_id, uint8_t channel) {
   return BuildMotorModeFrame(channel, master_id, motor_id, mode);
 }
@@ -214,55 +212,46 @@ void AddTxFrame(GatewayStats& stats, MotorSerialBus bus) {
   }
 }
 
-// 电机串口接收线程：与 tick_hz 无关，约每 1ms 轮询；解码 type2 写入 motor_cache
+// 电机串口接收线程：约每 1ms 轮询，解码 type2 写入 motor_cache。
 void RxLoop(SerialFramer& framer, const RangeSpec& ranges, const std::unordered_map<uint8_t, size_t>& canid_to_index,
             std::array<MotorFeedbackCache, 12>& motor_cache, std::mutex& cache_mutex, GatewayStats& stats,
             MotorSerialBus bus) {
   while (g_running) {
-    //读串口并拆帧，返回帧列表
     const auto rx_frames = framer.ReadAvailableFrames();
     AddRxFrames(stats, bus, rx_frames.size());
-    //遍历帧列表，处理每帧
     for (const auto& f : rx_frames) {
-      //帧数据长度小于8字节，跳过
       if (f.data.size() < 8) {
         ++stats.decode_errors;
         continue;
       }
-      //解码帧数据，返回Type2Feedback结构体
-      Type2Feedback fb; //解码得到 Type2Feedback：motor_id、q、dq、tau、temp_c 等基本信息
+      Type2Feedback fb;
       try {
         fb = DecodeType2SerialFrame(f, ranges);
       } catch (const std::exception&) {
         ++stats.decode_errors;
         continue;
       }
-      //根据 motor_id 查找 kJointOrder 下标
-      auto map_it = canid_to_index.find(fb.motor_id);
-      //如果找不到，跳过
+      const auto map_it = canid_to_index.find(fb.motor_id);
       if (map_it == canid_to_index.end()) {
         ++stats.decode_errors;
         continue;
       }
       {
         std::lock_guard<std::mutex> lock(cache_mutex);
-        // 加锁保护 motor_cache 访问
-        auto& cached = motor_cache[map_it->second];  // 下标对应 kJointOrder：FR,FL,RR,RL
-        // 更新 motor_cache 中对应关节的 q、dq、tau、temp_c 信息
+        auto& cached = motor_cache[map_it->second];  // 下标对应 kJointOrder
         cached.q = static_cast<float>(fb.q);
         cached.dq = static_cast<float>(fb.dq);
         cached.tau_est = static_cast<float>(fb.tau);
         cached.temperature = static_cast<uint8_t>(std::max(0.0, std::min(255.0, fb.temp_c)));
         cached.seen = true;
       }
-      // 更新统计信息：帧计数 + 总线分类
       AddType2Frame(stats, bus);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
 
-// IMU 串口接收线程：欧拉角→四元数，陀螺仪经静止偏置标定与死区
+// IMU 串口接收线程：欧拉角转四元数，陀螺经静止偏置标定与死区。
 void ImuRxLoop(ImuFramer& framer, ImuGyroFilter& gyro_filter, ImuCache& imu_cache, std::mutex& imu_mutex,
                GatewayStats& stats) {
   while (g_running) {
@@ -290,6 +279,7 @@ void ImuRxLoop(ImuFramer& framer, ImuGyroFilter& gyro_filter, ImuCache& imu_cach
 
 }  // namespace
 
+// 打印网关启动横幅与关键配置。
 void PrintPhase1Banner(const Args& args, bool dual_motor_serial) {
   std::cout << "\n========== Fatu Phase-1: DDS Serial Gateway ==========\n";
   std::cout << "[PHASE1] Orange Pi onboard control, DDS network=" << args.network << "\n";
@@ -390,7 +380,7 @@ int main(int argc, char** argv) {
       }
       return (MotorSerialBusForCanId(can_id) == MotorSerialBus::A) ? *framer_a : *framer_b;
     };
-    // 写失败仅计数；EIO 时 SerialFramer 会自动重开串口
+    // 写失败仅计数；EIO 时 SerialFramer 内部会自动重开串口。
     auto write_motor_frame = [&](uint8_t can_id, const SerialFrame& frame) {
       const auto bus = motor_bus(can_id);
       if (!motor_framer(can_id).WriteFrame(frame)) {
@@ -409,10 +399,10 @@ int main(int argc, char** argv) {
       }
     }
 
-    // 检测 motor_cmd.mode 边沿，触发 type3/4
+    // motor_cmd.mode 边沿检测，触发 type3/4 使能/失能。
     std::unordered_map<uint8_t, bool> mode_nonzero_prev;
     for (auto j : kJointOrder) mode_nonzero_prev[JointCanId(j)] = false;
-    // CAN 电机 ID → motor_cache 下标 [0..11]
+    // CAN ID -> motor_cache 下标 [0..11]
     std::unordered_map<uint8_t, size_t> canid_to_index;
     for (size_t i = 0; i < kJointOrder.size(); ++i) {
       canid_to_index[JointCanId(kJointOrder[i])] = i;
@@ -422,6 +412,8 @@ int main(int argc, char** argv) {
     ImuCache imu_cache{};
     std::mutex imu_mutex;
     uint32_t tick = 0;
+
+    // 启动 RX 线程。
     std::thread rx_thread_a(RxLoop, std::ref(*framer_a), std::cref(ranges), std::cref(canid_to_index),
                             std::ref(motor_cache), std::ref(cache_mutex), std::ref(stats), MotorSerialBus::A);
     RunningThreadGuard rx_guard_a{rx_thread_a};
@@ -441,6 +433,7 @@ int main(int argc, char** argv) {
       imu_guard = std::make_unique<RunningThreadGuard>(*imu_thread);
     }
 
+    // 加载或准备 joint bias 参考。
     std::array<float, 12> joint_model_reference_q = kDefaultProneModelQ;
     if (!args.joint_bias_reference.empty()) {
       joint_model_reference_q = ParseJointBiasReference(args.joint_bias_reference);
@@ -466,14 +459,14 @@ int main(int argc, char** argv) {
     while (g_running) {
       const auto t0 = std::chrono::steady_clock::now();
 
-      // --- 1) 读取 fatu_ctrl 发布的 lowcmd ---
+      // 1) 读取 fatu_ctrl 发布的 lowcmd。
       unitree_go::msg::dds_::LowCmd_ cmd_snapshot;
       {
         std::lock_guard<std::mutex> lock(lowcmd_sub->mutex_);
         cmd_snapshot = lowcmd_sub->msg_;
       }
 
-      // --- 2) lowcmd → 灵足串口：mode 边沿发 type3/4，使能后每 tick 逐电机发 type1 ---
+      // 2) lowcmd -> 灵足串口：mode 边沿发 type3/4，使能后每 tick 逐电机发 type1。
       for (size_t i = 0; i < kJointOrder.size(); ++i) {
         const uint8_t can_id = JointCanId(kJointOrder[i]);
         const auto& m = cmd_snapshot.motor_cmd()[i];
@@ -504,7 +497,7 @@ int main(int argc, char** argv) {
         ++stats.tx_type1_frames;
       }
 
-      // --- 3) 快照 RX 线程更新的电机/IMU 缓存 ---
+      // 3) 快照 RX 线程更新的电机/IMU 缓存。
       std::array<MotorFeedbackCache, 12> cache_snapshot{};
       ImuCache imu_snapshot{};
       {
@@ -516,7 +509,7 @@ int main(int argc, char** argv) {
         imu_snapshot = imu_cache;
       }
 
-      // --- 4) 在线 joint bias 标定（若启用且尚未完成）---
+      // 4) 在线 joint bias 标定（若启用且尚未完成）。
       if (!joint_bias.calibrated()) {
         std::array<float, 12> q_motor{};
         std::array<bool, 12> seen{};
@@ -530,7 +523,7 @@ int main(int argc, char** argv) {
                                         args.joint_bias_calib_timeout_seconds);
       }
 
-      // --- 5) 发布 rt/lowstate（频率 = tick_hz）---
+      // 5) 发布 rt/lowstate（频率 = tick_hz）。
       if (lowstate_pub->trylock()) {
         for (size_t i = 0; i < kJointOrder.size(); ++i) {
           auto& ms = lowstate_pub->msg_.motor_state()[i];

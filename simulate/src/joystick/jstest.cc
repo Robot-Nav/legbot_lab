@@ -1,14 +1,18 @@
+// 手柄测试程序
+// 读取 /dev/input/js0 手柄输入，按宇树遥控器键位打包为 16 位按键掩码输出。
+
 #include <unistd.h>
 #include <cstdint>
 #include <iostream>
 #include <map>
 #include "joystick.h"
 
-#define GAMEPAD_TYPE 1 // 1: XBOX, 0: SWITCH
+#define GAMEPAD_TYPE 1 // 1：XBOX 手柄，0：Switch 手柄
 #define MAX_AXES_VALUE 32768
 #define MIN_AXES_VALUE -32768
 using namespace std;
 
+// 宇树遥控器按键位域联合体，16 位同时传输所有按键状态
 typedef union
 {
   struct
@@ -35,10 +39,9 @@ typedef union
 
 int main(int argc, char **argv)
 {
-  // Create an instance of Joystick
+  // 打开默认手柄设备
   Joystick joystick("/dev/input/js0");
 
-  // Ensure that it was found and that we can use it
   if (!joystick.isFound())
   {
     printf("open failed.\n");
@@ -46,18 +49,21 @@ int main(int argc, char **argv)
   }
 
   xKeySwitchUnion unitree_key;
+
+  // 手柄轴编号映射：XBOX 协议下 LX/LY/RX/RY 与扳机、方向键的索引
   map<string, int> AxisId =
       {
-          {"LX", 0}, // Left stick axis x
-          {"LY", 1}, // Left stick axis y
-          {"RX", 3}, // Right stick axis x
-          {"RY", 4}, // Right stick axis y
-          {"LT", 2}, // Left trigger
-          {"RT", 5}, // Right trigger
-          {"DX", 6}, // Directional pad x
-          {"DY", 7}, // Directional pad y
+          {"LX", 0}, // 左摇杆 X
+          {"LY", 1}, // 左摇杆 Y
+          {"RX", 3}, // 右摇杆 X
+          {"RY", 4}, // 右摇杆 Y
+          {"LT", 2}, // 左扳机
+          {"RT", 5}, // 右扳机
+          {"DX", 6}, // 方向键 X
+          {"DY", 7}, // 方向键 Y
       };
 
+  // 手柄按键编号映射
   map<string, int> ButtonId =
       {
           {"X", 2},
@@ -72,8 +78,7 @@ int main(int argc, char **argv)
 
   while (true)
   {
-
-    // Attempt to sample an event from the joystick
+    // 轮询手柄事件并更新缓存
     joystick.getState();
 
     unitree_key.components.R1 = joystick.button_[ButtonId["RB"]];
@@ -95,7 +100,7 @@ int main(int argc, char **argv)
 
     cout << unitree_key.value << endl;
 
-    // Restrict rate
+    // 限制输出频率约 100 Hz，避免终端刷屏
     usleep(10000);
   }
   return 0;

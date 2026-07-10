@@ -56,12 +56,13 @@ Args ParseArgs(int argc, char** argv) {
   return args;
 }
 
+// 根据 --degrees 将弧度转换为角度。
 double MaybeDegrees(double radians, bool degrees) {
   constexpr double kRadToDeg = 57.29577951308232;
   return degrees ? radians * kRadToDeg : radians;
 }
 
-}  // namespace
+}  // 命名空间
 
 int main(int argc, char** argv) {
   std::signal(SIGINT, OnSignal);
@@ -82,6 +83,7 @@ int main(int argc, char** argv) {
     const auto start = std::chrono::steady_clock::now();
     uint64_t sample_count = 0;
     while (g_running) {
+      // 读取并打印所有可用样本。
       for (const auto& sample : framer.ReadAvailableSamples()) {
         const auto q = EulerYprToQuaternion(sample.yaw, sample.pitch, sample.roll);
         ++sample_count;

@@ -1,3 +1,4 @@
+# 构建产物、Python 缓存与字节码。
 build/
 __pycache__/
 *.pyc

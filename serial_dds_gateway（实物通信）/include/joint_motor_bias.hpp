@@ -15,7 +15,7 @@
 
 namespace serial_dds_gateway {
 
-// Calf: motor 2 rev = joint 1 rev (2:1). Hip/thigh: 1:1.
+// 小腿电机减速比：电机转 2 圈 = 关节转 1 圈（2:1）；髋/大腿为 1:1。
 inline constexpr float kCalfMotorPerJoint = 2.0f;
 
 inline bool IsCalfJointIndex(size_t i) { return (i % 3) == 2; }
@@ -28,14 +28,14 @@ inline float JointToMotorScale(size_t i) {
   return IsCalfJointIndex(i) ? kCalfMotorPerJoint : 1.0f;
 }
 
-// kp/kd/tau: 1:1 model -> motor. Position uses gear; impedance does not (RS02 PD in model units).
+// kp/kd/tau：模型到电机 1:1；位置需考虑减速比，阻抗项直接按模型单位下发（RS02 PD）。
 inline float ImpedanceToMotorScale(size_t /*i*/) { return 1.0f; }
 
 inline float TorqueToMotorScale(size_t /*i*/) { return 1.0f; }
 
 inline float TorqueToJointScale(size_t /*i*/) { return 1.0f; }
 
-// Encoder sign vs URDF/model (+1 FR/RR, -1 FL/RL thigh & calf on this hardware).
+// 编码器方向与 URDF/模型对齐：FR/RR 为正，FL/RL 的大腿与小腿为负。
 inline constexpr std::array<float, 12> kDefaultMotorSign = {
     1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f,
 };
@@ -44,12 +44,12 @@ inline float MotorSign(size_t i) { return kDefaultMotorSign[i]; }
 
 inline float MotorSignTimesScale(size_t i) { return MotorSign(i) * MotorToJointScale(i); }
 
-// Motor order FR, FL, RR, RL (hip/thigh/calf). Model/sim prone pose (MuJoCo LieDown).
+// 电机顺序：FR、FL、RR、RL，每腿 hip/thigh/calf；对应 MuJoCo LieDown 趴姿。
 inline constexpr std::array<float, 12> kDefaultProneModelQ = {
     -0.02f, 1.08f, -2.64f, 0.03f, 1.08f, -2.64f, -0.05f, 1.08f, -2.64f, 0.06f, 1.08f, -2.64f,
 };
 
-// Bias: bias[i]=sign[i]*gear[i]*q_motor_prone[i]-q_model_prone[i] (calf gear=1/2)
+// 固定偏置：bias[i] = sign[i]*gear[i]*q_motor_趴姿[i] - q_model_趴姿[i]（小腿 gear=1/2）。
 inline constexpr std::array<float, 12> kFatuProneBiasFromLog = {
     0.1598f, 0.1718f, 1.4753f, -0.1748f, 0.0919f, 1.4770f,
     -0.0706f, 0.1163f, 1.4254f, 0.0725f, 0.0672f, 1.4564f,
@@ -59,7 +59,7 @@ inline std::array<float, 12> FatuProneBiasFromLog() {
   return kFatuProneBiasFromLog;
 }
 
-// Verify mapping against log: sign*scale*q_motor - bias ≈ q_model at calib pose.
+// 根据日志验证映射：sign*scale*q_motor - bias ≈ q_model（标定姿态）。
 inline float MotorToJointFromRaw(size_t i, float q_motor) {
   return MotorSignTimesScale(i) * q_motor;
 }
@@ -72,6 +72,7 @@ inline float ModelToMotorFromBias(size_t i, float q_model, const std::array<floa
   return (q_model + bias[i]) / MotorSignTimesScale(i);
 }
 
+// 解析 12 个逗号分隔浮点数，用于偏置或参考姿态配置。
 inline std::array<float, 12> ParseJointBiasReference(const std::string& text) {
   std::array<float, 12> out{};
   std::stringstream ss(text);
@@ -87,6 +88,7 @@ inline std::array<float, 12> ParseJointBiasReference(const std::string& text) {
   return out;
 }
 
+// 兼容网关在 build 目录运行时从父目录查找配置文件。
 inline std::string ResolveGatewayConfigPath(const std::string& path) {
   if (path.empty()) return path;
   if (std::filesystem::exists(path)) return path;
@@ -119,10 +121,10 @@ inline std::array<float, 12> LoadJointBiasReferenceFile(const std::string& path)
   throw std::runtime_error("joint bias reference file is empty: " + resolved);
 }
 
-// q_model = sign * gear_scale * q_motor - bias[i]; calf gear_scale=1/2; FL/RL thigh/calf sign=-1.
+// 关节电机偏置映射：q_model = sign*gear_scale*q_motor - bias[i]；小腿 gear_scale=1/2；FL/RL 大腿/小腿 sign=-1。
 class JointMotorBiasMap {
  public:
-  // apply_bias: use sign+bias mapping; run_online_calib: accumulate prone samples at startup.
+  // apply_bias：启用 sign+bias 映射；run_online_calib：启动时在线累积趴姿样本标定偏置。
   void Configure(bool apply_bias, bool run_online_calib, std::array<float, 12> model_reference_q) {
     apply_bias_ = apply_bias;
     run_online_calib_ = run_online_calib;
@@ -153,6 +155,7 @@ class JointMotorBiasMap {
     return n;
   }
 
+  // 在线标定过程中每秒打印一次进度，提示缺失电机。
   void MaybeLogCalibProgress(const std::array<bool, 12>& seen) {
     if (!run_online_calib_ || bias_calibrated_) return;
     const double elapsed =
@@ -172,6 +175,7 @@ class JointMotorBiasMap {
     }
   }
 
+  // 累积一次 12 电机全部在线的趴姿样本。
   void AccumulateSample(const std::array<float, 12>& q_motor, const std::array<bool, 12>& seen) {
     if (!run_online_calib_ || bias_calibrated_) return;
     for (size_t i = 0; i < q_motor.size(); ++i) {
@@ -183,6 +187,7 @@ class JointMotorBiasMap {
     ++sample_count_;
   }
 
+  // 尝试完成在线偏置标定：满足最小样本数与标定时间后计算 bias。
   bool TryFinishCalibration(double calib_seconds, int min_samples, double timeout_seconds) {
     if (!run_online_calib_ || bias_calibrated_) return true;
     const double elapsed =
@@ -274,4 +279,4 @@ class JointMotorBiasMap {
   double last_progress_log_s_{-1.0};
 };
 
-}  // namespace serial_dds_gateway
+}  // 命名空间 serial_dds_gateway

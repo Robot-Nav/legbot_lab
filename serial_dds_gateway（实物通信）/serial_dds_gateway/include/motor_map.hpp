@@ -1,5 +1,7 @@
 #pragma once
 
+// 12 路关节与 CAN ID 的双向映射，以及 A/B 双串口总线分配。
+
 #include <array>
 #include <cstdint>
 #include <string_view>
@@ -7,27 +9,32 @@
 
 namespace serial_dds_gateway {
 
+// 关节名 -> 电机 CAN ID（十进制）。顺序：FR, FL, RR, RL，每腿 hip/thigh/calf。
 inline const std::unordered_map<std::string_view, uint8_t> kJointToCanId = {
     {"FR_hip_joint", 11},   {"FR_thigh_joint", 21}, {"FR_calf_joint", 31}, {"FL_hip_joint", 12},
     {"FL_thigh_joint", 22}, {"FL_calf_joint", 32},  {"RR_hip_joint", 13},  {"RR_thigh_joint", 23},
     {"RR_calf_joint", 33},  {"RL_hip_joint", 14},   {"RL_thigh_joint", 24}, {"RL_calf_joint", 34},
 };
 
+// CAN ID -> 关节名。
 inline const std::unordered_map<uint8_t, std::string_view> kCanIdToJoint = {
     {11, "FR_hip_joint"}, {21, "FR_thigh_joint"}, {31, "FR_calf_joint"}, {12, "FL_hip_joint"},
     {22, "FL_thigh_joint"}, {32, "FL_calf_joint"}, {13, "RR_hip_joint"}, {23, "RR_thigh_joint"},
     {33, "RR_calf_joint"}, {14, "RL_hip_joint"}, {24, "RL_thigh_joint"}, {34, "RL_calf_joint"},
 };
 
+// 关节顺序：与 lowcmd/lowstate 的 12-dof 数组一一对应。
 inline constexpr std::array<std::string_view, 12> kJointOrder = {
     "FR_hip_joint", "FR_thigh_joint", "FR_calf_joint", "FL_hip_joint", "FL_thigh_joint", "FL_calf_joint",
     "RR_hip_joint", "RR_thigh_joint", "RR_calf_joint", "RL_hip_joint", "RL_thigh_joint", "RL_calf_joint",
 };
 
+// 电机串口总线：A 口或 B 口。
 enum class MotorSerialBus { A, B };
 
-inline constexpr std::array<uint8_t, 6> kMotorBusACanIds = {11, 21, 31, 13, 23, 33};  // FR + RR
-inline constexpr std::array<uint8_t, 6> kMotorBusBCanIds = {12, 22, 32, 14, 24, 34};  // FL + RL
+// A 口：FR + RR；B 口：FL + RL。
+inline constexpr std::array<uint8_t, 6> kMotorBusACanIds = {11, 21, 31, 13, 23, 33};
+inline constexpr std::array<uint8_t, 6> kMotorBusBCanIds = {12, 22, 32, 14, 24, 34};
 
 inline bool MotorSerialBusContains(MotorSerialBus bus, uint8_t motor_id) {
   const auto& ids = (bus == MotorSerialBus::A) ? kMotorBusACanIds : kMotorBusBCanIds;
@@ -42,4 +49,3 @@ inline MotorSerialBus MotorSerialBusForCanId(uint8_t motor_id) {
 }
 
 }  // namespace serial_dds_gateway
-

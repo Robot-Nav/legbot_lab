@@ -1,3 +1,5 @@
+// IMU 串口帧回归测试：解析 6×float32 LE、CRC16、四元数与陀螺滤波。
+
 #include "imu_framer.hpp"
 #include "imu_gyro_filter.hpp"
 
@@ -40,7 +42,8 @@ std::vector<uint8_t> BuildFrame(float yaw, float pitch, float roll, float gz, fl
 int main() {
   int failures = 0;
 
-  auto rx = BuildFrame(0.1F, -0.2F, 0.3F, 3.0F, 2.0F, 1.0F);  // wire: gz, gy, gx
+  // 构造一帧：串口顺序 yaw/pitch/roll/gz/gy/gx。
+  auto rx = BuildFrame(0.1F, -0.2F, 0.3F, 3.0F, 2.0F, 1.0F);
   const auto samples = ImuFramer::ParseBuffer(rx);
   if (samples.size() != 1 || !rx.empty()) {
     std::cerr << "[FAIL] IMU frame parse count/buffer\n";
@@ -74,6 +77,7 @@ int main() {
     std::cout << "[PASS] yaw/pitch/roll use ZYX quaternion convention\n";
   }
 
+  // 破坏 CRC 后应被拒绝。
   auto bad_crc = BuildFrame(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F);
   bad_crc[10] ^= 0xFF;
   const auto bad_samples = ImuFramer::ParseBuffer(bad_crc);
@@ -84,6 +88,7 @@ int main() {
     std::cout << "[PASS] IMU parser rejects bad CRC frames\n";
   }
 
+  // 陀螺偏置标定与死区。
   {
     ImuGyroFilter filter;
     filter.Configure(true, 0.0, 0.02, 10);

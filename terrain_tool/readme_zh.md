@@ -1,4 +1,4 @@
-#  地形生成工具
+# 地形生成工具
 
 ## 使用
 1. 首先安装依赖
@@ -11,13 +11,13 @@ pip3 install noise opencv-python numpy
 # 机器人目录
 ROBOT = "go2"
 
-# 输入的场景文件 
+# 输入的场景文件路径
 INPUT_SCENE_PATH = "./scene.xml"
 
-# 输出的
+# 输出的地形场景文件路径
 OUTPUT_SCENE_PATH = "../unitree_robots/" + ROBOT + "/scene_terrain.xml"
 ```
-3. 运行
+3. 运行生成脚本
 ```bash
 cd terrain_tool
 python3 ./terrain_generator.py

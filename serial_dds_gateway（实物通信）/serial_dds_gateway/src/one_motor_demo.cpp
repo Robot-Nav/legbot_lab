@@ -1,3 +1,5 @@
+// 本地编解码自测：生成 type1 并解码合成 type2，不依赖真实串口。
+
 #include "protocol_codec.hpp"
 
 #include <array>
@@ -27,7 +29,7 @@ int main() {
   }
   std::cout << std::dec << "\n";
 
-  // Build synthetic type2 frame and decode.
+  // 构造合成 type2 数据并解码。
   const auto q_u16 = float_to_uint(1.15, ranges.q_min, ranges.q_max, 16);
   const auto dq_u16 = float_to_uint(0.75, ranges.dq_min, ranges.dq_max, 16);
   const auto tau_u16 = float_to_uint(2.20, ranges.tau_min, ranges.tau_max, 16);
@@ -47,4 +49,3 @@ int main() {
 
   return 0;
 }
-

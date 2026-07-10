@@ -1,3 +1,4 @@
+# 自定义 MDP 事件项：为 sim2real 提供执行器、刚体属性、零位偏移等随机化。
 from __future__ import annotations
 
 import torch
@@ -82,8 +83,8 @@ def randomize_actuator_delay(
         )
         # 保证 max_delay >= min_delay
         max_delays = torch.maximum(max_delays, min_delays)
-        # 更新每个环境的 delay buffer 的 time_lag
-        # 采样当前 episode 的实际延迟
+        # 更新每个环境延迟缓冲区的滞后步数
+        # 采样当前回合的实际延迟
         time_lags = torch.zeros(len(env_ids), dtype=torch.int, device=asset.device)
         for i in range(len(env_ids)):
             time_lags[i] = torch.randint(min_delays[i].item(), max_delays[i].item() + 1, (1,)).item()

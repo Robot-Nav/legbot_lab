@@ -13,6 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 
+# 本文件定义 Legbot 机器人各导航任务的环境配置参数，供训练与仿真复用。
+
 import os
 from dataclasses import dataclass, field
 
@@ -23,30 +25,33 @@ model_file = os.path.dirname(__file__) + "/xmls/scene.xml"
 
 @dataclass
 class NoiseConfig:
-    level: float = 1.0
-    scale_joint_angle: float = 0.03
-    scale_joint_vel: float = 1.5
-    scale_gyro: float = 0.2
-    scale_gravity: float = 0.05
-    scale_linvel: float = 0.1
+    """观测噪声配置：控制各维度噪声强度，增强策略鲁棒性。"""
+    level: float = 1.0                # 噪声总强度
+    scale_joint_angle: float = 0.03   # 关节角度噪声尺度
+    scale_joint_vel: float = 1.5      # 关节速度噪声尺度
+    scale_gyro: float = 0.2           # 陀螺仪噪声尺度
+    scale_gravity: float = 0.05       # 重力向量噪声尺度
+    scale_linvel: float = 0.1         # 线速度噪声尺度
 
 @dataclass
 class ControlConfig:
-    # stiffness[N*m/rad] 使用XML中kp参数，仅作记录
-    # damping[N*m*s/rad] 使用XML中kv参数，仅作记录
-    action_scale = 0.25  # 平地navigation使用0.25
-    # torque_limit[N*m] 使用XML forcerange参数
+    """控制配置：动作缩放与 PD 参数说明。"""
+    # 刚度单位：牛·米/弧度，实际刚度使用 XML 中 kp 参数，仅作记录
+    # 阻尼单位：牛·米·秒/弧度，实际阻尼使用 XML 中 kv 参数，仅作记录
+    action_scale = 0.25  # 平地导航动作缩放系数，兼顾响应速度与稳定性
+    # 力矩限制单位：牛·米，实际范围使用 XML 中 forcerange 参数
 
 @dataclass
 class InitState:
-    # the initial position of the robot in the world frame
-    pos = [0.0, 0.0, 0.5]  
-    
-    # 位置随机化范围 [x_min, y_min, x_max, y_max]
-    pos_randomization_range = [-10.0, -10.0, 10.0, 10.0]  # 在ground上随机分散20m x 20m范围
+    """机器人初始状态：位姿、随机化范围与默认关节角度。"""
+    # 机器人在世界坐标系中的初始位置
+    pos = [0.0, 0.0, 0.5]
 
-    # the default angles for all joints. key = joint name, value = target angle [rad]
-    # 使用locomotion的关节角度配置
+    # 位置随机化范围 [x_min, y_min, x_max, y_max]
+    pos_randomization_range = [-10.0, -10.0, 10.0, 10.0]  # 在地面范围内随机分散 20m×20m
+
+    # 所有关节的默认目标角度：键为关节名，值为弧度
+    # 采用移动站立姿态配置
     default_joint_angles = {
         "FR_hip_joint": -0.0,     # 右前髋关节
         "FR_thigh_joint": 0.9,    # 右前大腿
@@ -64,33 +69,38 @@ class InitState:
 
 @dataclass
 class Commands:
-    # 目标位置相对于机器人初始位置的偏移范围 [dx_min, dy_min, yaw_min, dx_max, dy_max, yaw_max]
-    # dx/dy: 相对机器人初始位置的偏移（米）
-    # yaw: 目标绝对朝向（弧度），水平方向随机
+    """目标指令范围：相对于机器人初始位置的位姿偏移。"""
+    # 目标位置相对于机器人初始位置的偏移范围 [x_min, y_min, 偏航_min, x_max, y_max, 偏航_max]
+    # 横向/纵向：相对机器人初始位置的偏移（米）
+    # 偏航：目标绝对朝向（弧度），水平方向随机
     pose_command_range = [-5.0, -5.0, -3.14, 5.0, 5.0, 3.14]
 
 @dataclass
 class Normalization:
-    lin_vel = 2.0
-    ang_vel = 0.25
-    dof_pos = 1.0
-    dof_vel = 0.05
+    """观测归一化系数：将原始物理量缩放到合理输入范围。"""
+    lin_vel = 2.0    # 线速度归一化系数
+    ang_vel = 0.25   # 角速度归一化系数
+    dof_pos = 1.0    # 关节位置归一化系数
+    dof_vel = 0.05   # 关节速度归一化系数
 
 @dataclass
 class Asset:
-    body_name = "base"
-    foot_names = ["FR", "FL", "RR", "RL"]
-    terminate_after_contacts_on = ["collision_middle_box"]
-    ground_subtree = "C_"  # 地形根节点，用于subtree接触检测
-   
+    """资产标识：机器人基座、足部与终止碰撞体名称。"""
+    body_name = "base"                    # 机器人基座名称
+    foot_names = ["FR", "FL", "RR", "RL"]  # 足部名称，用于接触检测
+    terminate_after_contacts_on = ["collision_middle_box"]  # 基座碰撞体，触地则终止
+    ground_subtree = "C_"  # 地形根节点，用于子树接触检测
+
 @dataclass
 class Sensor:
-    base_linvel = "base_linvel"
-    base_gyro = "base_gyro"
-    feet = ["FR", "FL", "RR", "RL"]  # 足部接触力传感器名称
+    """传感器名称：线速度、陀螺仪与足部接触。"""
+    base_linvel = "base_linvel"          # 基座线速度传感器
+    base_gyro = "base_gyro"              # 基座角速度传感器
+    feet = ["FR", "FL", "RR", "RL"]       # 足部接触力传感器名称
 
 @dataclass
 class RewardConfig:
+    """奖励函数权重：导航精度、稳定性与能量消耗的综合配置。"""
     scales: dict[str, float] = field(
         default_factory=lambda: {
             # ===== 导航任务核心奖励 =====
@@ -99,7 +109,7 @@ class RewardConfig:
             "heading_tracking": 1.0,        # 朝向跟踪奖励（新增）
             "forward_velocity": 0.5,        # 前进速度奖励（鼓励朝目标移动）
             
-            # ===== Locomotion稳定性奖励（保持但降低权重） =====
+            # ===== 移动稳定性奖励（保持但降低权重） =====
             "orientation": -0.05,           # 姿态稳定（降低权重）
             "lin_vel_z": -0.5,              # 垂直速度惩罚
             "ang_vel_xy": -0.05,            # XY轴角速度惩罚
@@ -116,11 +126,12 @@ class RewardConfig:
 @registry.envcfg("legbot_navigation_flat")
 @dataclass
 class VBotEnvCfg(EnvCfg):
+    """Legbot 平地导航环境的基础配置。"""
     model_file: str = model_file
     reset_noise_scale: float = 0.01
     max_episode_seconds: float = 10
     max_episode_steps: int = 1000
-    sim_dt: float = 0.01    # 仿真步长 10ms = 100Hz
+    sim_dt: float = 0.01    # 仿真步长 10ms，对应 100Hz
     ctrl_dt: float = 0.01
     reset_yaw_scale: float = 0.1
     max_dof_vel: float = 100.0  # 最大关节速度阈值，训练初期给予更大容忍度
@@ -138,14 +149,14 @@ class VBotEnvCfg(EnvCfg):
 @registry.envcfg("legbot_navigation_stairs")
 @dataclass
 class VBotStairsEnvCfg(VBotEnvCfg):
-    """Legbot在楼梯地形上的导航配置，继承flat配置"""
+    """Legbot 在楼梯地形上的导航配置，继承平地配置。"""
     model_file: str = os.path.dirname(__file__) + "/xmls/scene_stairs.xml"
     max_episode_seconds: float = 20.0  # 增加到20秒，给更多时间学习转向
     max_episode_steps: int = 2000
     
     @dataclass
     class ControlConfig:
-        action_scale = 0.25  # 楼梯navigation使用0.2，足够转向但比平地更谨慎
+        action_scale = 0.25  # 楼梯导航使用 0.2，足够转向但比平地更谨慎
     
     control_config: ControlConfig = field(default_factory=ControlConfig)
 
@@ -227,7 +238,7 @@ class VBotSection02EnvCfg(VBotStairsEnvCfg):
     
     @dataclass
     class InitState:
-        # 起始位置：section02的起始位置（继承自locomotion）
+        # 起始位置：section02 的起始位置（继承自移动任务）
         # pos = [-2.5, 8.5, 1.8]
         # pos = [-2.5, 8.5, 1.8]
         pos = [-2.5, 12.0, 1.8]  # Y坐标对应section02的起点，高度1.8m
@@ -276,7 +287,7 @@ class VBotSection03EnvCfg(VBotStairsEnvCfg):
     
     @dataclass
     class InitState:
-        # 起始位置：section03的起始位置（继承自locomotion）
+        # 起始位置：section03 的起始位置（继承自移动任务）
         pos = [0.0, 26.0, 1.8]  # Y坐标对应section03的起点，高度1.8m
         pos_randomization_range = [-0.5, -0.5, 0.5, 0.5]  # 小范围随机±0.5m
         
@@ -346,14 +357,13 @@ class VBotLongCourseEnvCfg(VBotStairsEnvCfg):
     
     @dataclass
     class ControlConfig:
-        action_scale = 0.25  # 与stairs保持一致
+        action_scale = 0.25  # 与楼梯场景保持一致
     
     init_state: InitState = field(default_factory=InitState)
     commands: Commands = field(default_factory=Commands)
     control_config: ControlConfig = field(default_factory=ControlConfig)
 
 @registry.envcfg("legbot_navigation_section001")
-#通过 @registry.envcfg("legbot_navigation_section001") 注册
 @dataclass
 class VBotSection001EnvCfg(VBotStairsEnvCfg):
     """Legbot Section01单独训练配置 - 高台楼梯地形"""

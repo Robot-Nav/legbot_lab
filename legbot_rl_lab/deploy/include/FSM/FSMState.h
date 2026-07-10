@@ -1,3 +1,5 @@
+// 文件用途：FSM 具体状态的公共基类。负责从配置读取状态切换条件（手柄 DSL 表达式），
+// 并在每个控制周期统一执行传感器更新、安全限幅与指令下发。
 #pragma once
 
 #include "Types.h"
@@ -14,6 +16,7 @@ public:
     {
         spdlog::info("Initializing State_{} ...", state_string);
 
+        // 从 config.yaml 读取当前状态向其他状态的切换条件。
         auto transitions = param::config["FSM"][state_string]["transitions"];
 
         if(transitions)
@@ -31,6 +34,7 @@ public:
 
                 int fsm_id = FSMStringMap.right.at(target_fsm);
 
+                // 解析 DSL 表达式并编译为谓词，作为状态切换条件。
                 std::string condition = it->second;
                 unitree::common::dsl::Parser p(condition);
                 auto ast = p.Parse();
@@ -48,28 +52,28 @@ public:
             }
         }
 
-        // register for all states
+        // 所有状态共享的保护性切换：通信超时 → Passive。
         registered_checks.emplace_back(
             std::make_pair(
                 []()->bool{ return FSMState::interface->is_timeout(); },
                 FSMStringMap.right.at("Passive")
             )
         );
-        // Safety: roll/pitch fault -> Passive
+        // 姿态越限 → Passive。
         registered_checks.emplace_back(
             std::make_pair(
                 []()->bool{ return deploy::roll_pitch_fault(FSMState::imu_state.rpy); },
                 FSMStringMap.right.at("Passive")
             )
         );
-        // Safety: motor feedback fault (temperature/velocity/torque) -> Passive
+        // 电机反馈故障（温度/速度/力矩）→ Passive。
         registered_checks.emplace_back(
             std::make_pair(
                 []()->bool{ return deploy::motor_state_fault(FSMState::motor_states); },
                 FSMStringMap.right.at("Passive")
             )
         );
-        // Safety: emergency stop -> Passive
+        // 急停请求 → Passive。
         registered_checks.emplace_back(
             std::make_pair(
                 []()->bool{ return deploy::emergency_stop_requested(); },
@@ -87,8 +91,7 @@ public:
 
     void post_run()
     {
-        // Safety: clamp all motor commands (q_des to joint limits, tau to torque limit)
-        // before sending to hardware. Real hardware cannot trust network outputs.
+        // 发送给硬件前执行安全限幅（关节位置范围、力矩范围、变化率）。
         deploy::clamp_motor_cmds(motor_cmds);
         interface->send_cmd(motor_cmds);
     }

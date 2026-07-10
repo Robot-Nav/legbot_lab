@@ -1,3 +1,3 @@
-# Motor order: FR hip/thigh/calf, FL, RR, RL (same as LieDown qs / motor_map).
-# Model/sim prone pose for bias calibration (joint space; encoder 1:1, no gear ratio).
+# 电机顺序：FR hip/thigh/calf、FL、RR、RL（与 LieDown 趴姿 / motor_map 一致）。
+# 用于偏置标定的模型/仿真趴姿（关节空间；编码器 1:1，不考虑减速比）。
 -0.02, 1.08, -2.64, 0.03, 1.08, -2.64, -0.05, 1.08, -2.64, 0.06, 1.08, -2.64

@@ -1,5 +1,7 @@
 #pragma once
 
+// IMU 串口帧解析：EB 90 A5 FF 头，6 个 float32 little-endian + CRC16-Modbus + 80 7F 尾。
+
 #include <array>
 #include <cstdint>
 #include <string>
@@ -7,7 +9,7 @@
 
 namespace serial_dds_gateway {
 
-// Serial payload after header: yaw, pitch, roll, gz, gy, gx (float32 LE).
+// IMU 采样值：串口顺序为 yaw/pitch/roll/gz/gy/gx。
 struct ImuSample {
   double yaw{0.0};
   double pitch{0.0};
@@ -24,6 +26,7 @@ struct Quaternion {
   double z{0.0};
 };
 
+// ZYX 欧拉角（yaw-pitch-roll）转四元数。
 Quaternion EulerYprToQuaternion(double yaw, double pitch, double roll);
 
 class ImuFramer {
@@ -43,7 +46,7 @@ class ImuFramer {
 
  private:
   int fd_{-1};
-  std::vector<uint8_t> rx_buf_;
+  std::vector<uint8_t> rx_buf_;  // 接收字节缓冲区
 };
 
 }  // namespace serial_dds_gateway

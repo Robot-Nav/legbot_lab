@@ -3,9 +3,9 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Configuration for Unitree robots.
+"""Unitree 系列机器人资产配置。
 
-Reference: https://github.com/unitreerobotics/unitree_ros
+参考来源：https://github.com/unitreerobotics/unitree_ros
 """
 
 import os
@@ -24,16 +24,18 @@ UNITREE_ROS_DIR = "/home/fatu08/legbot_mujoco/legbot_rl_lab/unitree_ros"
 
 @configclass
 class UnitreeArticulationCfg(ArticulationCfg):
-    """Configuration for Unitree articulations."""
+    """Unitree 关节机器人配置基类，扩展 ArticulationCfg 以支持 SDK 关节名映射。"""
 
-    joint_sdk_names: list[str] = None
+    joint_sdk_names: list[str] = None  # 与真实机器人 SDK 对齐的关节名称列表
 
-    soft_joint_pos_limit_factor = 0.9
+    soft_joint_pos_limit_factor = 0.9  # 软限位缩放因子，保留安全余量
 
 
 @configclass
 class UnitreeUsdFileCfg(sim_utils.UsdFileCfg):
-    activate_contact_sensors: bool = True
+    """基于 USD 文件加载 Unitree 机器人的 spawn 配置。"""
+
+    activate_contact_sensors: bool = True  # 启用接触传感器
     rigid_props = sim_utils.RigidBodyPropertiesCfg(
         disable_gravity=False,
         retain_accelerations=False,
@@ -50,9 +52,11 @@ class UnitreeUsdFileCfg(sim_utils.UsdFileCfg):
 
 @configclass
 class UnitreeUrdfFileCfg(sim_utils.UrdfFileCfg):
-    fix_base: bool = False
-    activate_contact_sensors: bool = True
-    replace_cylinders_with_capsules = True
+    """基于 URDF 文件加载 Unitree 机器人的 spawn 配置，自动生成临时资源目录以解析 mesh。"""
+
+    fix_base: bool = False  # 不固定基座，允许机器人自由运动
+    activate_contact_sensors: bool = True  # 启用接触传感器
+    replace_cylinders_with_capsules = True  # 将圆柱体碰撞体替换为胶囊体，提升稳定性
     joint_drive = sim_utils.UrdfConverterCfg.JointDriveCfg(
         gains=sim_utils.UrdfConverterCfg.JointDriveCfg.PDGainsCfg(stiffness=0, damping=0)
     )
@@ -72,34 +76,34 @@ class UnitreeUrdfFileCfg(sim_utils.UrdfFileCfg):
     )
 
     def replace_asset(self, urdf_path, package_root=None, robot_name="robot"):
-        """Replace the asset with a temporary copy to avoid modifying the original asset.
+        """将 URDF 资源替换为临时副本，避免修改原始文件。
 
-        This function will auto construct a complete ``robot_description`` file structure in the ``/tmp`` directory.
-        It reads the URDF file, replaces ``package://`` references with relative paths,
-        and symlinks the package root directory so mesh files can be resolved correctly.
+        在 ``/tmp`` 目录下构建完整的 ``robot_description`` 目录结构：
+        读取原始 URDF，将 ``package://`` 引用替换为相对路径，并通过软链接
+        关联资源包根目录，确保 mesh 等外部资源可被正确解析。
 
-        Args:
-            urdf_path: Path to the original URDF file.
-            package_root: Path to the root of the robot description package (containing meshes/, dae/, etc.).
-                          If None, only the URDF is copied without package:// replacement.
-            robot_name: Unique name for this robot, used to create an isolated tmp directory.
+        参数：
+            urdf_path: 原始 URDF 文件路径。
+            package_root: 机器人描述包的根目录（包含 meshes/、dae/ 等）。
+                          为 None 时仅复制 URDF，不做 package:// 替换。
+            robot_name: 机器人唯一标识，用于创建隔离的临时目录。
         """
         tmp_dir = f"/tmp/IsaacLab/unitree_rl_lab/{robot_name}"
         if os.path.exists(tmp_dir):
             shutil.rmtree(tmp_dir)
         os.makedirs(tmp_dir, exist_ok=True)
 
-        # Read URDF and replace package:// references with relative paths
+        # 读取 URDF 并将 package:// 引用替换为相对路径
         with open(urdf_path, "r") as f:
             urdf_content = f.read()
         urdf_content = re.sub(r"package://[^/]+/", "", urdf_content)
 
-        # Write modified URDF to tmp directory
+        # 将修改后的 URDF 写入临时目录
         tmp_urdf_path = os.path.join(tmp_dir, "robot.urdf")
         with open(tmp_urdf_path, "w") as f:
             f.write(urdf_content)
 
-        # Symlink the entire package root so subdirectories (meshes/, dae/, etc.) are accessible
+        # 软链接资源包根目录下的子目录（meshes/、dae/ 等），确保外部资源可被加载
         if package_root and os.path.isdir(package_root):
             for item in os.listdir(package_root):
                 src = os.path.join(package_root, item)
@@ -110,8 +114,9 @@ class UnitreeUrdfFileCfg(sim_utils.UrdfFileCfg):
         self.asset_path = tmp_urdf_path
 
 
-""" Configuration for the Unitree robots."""
+"""各型号 Unitree 机器人配置实例。"""
 
+# Unitree Go2 机器人配置
 UNITREE_GO2_CFG = UnitreeArticulationCfg(
     spawn=UnitreeUrdfFileCfg(
         asset_path=f"{UNITREE_ROS_DIR}/robots/go2_description/urdf/go2_description.urdf",
@@ -151,6 +156,7 @@ if os.path.exists(f"{UNITREE_ROS_DIR}/robots/go2_description/urdf/go2_descriptio
         robot_name="go2",
     )
 
+# Unitree Go2W（轮足版）机器人配置
 UNITREE_GO2W_CFG = UnitreeArticulationCfg(
     spawn=UnitreeUrdfFileCfg(
         asset_path=f"{UNITREE_ROS_DIR}/robots/go2w_description/urdf/go2w_description.urdf",
@@ -197,6 +203,7 @@ if os.path.exists(f"{UNITREE_ROS_DIR}/robots/go2w_description/urdf/go2w_descript
         robot_name="go2w",
     )
 
+# Unitree B2 四足机器人配置
 UNITREE_B2_CFG = UnitreeArticulationCfg(
     spawn=UnitreeUrdfFileCfg(
         asset_path=f"{UNITREE_ROS_DIR}/robots/b2_description/urdf/b2_description.urdf",
@@ -239,6 +246,7 @@ if os.path.exists(f"{UNITREE_ROS_DIR}/robots/b2_description/urdf/b2_description.
         robot_name="b2",
     )
 
+# Unitree H1 人形机器人配置
 UNITREE_H1_CFG = UnitreeArticulationCfg(
     spawn=UnitreeUrdfFileCfg(
         asset_path=f"{UNITREE_ROS_DIR}/robots/h1_description/urdf/h1.urdf",
@@ -327,6 +335,7 @@ if os.path.exists(f"{UNITREE_ROS_DIR}/robots/h1_description/urdf/h1.urdf"):
         robot_name="h1",
     )
 
+# Unitree G1 23 自由度人形机器人配置
 UNITREE_G1_23DOF_CFG = UnitreeArticulationCfg(
     spawn=UnitreeUrdfFileCfg(
         asset_path=f"{UNITREE_ROS_DIR}/robots/g1_description/g1_23dof_rev_1_0.urdf",
@@ -423,6 +432,7 @@ UNITREE_G1_23DOF_CFG = UnitreeArticulationCfg(
     ],
 )
 
+# Unitree G1 29 自由度人形机器人配置
 UNITREE_G1_29DOF_CFG = UnitreeArticulationCfg(
     spawn=UnitreeUrdfFileCfg(
         asset_path=f"{UNITREE_ROS_DIR}/robots/g1_description/g1_29dof_rev_1_0.urdf",
@@ -541,19 +551,20 @@ ARMATURE_7520_14 = 0.010177520
 ARMATURE_7520_22 = 0.025101925
 ARMATURE_4010 = 0.00425
 
-NATURAL_FREQ = 10 * 2.0 * 3.1415926535  # 10Hz
-DAMPING_RATIO = 2.0
+NATURAL_FREQ = 10 * 2.0 * 3.1415926535  # 10Hz 对应的角频率（rad/s）
+DAMPING_RATIO = 2.0  # 阻尼比
 
-STIFFNESS_5020 = ARMATURE_5020 * NATURAL_FREQ**2  # 14.25062309787429
-STIFFNESS_7520_14 = ARMATURE_7520_14 * NATURAL_FREQ**2  # 40.17923847137318
-STIFFNESS_7520_22 = ARMATURE_7520_22 * NATURAL_FREQ**2  # 99.09842777666113
-STIFFNESS_4010 = ARMATURE_4010 * NATURAL_FREQ**2  # 16.77832748089279
+STIFFNESS_5020 = ARMATURE_5020 * NATURAL_FREQ**2  # 计算得到的刚度值
+STIFFNESS_7520_14 = ARMATURE_7520_14 * NATURAL_FREQ**2  # 计算得到的刚度值
+STIFFNESS_7520_22 = ARMATURE_7520_22 * NATURAL_FREQ**2  # 计算得到的刚度值
+STIFFNESS_4010 = ARMATURE_4010 * NATURAL_FREQ**2  # 计算得到的刚度值
 
-DAMPING_5020 = 2.0 * DAMPING_RATIO * ARMATURE_5020 * NATURAL_FREQ  # 0.907222843292423
-DAMPING_7520_14 = 2.0 * DAMPING_RATIO * ARMATURE_7520_14 * NATURAL_FREQ  # 2.5578897650279457
-DAMPING_7520_22 = 2.0 * DAMPING_RATIO * ARMATURE_7520_22 * NATURAL_FREQ  # 6.3088018534966395
-DAMPING_4010 = 2.0 * DAMPING_RATIO * ARMATURE_4010 * NATURAL_FREQ  # 1.06814150219
+DAMPING_5020 = 2.0 * DAMPING_RATIO * ARMATURE_5020 * NATURAL_FREQ  # 计算得到的阻尼值
+DAMPING_7520_14 = 2.0 * DAMPING_RATIO * ARMATURE_7520_14 * NATURAL_FREQ  # 计算得到的阻尼值
+DAMPING_7520_22 = 2.0 * DAMPING_RATIO * ARMATURE_7520_22 * NATURAL_FREQ  # 计算得到的阻尼值
+DAMPING_4010 = 2.0 * DAMPING_RATIO * ARMATURE_4010 * NATURAL_FREQ  # 计算得到的阻尼值
 
+# Unitree G1 29 自由度模仿学习专用配置
 UNITREE_G1_29DOF_MIMIC_CFG = UnitreeArticulationCfg(
     spawn=UnitreeUrdfFileCfg(
         asset_path=f"{UNITREE_ROS_DIR}/robots/g1_description/g1_29dof_rev_1_0.urdf",
@@ -726,6 +737,7 @@ UNITREE_G1_29DOF_MIMIC_CFG = UnitreeArticulationCfg(
     ],
 )
 
+# 根据各执行器峰值力矩与刚度计算动作缩放系数
 UNITREE_G1_29DOF_MIMIC_ACTION_SCALE = {}
 for a in UNITREE_G1_29DOF_MIMIC_CFG.actuators.values():
     e = a.effort_limit_sim
@@ -739,6 +751,7 @@ for a in UNITREE_G1_29DOF_MIMIC_CFG.actuators.values():
         if n in e and n in s and s[n]:
             UNITREE_G1_29DOF_MIMIC_ACTION_SCALE[n] = 0.25 * e[n] / s[n]
 
+# Legbot 四足机器人配置（本项目自定义机器人）
 UNITREE_LEGBOT_CFG = UnitreeArticulationCfg(
     spawn=UnitreeUrdfFileCfg(
         asset_path=f"{UNITREE_ROS_DIR}/robots/legbot_description/urdf/legbot_description.urdf",
@@ -756,8 +769,8 @@ UNITREE_LEGBOT_CFG = UnitreeArticulationCfg(
     actuators={
         "LegbotHipThigh": unitree_actuators.UnitreeActuatorCfg_LegbotHipThigh(
             joint_names_expr=[".*_hip_.*", ".*_thigh_.*"],
-            stiffness=70.0,
-            damping=5.0,
+            stiffness=50.0,
+            damping=3.0,
             friction=0.01,
             # 动作延迟：0~4 物理步 = 0~20ms（sim.dt=0.005s）
             min_delay=0,
@@ -765,8 +778,8 @@ UNITREE_LEGBOT_CFG = UnitreeArticulationCfg(
         ),
         "LegbotCalf": unitree_actuators.UnitreeActuatorCfg_LegbotCalf(
             joint_names_expr=[".*_calf_.*"],
-            stiffness=70.0,
-            damping=5.0,
+            stiffness=50.0, 
+            damping=3.0,
             friction=0.01,
             # 动作延迟：0~4 物理步 = 0~20ms（sim.dt=0.005s）
             min_delay=0,

@@ -1,3 +1,4 @@
+# 部署配置导出工具：将训练环境的关节映射、刚度/阻尼、默认位姿、指令、动作、观测配置保存为 YAML。
 import numpy as np
 import os
 import yaml
@@ -9,6 +10,7 @@ from isaaclab.utils.string import resolve_matching_names
 
 
 def format_value(x):
+    """递归格式化数值：浮点数保留 3 位有效数字，列表/字典递归处理。"""
     if isinstance(x, float):
         return float(f"{x:.3g}")
     elif isinstance(x, list):
@@ -20,11 +22,26 @@ def format_value(x):
 
 
 def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
+    """从训练环境导出部署所需的配置到 deploy.yaml。
+
+    导出内容包括：
+    - 关节名到 SDK 关节顺序的映射
+    - 仿真控制步长 step_dt
+    - 关节刚度、阻尼、默认位置
+    - 速度指令范围
+    - 动作项配置
+    - 观测项配置
+
+    参数：
+        env: 已初始化的管理器式 RL 环境。
+        log_dir: 日志目录，YAML 将保存到 log_dir/params/deploy.yaml。
+    """
     asset: Articulation = env.scene["robot"]
     joint_sdk_names = env.cfg.scene.robot.joint_sdk_names
     joint_ids_map, _ = resolve_matching_names(asset.data.joint_names, joint_sdk_names, preserve_order=True)
 
-    cfg = {}  # noqa: SIM904
+    cfg = {}
+    # 关节映射与默认控制参数
     cfg["joint_ids_map"] = joint_ids_map
     cfg["step_dt"] = env.cfg.sim.dt * env.cfg.decimation
     stiffness = np.zeros(len(joint_sdk_names))
@@ -35,9 +52,9 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
     cfg["damping"] = damping.tolist()
     cfg["default_joint_pos"] = asset.data.default_joint_pos[0].detach().cpu().numpy().tolist()
 
-    # --- commands ---
+    # 指令配置：优先使用 limit_ranges，不存在则使用 ranges
     cfg["commands"] = {}
-    if hasattr(env.cfg.commands, "base_velocity"):  # some environments do not have base_velocity command
+    if hasattr(env.cfg.commands, "base_velocity"):
         cfg["commands"]["base_velocity"] = {}
         if hasattr(env.cfg.commands.base_velocity, "limit_ranges"):
             ranges = env.cfg.commands.base_velocity.limit_ranges.to_dict()
@@ -47,7 +64,7 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
             ranges[item_name] = list(ranges[item_name])
         cfg["commands"]["base_velocity"]["ranges"] = ranges
 
-    # --- actions ---
+    # 动作配置
     action_names = env.action_manager.active_terms
     action_terms = zip(action_names, env.action_manager._terms.values())
     cfg["actions"] = {}
@@ -55,7 +72,7 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
         term_cfg = action_term.cfg.copy()
         if isinstance(term_cfg.scale, float):
             term_cfg.scale = [term_cfg.scale for _ in range(action_term.action_dim)]
-        else:  # dict
+        else:  # 字典形式，取实际缩放张量
             term_cfg.scale = action_term._scale[0].detach().cpu().numpy().tolist()
 
         if term_cfg.clip is not None:
@@ -67,9 +84,8 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
             else:
                 term_cfg.offset = [0.0 for _ in range(action_term.action_dim)]
 
-        # clean cfg
+        # 清理与部署无关的字段
         term_cfg = term_cfg.to_dict()
-
         for _ in ["class_type", "asset_name", "debug_vis", "preserve_order", "use_default_offset"]:
             del term_cfg[_]
         cfg["actions"][action_name] = term_cfg
@@ -79,7 +95,7 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
         else:
             cfg["actions"][action_name]["joint_ids"] = action_term._joint_ids
 
-    # --- observations ---
+    # 观测配置
     obs_names = env.observation_manager.active_terms["policy"]
     obs_cfgs = env.observation_manager._group_obs_term_cfgs["policy"]
     obs_terms = zip(obs_names, obs_cfgs)
@@ -100,13 +116,13 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
         if term_cfg.history_length == 0:
             term_cfg.history_length = 1
 
-        # clean cfg
+        # 清理与部署无关的字段
         term_cfg = term_cfg.to_dict()
         for _ in ["func", "modifiers", "noise", "flatten_history_dim"]:
             del term_cfg[_]
         cfg["observations"][obs_name] = term_cfg
 
-    # --- save config file ---
+    # 保存配置文件
     filename = os.path.join(log_dir, "params", "deploy.yaml")
     if not os.path.exists(os.path.dirname(filename)):
         os.makedirs(os.path.dirname(filename), exist_ok=True)

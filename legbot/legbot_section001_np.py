@@ -13,6 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 
+# 本文件实现 Legbot 在 Section001 地形上的导航环境，包括观测、动作、重置与奖励接口。
+
 import numpy as np
 import motrixsim as mtx
 import gymnasium as gym
@@ -64,9 +66,9 @@ class VBotSection001Env(NpEnv):
             self._robot_arrow_body = None
             self._desired_arrow_body = None
         
-        # 动作和观测空间
+        # 动作与观测空间定义
         self._action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(12,), dtype=np.float32)
-        # 观测空间：67维（55 + 12维接触力）
+        # 观测空间维度为 54，与 reset 中拼接结果一致
         self._observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(54,), dtype=np.float32)
         
         self._num_dof_pos = self._model.num_dof_pos
@@ -222,7 +224,7 @@ class VBotSection001Env(NpEnv):
         return state
     
     def _compute_torques(self, actions, data):
-        """计算PD控制力矩（Legbot使用motor执行器，需要力矩控制）"""
+        """计算比例-微分控制力矩（Legbot 使用电机执行器，需要力矩控制）。"""
         action_scaled = actions * self._cfg.control_config.action_scale
         target_pos = self.default_angles + action_scaled
         
@@ -230,16 +232,16 @@ class VBotSection001Env(NpEnv):
         current_pos = self.get_dof_pos(data)  # [num_envs, 12]
         current_vel = self.get_dof_vel(data)  # [num_envs, 12]
         
-        # PD控制器：tau = kp * (target - current) - kv * vel
+        # 比例-微分控制器：力矩 = 位置增益 × 位置误差 - 速度增益 × 速度
         kp = 80.0   # 位置增益
         kv = 6.0    # 速度增益
-        
+
         pos_error = target_pos - current_pos
         torques = kp * pos_error - kv * current_vel
-        
-        # 限制力矩范围（与XML中的forcerange一致）
-        # hip/thigh: ±17 N·m, calf: ±34 N·m
-        torque_limits = np.array([17, 17, 34] * 4, dtype=np.float32)  # FR, FL, RR, RL
+
+        # 限制力矩范围（与 XML 中 forcerange 一致）
+        # 髋/大腿：±17 牛·米，小腿：±34 牛·米
+        torque_limits = np.array([17, 17, 34] * 4, dtype=np.float32)  # 前右、前左、后右、后左
         torques = np.clip(torques, -torque_limits, torque_limits)
         
         return torques
@@ -378,17 +380,17 @@ class VBotSection001Env(NpEnv):
         position_threshold = 0.3
         reached_all = distance_to_target < position_threshold  # 楼梯任务：只要到达位置即可
         
-        # 计算期望速度命令（与平地navigation一致，简单P控制器）
+        # 计算期望速度命令（与平地导航一致，简单比例控制器）
         desired_vel_xy = np.clip(position_error * 1.0, -1.0, 1.0)
         desired_vel_xy = np.where(reached_all[:, np.newaxis], 0.0, desired_vel_xy)
         
         # 角速度命令：跟踪运动方向（从当前位置指向目标）
-        # 与legbot_np保持一致的增益和上限，确保转向足够快
+        # 与平地导航保持一致的增益和上限，确保转向足够快
         desired_heading = np.arctan2(position_error[:, 1], position_error[:, 0])
         heading_to_movement = desired_heading - robot_heading
         heading_to_movement = np.where(heading_to_movement > np.pi, heading_to_movement - 2*np.pi, heading_to_movement)
         heading_to_movement = np.where(heading_to_movement < -np.pi, heading_to_movement + 2*np.pi, heading_to_movement)
-        desired_yaw_rate = np.clip(heading_to_movement * 1.0, -1.0, 1.0)  # 增益和上限与legbot_np一致
+        desired_yaw_rate = np.clip(heading_to_movement * 1.0, -1.0, 1.0)  # 增益和上限与平地导航一致
         deadband_yaw = np.deg2rad(8)
         desired_yaw_rate = np.where(np.abs(heading_to_movement) < deadband_yaw, 0.0, desired_yaw_rate)
         desired_yaw_rate = np.where(reached_all, 0.0, desired_yaw_rate)
@@ -437,7 +439,7 @@ class VBotSection001Env(NpEnv):
             ],
             axis=-1,
         )
-        assert obs.shape == (data.shape[0], 54)  # 54 + 1 = 55维
+        assert obs.shape == (data.shape[0], 54)  # 观测维度校验：54 维
         
         # 更新目标标记和箭头
         self._update_target_marker(data, pose_commands)
@@ -458,9 +460,7 @@ class VBotSection001Env(NpEnv):
         return state
     
     def _compute_terminated(self, state: NpEnvState) -> NpEnvState:
-        """
-        重写终止条件，与locomotion stairs完全一致
-        """
+        """重写终止条件，与移动楼梯任务保持一致。"""
         data = state.data
         
         # 基座接触地面终止（使用传感器）
@@ -495,8 +495,8 @@ class VBotSection001Env(NpEnv):
         cfg: VBotSection01EnvCfg = self._cfg
         num_envs = data.shape[0]
         
-        # 在高台中央小范围内随机生成位置
-        # X, Y: 在spawn_center周围 ±spawn_range 范围内随机
+        # 在出生点中心的小范围内随机生成水平位置
+        # 在 spawn_center 周围 ±spawn_range 范围内随机
         random_xy = np.random.uniform(
             low=-self.spawn_range,
             high=self.spawn_range,
@@ -660,7 +660,7 @@ class VBotSection001Env(NpEnv):
             axis=-1,
         )
         print(f"obs.shape:{obs.shape}")
-        assert obs.shape == (num_envs, 54)  # 54 + 1 = 55维
+        assert obs.shape == (num_envs, 54)  # 观测维度校验：54 维
         
         info = {
             "pose_commands": pose_commands,
@@ -670,7 +670,7 @@ class VBotSection001Env(NpEnv):
             "filtered_actions": np.zeros((num_envs, self._num_action), dtype=np.float32),
             "ever_reached": np.zeros(num_envs, dtype=bool),
             "min_distance": distance_to_target.copy(),  # 统一使用min_distance机制
-            # 新增：与locomotion一致的字段
+            # 新增：与移动任务一致的字段
             "last_dof_vel": np.zeros((num_envs, self._num_action), dtype=np.float32),  # 上一步关节速度
             "contacts": np.zeros((num_envs, self.num_foot_check), dtype=np.bool_),  # 足部接触状态
         }

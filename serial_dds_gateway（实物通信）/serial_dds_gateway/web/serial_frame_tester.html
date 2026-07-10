@@ -136,6 +136,7 @@
     </header>
 
     <main>
+      <!-- 解析串口帧：支持 type1/type2/type3/type4。 -->
       <section>
         <h2>解析串口数据</h2>
         <p>粘贴 18 字节十六进制数据，选择按运控帧或反馈帧解码负载。</p>
@@ -159,6 +160,7 @@
         <div class="result" id="parseOutput"></div>
       </section>
 
+      <!-- 打包标准 type1 运控帧。 -->
       <section>
         <h2>DDS 运控帧打包</h2>
         <p>生成标准帧：<code>45 54 + channel + 01 + torque + can_id + 08 + q/dq/kp/kd + 0D 0A</code></p>
@@ -180,6 +182,7 @@
         <div class="result" id="packOutput"></div>
       </section>
 
+      <!-- 打包 type3 使能 / type4 失能/清故障模式帧。 -->
       <section>
         <h2>电机使能 / 失能打包</h2>
         <p>生成通信类型 3 使能、通信类型 4 停止运行 / 清故障帧。</p>
@@ -224,6 +227,7 @@
         toHex,
       } from "./serial_frame_codec.js?v=20260526-2";
 
+      // 示例串口帧：type1 下发、type2 反馈、type3 使能、type4 清故障。
       const txExample = "45 54 00 01 00 00 20 08 00 00 00 00 00 00 00 00 0D 0A";
       const rxExample = "45 54 01 02 00 20 FD 08 A3 5B 7F AC 7F FF 01 22 0D 0A";
       const enableExample = "45 54 00 03 00 FD 7F 08 00 00 00 00 00 00 00 00 0D 0A";
@@ -233,6 +237,7 @@
       const num = (value) => Number.parseFloat(value);
       const intNum = (value) => Number.parseInt(String(value).trim(), 0);
 
+      // 格式化帧字段用于输出展示。
       function formatFrame(frame) {
         const lines = [
           `raw        : ${toHex(frame.bytes)}`,
@@ -256,6 +261,7 @@
         return lines;
       }
 
+      // 解析输入框中的串口帧，并按选择的模式解码负载。
       function parseNow() {
         try {
           const frame = parseSerialFrame($("parseInput").value);
@@ -273,6 +279,7 @@
               : selectedMode;
           lines.push("");
           lines.push(`payload mode: ${effectiveMode}${selectedMode === "auto" ? " (auto)" : ""}`);
+          // 根据 effectiveMode 调用对应解码函数。
           if (effectiveMode === "type1") {
             const cmd = decodeType1Command(frame);
             lines.push("type1 decoded:");
@@ -307,6 +314,7 @@
         }
       }
 
+      // 打包标准 type1 帧并回写到解析输入框展示。
       function packNow() {
         try {
           const bytes = encodeStandardType1Frame({
@@ -328,6 +336,7 @@
         }
       }
 
+      // 打包 type3/type4 模式帧。
       function packModeNow() {
         try {
           const bytes = encodeModeFrame({

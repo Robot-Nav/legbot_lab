@@ -1,3 +1,5 @@
+// 文件用途：FSM 速度控制（RL 策略）状态基类。以独立线程按策略周期运行 ONNX 推理，
+// FSM 主线程每个 1ms 周期读取最新动作并下发给电机，同时记录 50Hz CSV 诊断数据。
 #pragma once
 
 #include "FSMState.h"
@@ -19,6 +21,7 @@ public:
 
     void enter()
     {
+        // 使用策略配置中的刚度/阻尼初始化电机指令模板。
         for (int i = 0; i < (int)env->robot->data.joint_stiffness.size() && i < (int)motor_cmds.size(); ++i)
         {
             motor_cmds[i].mode = 1;
@@ -30,6 +33,7 @@ public:
 
         env->robot->update();
         policy_thread_running = true;
+        // 策略推理线程：以 env->step_dt 为周期循环执行观察计算与 ONNX 推理。
         policy_thread = std::thread([this]{
             using clock = std::chrono::high_resolution_clock;
             const std::chrono::duration<double> desiredDuration(env->step_dt);
@@ -47,7 +51,7 @@ public:
             }
         });
 
-        // CSV logger init
+        // 初始化 CSV 日志器。
         log_tick_ = 0;
         csv_t0_ = std::chrono::steady_clock::now();
         csv_logger_.reset();
@@ -84,12 +88,12 @@ public:
     }
 
 private:
-    std::unique_ptr<isaaclab::ManagerBasedRLEnv> env;
+    std::unique_ptr<isaaclab::ManagerBasedRLEnv> env; // Isaac Lab 风格的 RL 环境
 
-    std::thread policy_thread;
-    bool policy_thread_running = false;
+    std::thread policy_thread;          // 策略推理线程
+    bool policy_thread_running = false; // 线程运行标志
 
-    // CSV diagnosis logging (50Hz)
+    // 50Hz CSV 诊断日志。
     std::unique_ptr<DeployCsvLogger> csv_logger_;
     std::chrono::steady_clock::time_point csv_t0_{};
     int log_tick_{0};

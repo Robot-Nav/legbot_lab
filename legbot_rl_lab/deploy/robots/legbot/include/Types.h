@@ -1,3 +1,5 @@
+// 文件用途：Legbot 部署类型与 DDS 接口定义。包含电机指令/反馈结构、IMU 状态、
+// 抽象机器人接口、DDS 发布订阅实现，以及安全限幅函数的具体实现。
 #pragma once
 
 #include <unitree/dds_wrapper/robots/go2/go2.h>
@@ -13,22 +15,20 @@
 #include <algorithm>
 #include <limits>
 
-#define HEIGHT_SCAN_PORT 19876
-#define HEIGHT_SCAN_SIZE 187
+#define HEIGHT_SCAN_PORT 19876 // 地形高度扫描 UDP 端口号
+#define HEIGHT_SCAN_SIZE 187   // 高度扫描点数
 
-// Motor command (controller -> robot). mode: 0=disable, 1=enable (gateway detects
-// rising/falling edge of mode to send enable/disable CAN frames).
+// 电机指令（控制器 -> 机器人）。mode=0 失能，mode=1 使能；网关检测 mode 边沿发送 CAN 使能/失能帧。
 struct MotorCmd {
     float q = 0.0f;
     float dq = 0.0f;
     float kp = 0.0f;
     float kd = 0.0f;
     float tau = 0.0f;
-    uint8_t mode = 1;  // default enabled
+    uint8_t mode = 1; // 默认使能
 };
 
-// Motor feedback (robot -> controller). q_raw = motor encoder raw value (diagnostic),
-// temperature = motor temperature (degC) for safety monitoring.
+// 电机反馈（机器人 -> 控制器）。q_raw 为原始编码器值（诊断用），temperature 用于过温保护。
 struct MotorState {
     float q = 0.0f;
     float dq = 0.0f;
@@ -37,6 +37,7 @@ struct MotorState {
     float temperature = 0.0f;
 };
 
+// IMU 状态：四元数、角速度、加速度、欧拉角。
 struct IMUState {
     float quaternion[4] = {1, 0, 0, 0};
     float gyroscope[3] = {0, 0, 0};
@@ -47,9 +48,7 @@ struct IMUState {
 using LowCmdPublisher = unitree::robot::go2::publisher::LowCmd;
 using LowStateSubscriber = unitree::robot::go2::subscription::LowState;
 
-// Abstract robot interface. After sim2real refactor, only DDS implementation remains
-// (direct serial Sim2RealInterface removed). The same DDS path serves both MuJoCo
-// sim2sim and real-robot sim2real via serial_dds_gateway.
+// 抽象机器人接口。当前仅保留 DDS 实现，同一协议同时支持 MuJoCo sim2sim 与真机 sim2real。
 class VBotInterface {
 public:
     virtual ~VBotInterface() = default;
@@ -66,15 +65,14 @@ public:
     virtual std::vector<float> get_height_scan() { return std::vector<float>(HEIGHT_SCAN_SIZE, 0.0f); }
 };
 
-// DDS-based interface. Publishes rt/lowcmd, subscribes rt/lowstate.
-// When paired with serial_dds_gateway, this is the sim2real path to real hardware.
-// When paired with MuJoCo sim, this is the sim2sim path. Identical DDS protocol.
+// DDS 接口：发布 rt/lowcmd，订阅 rt/lowstate。
+// 连接 serial_dds_gateway 时走 sim2real；连接 MuJoCo 时走 sim2sim。
 class DDSInterface : public VBotInterface {
 public:
     std::shared_ptr<LowCmdPublisher> dds_lowcmd;
     std::shared_ptr<LowStateSubscriber> dds_lowstate;
 
-    int height_scan_sock_ = -1;
+    int height_scan_sock_ = -1;          // 高度扫描 UDP 套接字
     std::vector<float> height_scan_data_;
 
     DDSInterface() {
@@ -88,7 +86,7 @@ public:
         dds_lowstate->wait_for_connection();
         spdlog::info("DDS: Connected to rt/lowstate.");
 
-        // Height scan UDP receiver (used in sim2sim with MuJoCo; harmless in sim2real)
+        // 初始化高度扫描 UDP 接收（sim2sim 时 MuJoCo 发送；sim2real 时未用到，失败可忽略）。
         height_scan_sock_ = socket(AF_INET, SOCK_DGRAM, 0);
         if (height_scan_sock_ >= 0) {
             int flags = fcntl(height_scan_sock_, F_GETFL, 0);
@@ -149,6 +147,7 @@ public:
     void update() override {
         dds_lowstate->update();
 
+        // 非阻塞接收最新高度扫描包，只保留完整一帧。
         if (height_scan_sock_ >= 0) {
             float buffer[HEIGHT_SCAN_SIZE];
             while (true) {
@@ -172,7 +171,7 @@ public:
 
     void enable_motors() override {}
     void disable_motors() override {
-        // Publish mode=0 once to trigger gateway disable frame
+        // 发布一次 mode=0，触发网关发送失能 CAN 帧。
         dds_lowcmd->lock();
         for (int i = 0; i < (int)dds_lowcmd->msg_.motor_cmd().size(); i++) {
             dds_lowcmd->msg_.motor_cmd()[i].mode() = 0;
@@ -182,7 +181,7 @@ public:
     }
 };
 
-// ---- deploy safety helpers implementation (need full MotorState/MotorCmd defs) ----
+// ---- deploy_safety.h 中声明函数的具体实现（需要 MotorState/MotorCmd 完整定义）----
 namespace deploy {
 
 inline bool motor_state_fault(const std::vector<MotorState>& states) {
@@ -208,28 +207,28 @@ inline bool motor_state_fault(const std::vector<MotorState>& states) {
 }
 
 inline void clamp_motor_cmd(MotorCmd& cmd, int idx) {
-    // q_des clip to joint limits
+    // 将目标位置限制在关节范围内
     if (idx < (int)safety_config.joint_pos_lower.size()) {
         cmd.q = std::clamp(cmd.q, safety_config.joint_pos_lower[idx], safety_config.joint_pos_upper[idx]);
     }
-    // torque clip
+    // 将力矩限制在允许范围内
     cmd.tau = std::clamp(cmd.tau, -safety_config.torque_limit, safety_config.torque_limit);
 }
 
 inline void clamp_motor_cmds(std::vector<MotorCmd>& cmds) {
     if (!safety_config.enabled) return;
 
-    // Resize persistent buffers on first call or when motor count changes.
+    // 首次调用或电机数量变化时重置持久化缓冲。
     if (prev_q_des.size() != cmds.size()) {
         prev_q_des.assign(cmds.size(), std::numeric_limits<float>::quiet_NaN());
         prev_dq_des.assign(cmds.size(), 0.0f);
     }
 
     for (int i = 0; i < (int)cmds.size(); ++i) {
-        // 1) Absolute limits: q_des to joint limits, tau to torque limit.
+        // 1) 绝对限幅：关节位置范围、力矩范围。
         clamp_motor_cmd(cmds[i], i);
 
-        // 2) Delta q limit: |q_des[t] - q_des[t-1]| <= delta_q_limit_per_tick.
+        // 2) 单周期位置变化率限幅。
         if (safety_config.delta_q_limit_per_tick > 0.0f &&
             !std::isnan(prev_q_des[i])) {
             float delta = cmds[i].q - prev_q_des[i];
@@ -239,7 +238,7 @@ inline void clamp_motor_cmds(std::vector<MotorCmd>& cmds) {
             }
         }
 
-        // 3) Delta dq limit: |dq_des[t] - dq_des[t-1]| <= delta_dq_limit_per_tick.
+        // 3) 单周期速度变化率限幅。
         if (safety_config.delta_dq_limit_per_tick > 0.0f &&
             !std::isnan(prev_q_des[i])) {
             float delta = cmds[i].dq - prev_dq_des[i];
@@ -249,7 +248,7 @@ inline void clamp_motor_cmds(std::vector<MotorCmd>& cmds) {
             }
         }
 
-        // Persist for next tick.
+        // 保存当前值供下一周期使用。
         prev_q_des[i] = cmds[i].q;
         prev_dq_des[i] = cmds[i].dq;
     }

@@ -1,3 +1,6 @@
+// 用途：双串口 12 电机同步收发测试，无需 DDS。
+// 说明：A 口接 FR/RR 六台电机，B 口接 FL/RL 六台电机；支持使能、周期性 type1 下发、CSV 文件逐电机配置。
+
 #include "lingzu_motor_protocol.hpp"
 #include "lingzu_serial.hpp"
 #include "motor_map.hpp"
@@ -23,10 +26,12 @@ using namespace serial_dds_gateway;
 
 namespace {
 
+// SIGINT/SIGTERM 时停止主循环。
 std::atomic<bool> g_running{true};
 
 void OnSignal(int) { g_running = false; }
 
+// 单个电机的 type1 命令参数。
 struct MotorCmdSpec {
   double q{0.0};
   double dq{0.0};
@@ -35,6 +40,7 @@ struct MotorCmdSpec {
   double tau{0.0};
 };
 
+// 单个电机的 type2 反馈缓存。
 struct MotorFeedbackCache {
   double q{0.0};
   double dq{0.0};
@@ -43,6 +49,7 @@ struct MotorFeedbackCache {
   bool seen{false};
 };
 
+// 命令行参数。
 struct Args {
   std::string port_a;
   std::string port_b;
@@ -63,12 +70,14 @@ struct Args {
   bool disable_on_exit = false;
 };
 
+// 去除字符串首尾空白字符。
 std::string Trim(std::string s) {
   while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front()))) s.erase(s.begin());
   while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back()))) s.pop_back();
   return s;
 }
 
+// 按逗号拆分 CSV 一行并去除单元格空白。
 std::vector<std::string> SplitCsv(const std::string& line) {
   std::vector<std::string> out;
   std::stringstream ss(line);
@@ -77,6 +86,7 @@ std::vector<std::string> SplitCsv(const std::string& line) {
   return out;
 }
 
+// 由关节名查找其在 kJointOrder 中的下标。
 size_t JointIndex(std::string_view joint) {
   for (size_t i = 0; i < kJointOrder.size(); ++i) {
     if (kJointOrder[i] == joint) return i;
@@ -84,6 +94,7 @@ size_t JointIndex(std::string_view joint) {
   throw std::runtime_error(std::string("unknown joint: ") + std::string(joint));
 }
 
+// 由电机 CAN ID 查找其在 kJointOrder 中的下标。
 size_t MotorIndex(uint8_t motor_id) {
   const auto it = kCanIdToJoint.find(motor_id);
   if (it == kCanIdToJoint.end()) {
@@ -92,6 +103,7 @@ size_t MotorIndex(uint8_t motor_id) {
   return JointIndex(it->second);
 }
 
+// 从 CSV 加载逐电机命令；支持 joint,q,dq,kp,kd,tau 或纯数值五列两种格式。
 void LoadCommandsFile(const std::string& path, std::array<MotorCmdSpec, 12>& cmds) {
   std::ifstream in(path);
   if (!in) throw std::runtime_error("cannot open commands file: " + path);
@@ -105,7 +117,8 @@ void LoadCommandsFile(const std::string& path, std::array<MotorCmdSpec, 12>& cmd
     if (line.empty() || line[0] == '#') continue;
 
     const auto cols = SplitCsv(line);
-    if (cols.size() == 6 && (cols[0] == "joint" || cols[1] == "q")) continue;  // header
+    // 跳过表头行（首列是 joint 或第二列是 q）。
+    if (cols.size() == 6 && (cols[0] == "joint" || cols[1] == "q")) continue;
 
     size_t index = 0;
     size_t value_offset = 0;
@@ -136,6 +149,7 @@ void LoadCommandsFile(const std::string& path, std::array<MotorCmdSpec, 12>& cmd
   if (loaded == 0) throw std::runtime_error("commands file has no motor rows: " + path);
 }
 
+// 用 CLI 默认值初始化 12 电机命令，若指定 CSV 则覆盖对应电机。
 std::array<MotorCmdSpec, 12> BuildMotorCommands(const Args& args) {
   std::array<MotorCmdSpec, 12> cmds{};
   for (auto& cmd : cmds) {
@@ -149,6 +163,7 @@ std::array<MotorCmdSpec, 12> BuildMotorCommands(const Args& args) {
   return cmds;
 }
 
+// 解析命令行参数；--help 输出中文用法后退出。
 Args ParseArgs(int argc, char** argv) {
   Args a;
   for (int i = 1; i < argc; ++i) {
@@ -196,6 +211,7 @@ Args ParseArgs(int argc, char** argv) {
   return a;
 }
 
+// 串口接收线程：约每 1ms 轮询，解码 type2 反馈并写入缓存。
 void RxLoop(SerialFramer& framer, const RangeSpec& ranges, const std::unordered_map<uint8_t, size_t>& canid_to_index,
             std::array<MotorFeedbackCache, 12>& cache, std::mutex& cache_mutex, std::atomic<uint64_t>& rx_frames,
             std::atomic<uint64_t>& type2_frames, std::atomic<uint64_t>& decode_errors) {
@@ -234,14 +250,17 @@ void RxLoop(SerialFramer& framer, const RangeSpec& ranges, const std::unordered_
   }
 }
 
+// 根据总线选择对应的串口成帧器。
 SerialFramer& FramerForBus(SerialFramer& a, SerialFramer& b, MotorSerialBus bus) {
   return bus == MotorSerialBus::A ? a : b;
 }
 
+// 按电机 CAN ID 决定总线并将帧写入对应串口。
 void WriteToMotor(SerialFramer& framer_a, SerialFramer& framer_b, uint8_t can_id, const SerialFrame& frame) {
   FramerForBus(framer_a, framer_b, MotorSerialBusForCanId(can_id)).WriteFrame(frame);
 }
 
+// 向 12 台电机广播 type3 使能或 type4 失能/清错帧。
 void SendType34All(SerialFramer& framer_a, SerialFramer& framer_b, const Args& args, uint8_t mode_code,
                    uint8_t data0 = 0) {
   const uint8_t master = static_cast<uint8_t>(args.master_id);
@@ -252,6 +271,7 @@ void SendType34All(SerialFramer& framer_a, SerialFramer& framer_b, const Args& a
   }
 }
 
+// 向 12 台电机逐台发送 type1 标准帧控制命令。
 void SendType1All(SerialFramer& framer_a, SerialFramer& framer_b, const Args& args, const RangeSpec& ranges,
                   const std::array<MotorCmdSpec, 12>& motor_cmds) {
   for (size_t i = 0; i < kJointOrder.size(); ++i) {
@@ -263,6 +283,7 @@ void SendType1All(SerialFramer& framer_a, SerialFramer& framer_b, const Args& ar
   }
 }
 
+// 打印即将下发的 type1 命令表。
 void PrintCommandTable(const std::array<MotorCmdSpec, 12>& motor_cmds) {
   std::cout << "\n=== commanded type1 ===\n";
   std::cout << std::left << std::setw(18) << "joint" << std::setw(6) << "id" << std::setw(10) << "q"
@@ -277,6 +298,7 @@ void PrintCommandTable(const std::array<MotorCmdSpec, 12>& motor_cmds) {
   }
 }
 
+// 打印运行结束后的 type2 反馈汇总表。
 void PrintSummary(const std::array<MotorFeedbackCache, 12>& cache, uint64_t rx_frames, uint64_t type2_frames,
                   uint64_t decode_errors) {
   std::cout << "\n=== feedback type2 ===\n";
@@ -297,7 +319,7 @@ void PrintSummary(const std::array<MotorFeedbackCache, 12>& cache, uint64_t rx_f
   }
 }
 
-}  // namespace
+}  // 命名空间
 
 int main(int argc, char** argv) {
   std::signal(SIGINT, OnSignal);
@@ -307,6 +329,7 @@ int main(int argc, char** argv) {
     const auto args = ParseArgs(argc, argv);
     const auto motor_cmds = BuildMotorCommands(args);
     RangeSpec ranges;
+    // 分别打开 A、B 两条电机串口总线。
     SerialFramer framer_a(args.port_a, args.baudrate);
     SerialFramer framer_b(args.port_b, args.baudrate);
 
@@ -320,6 +343,7 @@ int main(int argc, char** argv) {
     PrintCommandTable(motor_cmds);
     std::cout << "[INFO] tx_hz=" << args.tx_hz << " rx_seconds=" << args.rx_seconds << "\n";
 
+    // 建立 CAN ID 到 kJointOrder 下标的映射，便于反馈帧回填。
     std::unordered_map<uint8_t, size_t> canid_to_index;
     for (size_t i = 0; i < kJointOrder.size(); ++i) {
       canid_to_index[kJointToCanId.at(kJointOrder[i])] = i;
@@ -330,11 +354,13 @@ int main(int argc, char** argv) {
     std::atomic<uint64_t> type2_frames{0};
     std::atomic<uint64_t> decode_errors{0};
 
+    // 启动 A、B 两路接收线程。
     std::thread rx_a(RxLoop, std::ref(framer_a), std::cref(ranges), std::cref(canid_to_index), std::ref(cache),
                    std::ref(cache_mutex), std::ref(rx_frames), std::ref(type2_frames), std::ref(decode_errors));
     std::thread rx_b(RxLoop, std::ref(framer_b), std::cref(ranges), std::cref(canid_to_index), std::ref(cache),
                    std::ref(cache_mutex), std::ref(rx_frames), std::ref(type2_frames), std::ref(decode_errors));
 
+    // 根据用户选项发送清错/使能/失能，否则进入周期性 type1 发送。
     if (args.clear_fault) {
       SendType34All(framer_a, framer_b, args, kLingzuMotorDisableCode, 1);
       std::cout << "[TX] clear-fault x12\n";
@@ -349,6 +375,7 @@ int main(int argc, char** argv) {
       SendType34All(framer_a, framer_b, args, kLingzuMotorDisableCode);
       std::cout << "[TX] disable x12\n";
     } else {
+      // 按 tx_hz 周期向 12 台电机发送 type1 命令。
       const auto tx_period = std::chrono::duration<double>(1.0 / args.tx_hz);
       const auto t_end = std::chrono::steady_clock::now() + std::chrono::duration<double>(args.rx_seconds);
       uint64_t tx_count = 0;
@@ -368,17 +395,20 @@ int main(int argc, char** argv) {
       std::cout << "[TX] sent " << tx_count << " batches (" << (tx_count * 12) << " frames)\n";
     }
 
+    // 停止接收线程并打印反馈汇总。
     g_running = false;
     rx_a.join();
     rx_b.join();
 
     PrintSummary(cache, rx_frames.load(), type2_frames.load(), decode_errors.load());
 
+    // 若指定 --disable-on-exit，退出前失能所有电机。
     if (args.disable_on_exit) {
       SendType34All(framer_a, framer_b, args, kLingzuMotorDisableCode);
       std::cout << "[TX] disable-on-exit x12\n";
     }
 
+    // 非失能模式下，若少于 12 台电机返回反馈则返回错误码 2。
     const size_t seen_count = [&] {
       size_t n = 0;
       for (const auto& c : cache) {

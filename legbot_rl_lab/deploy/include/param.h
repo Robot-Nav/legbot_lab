@@ -1,6 +1,5 @@
-// Copyright (c) 2025, Unitree Robotics Co., Ltd.
-// All rights reserved.
-
+// 文件用途：部署层全局参数与命令行解析。负责定位可执行文件、加载 config.yaml、
+// 解析策略模型目录、初始化日志，并提供命令行选项。
 #pragma once
 
 #include <stdint.h>
@@ -16,12 +15,13 @@
 #include <memory>
 #include <iomanip>
 
-/* ---------- logger ---------- */
+/* ---------- 日志器 ---------- */
 namespace spdlog
 {
 inline void create_logger(std::string log_path)
 {
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    // 单文件最大 5MB，保留 5 个历史文件，防止日志撑爆磁盘。
     auto rotating_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(log_path, 5 * 1024 * 1024, 5);
 
     std::vector<spdlog::sink_ptr> sinks {console_sink, rotating_sink};
@@ -39,13 +39,13 @@ inline void create_logger(std::string log_path)
 namespace param
 {
 inline std::string VERSION = "1.0.0.1";
-inline std::filesystem::path bin_path;
-inline std::filesystem::path proj_dir;
-inline std::filesystem::path config_dir;
-inline YAML::Node config;
-inline bool csv_log_enabled = false;
+inline std::filesystem::path bin_path;   // 可执行文件绝对路径
+inline std::filesystem::path proj_dir;   // 项目目录
+inline std::filesystem::path config_dir; // 配置文件目录
+inline YAML::Node config;                // 加载后的 YAML 配置树
+inline bool csv_log_enabled = false;     // 是否启用 CSV 诊断日志
 
-/** Legbot repo root (e.g. ~/legbot_mujoco on Orange Pi). */
+// 查找 Legbot 仓库根目录（优先使用环境变量 LEGBOT_DOG_ROOT，否则向上搜索标记目录）。
 inline std::filesystem::path repo_root()
 {
     if (const char* env = std::getenv("LEGBOT_DOG_ROOT")) {
@@ -66,7 +66,7 @@ inline std::filesystem::path repo_root()
     return proj_dir;
 }
 
-/** Policy CSV output: <legbotDog>/log/run_*.csv */
+// CSV 日志输出目录：<repo_root>/log。
 inline std::filesystem::path csv_log_dir()
 {
     return repo_root() / "log";
@@ -76,7 +76,7 @@ inline std::filesystem::path get_bin_path() {
     std::vector<char> path(1024);
     ssize_t len = readlink("/proc/self/exe", &path[0], path.size());
     if (len != -1) {
-        path[len] = '\0';  // Null-terminate the result
+        path[len] = '\0';  // 手动补终止符
         return std::filesystem::path(&path[0]);
     } else {
         spdlog::error("Failed to get executable path.");
@@ -84,10 +84,10 @@ inline std::filesystem::path get_bin_path() {
     }
 }
 
-/* ---------- config.yaml ---------- */
+/* ---------- config.yaml 加载 ---------- */
 inline void load_config_file()
 {
-    assert(std::filesystem::exists(bin_path)); // run param::helper before this function
+    assert(std::filesystem::exists(bin_path)); // 调用前需先执行 param::helper
     if(bin_path.parent_path().filename() == "bin" || bin_path.parent_path().filename() == "build")
     {
         proj_dir = bin_path.parent_path().parent_path();
@@ -111,15 +111,13 @@ inline void load_config_file()
     }
 }
 
+// 解析策略目录。若路径下没有 exported 文件夹，则取子目录中最新一个包含 exported 的目录。
 inline std::filesystem::path parser_policy_dir(std::filesystem::path policy_dir)
 {
-    // Load Policy
     if (policy_dir.is_relative()) {
         policy_dir = param::proj_dir / policy_dir;
     }
 
-    // If there is no `exported` folder in this folder,
-    // then sort all the folders under this folder and take the last folder
     if (!std::filesystem::exists(policy_dir / "exported")) {
         auto dirs = std::filesystem::directory_iterator(policy_dir);
         std::vector<std::filesystem::path> dir_list;
@@ -130,7 +128,7 @@ inline std::filesystem::path parser_policy_dir(std::filesystem::path policy_dir)
         }
         if (!dir_list.empty()) {
             std::sort(dir_list.begin(), dir_list.end());
-            // Check if there is an `exported` folder starting from the last folder
+            // 从最新目录开始往回找，定位到包含 exported 的目录
             for (auto it = dir_list.rbegin(); it != dir_list.rend(); ++it) {
                 if (std::filesystem::exists(*it / "exported")) {
                     policy_dir = *it;
@@ -143,10 +141,10 @@ inline std::filesystem::path parser_policy_dir(std::filesystem::path policy_dir)
     return policy_dir;
 }
 
-/* ---------- Command Line Parameters ---------- */
+/* ---------- 命令行参数 ---------- */
 namespace po = boost::program_options;
 
-//※ This function must be called at the beginning of main() function
+// 必须在 main() 开头调用，完成路径、配置、日志与命令行解析。
 inline po::variables_map helper(int argc, char** argv) 
 {
     bin_path = get_bin_path();
