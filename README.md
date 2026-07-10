@@ -1,4 +1,4 @@
-# LegBot RL RobotLab
+# <div align="center"> LegBot RL RobotLab</div>
 
 <div align="center">
 
