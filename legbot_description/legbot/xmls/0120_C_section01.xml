@@ -1,0 +1,101 @@
+<mujoco>
+
+  <asset>
+
+    <!-- Textures -->
+    <hfield name="hfield_terrain" file="assets/H_section_01_0122_16.png" size="5 1.5 0.277056 0" />
+    <!-- Materials -->
+    <material name="Material" rgba="0.800000011920929 0.800000011920929 0.800000011920929 1.0" reflectance="0.5" metallic="0.0" roughness="0.5"/>
+
+    <!-- Visual meshes -->
+    <mesh class="visual" name="V_Abianjie_001" file="assets/V_Abianjie_001.obj"/>
+    <mesh class="visual" name="V_Abianjie_002" file="assets/V_Abianjie_002.obj"/>
+    <mesh class="visual" name="V_Abianjie_003" file="assets/V_Abianjie_003.obj"/>
+    <mesh class="visual" name="V_Abianjie_004" file="assets/V_Abianjie_004.obj"/>
+    <mesh class="visual" name="V_Abianjie_005" file="assets/V_Abianjie_005.obj"/>
+    <mesh class="visual" name="V_Adiban_001" file="assets/V_Adiban_001.obj"/>
+    <mesh class="visual" name="V_Adiban_002" file="assets/V_Adiban_002.obj"/>
+    <mesh class="visual" name="V_Adiban_003" file="assets/V_Adiban_003.obj"/>
+    <mesh class="visual" name="V_Adiban_004" file="assets/V_Adiban_004.obj"/>
+    <mesh class="visual" name="V_Adiban_005" file="assets/V_Adiban_005.obj"/>
+    <mesh class="visual" name="V_Adixing_Plane" file="assets/V_Adixing_Plane.obj"/>
+
+    <!-- Collision meshes -->
+  </asset>
+
+  <default>
+      <default class="visual">
+        <geom type="mesh" contype="0" conaffinity="0" group="2" density="0"/>
+      </default>
+      <default class="collision">
+        <!-- <geom type="mesh" rgba="1 1 1 1" group="3" contype="1" conaffinity="1"/> -->
+        <geom type="mesh" rgba="1 1 1 1" group="1" contype="1" conaffinity="1"/>
+          <default class="C_Abianjie_001">
+            <geom type="mesh" mesh="V_Abianjie_001" contype="1" conaffinity="1" group="0" friction="1 0.005 0.0001"/>
+          </default>
+          <default class="C_Abianjie_002">
+            <geom type="mesh" mesh="V_Abianjie_002" contype="1" conaffinity="1" group="0" friction="1 0.005 0.0001"/>
+          </default>
+          <default class="C_Abianjie_003">
+            <geom type="mesh" mesh="V_Abianjie_003" contype="1" conaffinity="1" group="0" friction="1 0.005 0.0001"/>
+          </default>
+          <default class="C_Abianjie_004">
+            <geom type="mesh" mesh="V_Abianjie_004" contype="1" conaffinity="1" group="0" friction="1 0.005 0.0001"/>
+          </default>
+          <default class="C_Abianjie_005">
+            <geom type="mesh" mesh="V_Abianjie_005" contype="1" conaffinity="1" group="0" friction="1 0.005 0.0001"/>
+          </default>
+          <default class="C_Adiban_001">
+            <geom type="mesh" mesh="V_Adiban_001" contype="1" conaffinity="1" group="0" friction="1 0.005 0.0001"/>
+          </default>
+          <default class="C_Adiban_002">
+            <geom type="mesh" mesh="V_Adiban_002" contype="1" conaffinity="1" group="0" friction="1 0.005 0.0001"/>
+          </default>
+          <default class="C_Adiban_003">
+            <geom type="mesh" mesh="V_Adiban_003" contype="1" conaffinity="1" group="0" friction="1 0.005 0.0001"/>
+          </default>
+          <default class="C_Adiban_004">
+            <geom type="mesh" mesh="V_Adiban_004" contype="1" conaffinity="1" group="0" friction="1 0.005 0.0001"/>
+          </default>
+          <default class="C_Adiban_005">
+            <geom type="mesh" mesh="V_Adiban_005" contype="1" conaffinity="1" group="0" friction="1 0.005 0.0001"/>
+          </default>
+      </default>
+  </default>
+
+  <worldbody>
+
+    <body name="B_Abianjie" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_Abianjie_001"/>
+      <geom class="C_Abianjie_002"/>
+      <geom class="C_Abianjie_003"/>
+      <geom class="C_Abianjie_004"/>
+      <geom class="C_Abianjie_005"/>
+      <!-- <geom class="visual" mesh="V_Abianjie_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Abianjie_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Abianjie_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Abianjie_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Abianjie_005" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/> -->
+    </body>
+    <body name="B_Adiban" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_Adiban_001"/>
+      <geom class="C_Adiban_002"/>
+      <geom class="C_Adiban_003"/>
+      <geom class="C_Adiban_004"/>
+      <geom class="C_Adiban_005"/>
+      <!-- <geom class="visual" mesh="V_Adiban_001" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Adiban_002" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Adiban_003" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Adiban_004" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/>
+      <geom class="visual" mesh="V_Adiban_005" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="Material"/> -->
+    </body>
+    <body name="B_Adixing" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom name="V_Adixing_Plane" type="hfield" hfield="hfield_terrain" 
+            pos="0 0 0" quat="1 0 0 0" 
+            rgba="0.8 0.8 0.8 1" 
+            contype="1" conaffinity="1" 
+            friction="0.8" solref="0.02 1" condim="3"
+            material="Material"/>
+    </body>
+  </worldbody>
+</mujoco>

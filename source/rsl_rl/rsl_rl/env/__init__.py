@@ -3,8 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Submodule defining the environment definitions."""
+"""环境定义子模块。"""
 
 from .vec_env import VecEnv
 
-__all__ = ["VecEnv"]
+__all__ = ['VecEnv']

@@ -5,27 +5,27 @@
 @Author  : wty-yy
 @Version : 1.0
 @Blog    : https://wty-yy.github.io/
-@Desc    : CommandTerm for go2_rl_gym style command generation, reference to https://github.com/wty-yy/go2_rl_gym
+@Desc    : 参考 https://github.com/wty-yy/go2_rl_gym 风格的 Go2 速度指令生成器
 
-IsaacLab CommandTerm working flow:
-Env: after compute reward call command.compute(dt)
-1. self._update_metrics(): update self.metrics dict for logging
+IsaacLab CommandTerm 工作流程：
+环境：在奖励计算后调用 command.compute(dt)
+1. self._update_metrics(): 更新日志用的 metrics 字典
 2. self.time_left -= dt
 3. self._resample(self.time_left <= 0)
-4. self._update_command(): update command if needed
+4. self._update_command(): 按需更新指令
 
-Get command from self.command property, return command, shape=(num_envs, command_dim)
+通过 self.command 属性获取指令，返回形状为 (num_envs, command_dim)
 
-Note:
-1. We don't use original self._resample(env_ids) and self._resample_command(env_ids), because it will randomize time_left
-2. Remove heading command
-3. We don't use curriculum item to update curriculum, inplace update
+注意：
+1. 不使用原始的 self._resample(env_ids) 和 self._resample_command(env_ids)，因为它们会随机化 time_left
+2. 移除航向角指令
+3. 不使用课程项更新课程，而是原地更新
 '''
 
-from __future__ import annotations  # For forward reference of type hints
+from __future__ import annotations  # 支持类型提示前向引用
 
 from typing import TYPE_CHECKING, Sequence
-if TYPE_CHECKING:  # Avoid circular import for type checking
+if TYPE_CHECKING:  # 避免循环导入，仅在类型检查时导入
     from robot_lab.tasks.go2.env.go2_env import Go2Env
 
 from itertools import product
@@ -47,14 +47,14 @@ class Go2RLGymCommand(CommandTerm):
     _env: Go2Env
     
     def __init__(self, cfg: Go2RLGymCommandCfg, env: Go2Env):
-        """Reference: https://github.com/wty-yy/go2_rl_gym/blob/master/legged_gym/envs/base/legged_robot.py
-        LeggedRobot._resample_command() and LeggedRobot._post_physics_step_callback()
+        """参考：https://github.com/wty-yy/go2_rl_gym/blob/master/legged_gym/envs/base/legged_robot.py
+        中的 LeggedRobot._resample_command() 与 LeggedRobot._post_physics_step_callback()
         """
         super().__init__(cfg, env)
         self.commands_xy_accumulation = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device)
         self.max_move_distance = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
         self.last_is_limit_vel = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
-        self.commands = torch.zeros(self.num_envs, 3, dtype=torch.float, device=self.device)  # [lin_vel_x, lin_vel_y, ang_vel_yaw]
+        self.commands = torch.zeros(self.num_envs, 3, dtype=torch.float, device=self.device)  # [线速度x, 线速度y, 偏航角速度]
         self.command_ranges = self.cfg.ranges.to_dict()
         self.env_command_ranges = {
             'lin_vel_x': torch.tensor(self.command_ranges['lin_vel_x'], device=self.device).repeat(self.num_envs, 1),
@@ -77,17 +77,17 @@ class Go2RLGymCommand(CommandTerm):
         self.cfg.command_range_curriculum = sorted(self.cfg.command_range_curriculum, key=lambda x: x['iter'], reverse=True)
 
     def __str__(self) -> str:
-        """Return a string representation of the command term."""
+        """返回指令项的字符串表示。"""
         msg = (f"""Go2RLGymCommand:\n"""
-               f"""Command shape: {self.commands.shape}""")
+               f"""指令形状: {self.commands.shape}""")
         return msg
 
     def _init_terrain_infos(self):
-        """Initialize terrain types and indices for each environment."""
+        """初始化每个环境的地形类型与索引。"""
         self.terrain_types = list(self._env.scene.terrain.cfg.terrain_generator.sub_terrains.keys())
         for terrain_type in self.terrain_types:
             if terrain_type not in self.cfg.terrain_max_command_ranges:
-                raise ValueError(f"Terrain type '{terrain_type}' is not defined in cfg.terrain_max_command_ranges.")
+                raise ValueError(f"地形类型 '{terrain_type}' 未在 cfg.terrain_max_command_ranges 中定义。")
         self.terrain_type2idx = {terrain_type: idx for idx, terrain_type in enumerate(self.terrain_types)}
         self.terrain_idxs = torch.full((self.num_envs,), -1, dtype=torch.long, device=self.device)
         for terrain_type in self.terrain_types:
@@ -116,18 +116,18 @@ class Go2RLGymCommand(CommandTerm):
         return super().reset(env_ids)
         
     def _resample(self, env_ids: Sequence[int]):
-        """ Randommly select commands of some environments
+        """为部分环境随机采样新指令。
 
-        Args:
-            env_ids (List[int]): Environments ids for which new commands are needed
+        参数:
+            env_ids (List[int]): 需要新指令的环境 ID 列表。
         """
         env = self._env
         if len(env_ids) == 0:
             return
-        # update command curriculum with train steps
+        # 根据训练步数更新指令课程
         if len(self.cfg.command_range_curriculum):
             current_iter = env.common_step_counter // self.cfg.num_steps_per_iter
-            for i in range(len(self.cfg.command_range_curriculum)-1, -1, -1):  # iterate backwards to be able to pop entries
+            for i in range(len(self.cfg.command_range_curriculum)-1, -1, -1):  # 反向遍历以便弹出条目
                 cfg = self.cfg.command_range_curriculum[i]
                 if current_iter >= cfg["iter"]:
                     self.command_ranges["lin_vel_x"] = cfg["lin_vel_x"]
@@ -137,13 +137,13 @@ class Go2RLGymCommand(CommandTerm):
                                            abs(self.command_ranges["lin_vel_y"][0]), abs(self.command_ranges["lin_vel_y"][1]))
                     self.cfg.command_range_curriculum.pop(i)
                     self._update_env_command_ranges()
-                    print(f"Command range updated at iter {current_iter}: {self.command_ranges}")
+                    print(f"第 {current_iter} 次迭代更新指令范围: {self.command_ranges}")
         remaining_dist = torch.clip(0.625 * self.terrain_length - torch.norm(self.commands_xy_accumulation[env_ids], dim=1) * self.cfg.resampling_time, 0.0)
         self.time_left[env_ids] = self.cfg.resampling_time
         if self.cfg.dynamic_resample_commands:
-            # arrive at boundary 0.625 times the width of the remaining distance
+            # 按剩余距离的 0.625 倍到达边界
             if ((env.max_episode_length - env.episode_length_buf[env_ids]) + 1 == 0).any():
-                raise ValueError("Some envs have zero remaining episode length during command resampling")
+                raise ValueError("指令重采样时部分环境剩余 episode 长度为零")
             vel_low_bound = torch.clip(remaining_dist / ((env.max_episode_length - env.episode_length_buf[env_ids] + 1 + 1e-9) * env.step_dt), 0.0)
             self.commands[env_ids, 0] = sample_disjoint_intervals(
                 env_ids,
@@ -183,12 +183,12 @@ class Go2RLGymCommand(CommandTerm):
                 self.device
             )
 
-            # set small commands to zero
+            # 将较小指令置零
             self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1)
 
         rand_prob = torch.rand(len(env_ids), device=self.device)
         min_prob, max_prob = 0.0, 0.0
-        # set limitation lin vel
+        # 设置极限线速度
         if self.cfg.limit_vel_prob > 0.0:
             max_prob += self.cfg.limit_vel_prob
             lim_mask = (rand_prob >= min_prob) * (rand_prob < max_prob)
@@ -230,7 +230,7 @@ class Go2RLGymCommand(CommandTerm):
                 self.last_is_limit_vel[env_ids] = False
             min_prob += self.cfg.limit_vel_prob
 
-        # set all commands to zero with some probability
+        # 以一定概率将所有指令置零
         if self.cfg.zero_command_curriculum is not None:
             self.zero_command_prob = self.get_current_scale(self.cfg.zero_command_curriculum)
         if self.zero_command_prob > 0.0:
@@ -246,7 +246,7 @@ class Go2RLGymCommand(CommandTerm):
                 self.commands[zero_env_ids, :2] = 0.0
                 self.time_left[zero_env_ids] = next_time_left[zero_mask]
                 if self.cfg.limit_ang_vel_at_zero_command_prob > 0.0:
-                    ang_vel_rand = torch.rand(len(zero_env_ids), device=self.device)  # independent distribution
+                    ang_vel_rand = torch.rand(len(zero_env_ids), device=self.device)  # 独立分布
                     add_ang_mask = ang_vel_rand < self.cfg.limit_ang_vel_at_zero_command_prob
                     add_ang_env_ids = zero_env_ids[add_ang_mask]
                     if len(add_ang_env_ids) > 0:
@@ -265,7 +265,7 @@ class Go2RLGymCommand(CommandTerm):
         self.max_move_distance = torch.max(self.max_move_distance, current_dist)
 
     def _update_env_command_ranges(self):
-        """ Update environment-wise command ranges based on current command ranges and terrain type """
+        """根据当前指令范围与地形类型更新每个环境的指令范围。"""
         for terrain_type, terrain_command_ranges in self.cfg.terrain_max_command_ranges.items():
             if terrain_type not in self.terrain_type2idx:
                 continue
@@ -310,7 +310,7 @@ class Go2RLGymCommand(CommandTerm):
         current_scale = (1.0 - percentage) * cfg_start_val + percentage * cfg_end_val
         return current_scale
 
-    """Debug Visualization"""
+    """调试可视化"""
 
     def _set_debug_vis_impl(self, debug_vis: bool):
         if debug_vis:
@@ -335,7 +335,7 @@ class Go2RLGymCommand(CommandTerm):
         self.current_vel_visualizer.visualize(base_pos_w, vel_arrow_quat, vel_arrow_scale)
 
     def _resolve_xy_velocity_to_arrow(self, xy_velocity: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        """Converts the XY base velocity command to arrow direction rotation."""
+        """将 XY 平面基础速度指令转换为箭头方向旋转。"""
         default_scale = self.goal_vel_visualizer.cfg.markers["arrow"].scale
         arrow_scale = torch.tensor(default_scale, device=self.device).repeat(xy_velocity.shape[0], 1)
         arrow_scale[:, 0] *= torch.linalg.norm(xy_velocity, dim=1) * 3.0
@@ -355,31 +355,31 @@ class Go2RLGymCommandCfg(CommandTermCfg):
     class_type: type = Go2RLGymCommand
 
     asset_name: str = "robot"
-    """Name of the asset in the environment for which the commands are generated."""
+    """生成指令所针对的环境中资源名称。"""
 
     dynamic_resample_commands: bool = True
-    """Sample commands with low bounds"""
+    """按低边界采样指令"""
     limit_vel_invert_when_continuous: bool = True
-    """Invert the limit logic when using continuous sample limit velocity commands"""
+    """连续采样极限速度指令时反转极限逻辑"""
 
     zero_command_curriculum: dict = {'start_iter': 0, 'end_iter': 1500, 'start_value': 0.0, 'end_value': 0.1}
-    """Start training with zero commands and then gradually increase zero command probability"""
+    """训练初期使用零指令，随后逐渐增加零指令概率"""
     limit_vel: dict = {"lin_vel_x": [-1, 1], "lin_vel_y": [-1, 1], "ang_vel_yaw": [-1, 0, 1]}
-    """Sample vel commands from min [-1] or zero [0] or max [1] range only"""
+    """仅从最小 [-1]、零 [0] 或最大 [1] 范围采样速度指令"""
     command_range_curriculum: list[dict] = [{
-        'iter': 20000, # training iteration at which the command ranges are updated
-        'lin_vel_x': [-1.0, 1.0], # min max [m/s]
-        'lin_vel_y': [-1.0, 1.0], # min max [m/s]
-        'ang_vel_yaw': [-1.5, 1.5], # min max [rad/s]
+        'iter': 20000, # 更新指令范围时的训练迭代次数
+        'lin_vel_x': [-1.0, 1.0], # 最小/最大 [m/s]
+        'lin_vel_y': [-1.0, 1.0], # 最小/最大 [m/s]
+        'ang_vel_yaw': [-1.5, 1.5], # 最小/最大 [rad/s]
     }, {
-        'iter': 50000, # training iteration at which the command ranges are updated
-        'lin_vel_x': [-2.0, 2.0], # min max [m/s]
-        'lin_vel_y': [-1.0, 1.0], # min max [m/s]
-        'ang_vel_yaw': [-2.0, 2.0], # min max [rad/s]
+        'iter': 50000, # 更新指令范围时的训练迭代次数
+        'lin_vel_x': [-2.0, 2.0], # 最小/最大 [m/s]
+        'lin_vel_y': [-1.0, 1.0], # 最小/最大 [m/s]
+        'ang_vel_yaw': [-2.0, 2.0], # 最小/最大 [rad/s]
     }]
-    """List for command range curriculums at specific training iterations"""
+    """在特定训练迭代更新指令范围的课程列表"""
     terrain_max_command_ranges: dict[str, dict] = {
-        #### go2 terrains ####
+        #### go2 地形 ####
         'wave':
             {'lin_vel_x': [-1.5, 1.5], 'lin_vel_y': [-1.0, 1.0], 'ang_vel_yaw': [-1.5, 1.5]},
         'slope_up':
@@ -400,7 +400,7 @@ class Go2RLGymCommandCfg(CommandTermCfg):
             {'lin_vel_x': [-1.0, 1.0], 'lin_vel_y': [-1.0, 1.0], 'ang_vel_yaw': [-1.5, 1.5]},
         'flat':
             {'lin_vel_x': [-2.0, 2.0], 'lin_vel_y': [-1.0, 1.0], 'ang_vel_yaw': [-2.0, 2.0]},
-        #### robotlab default terrains ####
+        #### robotlab 默认地形 ####
         'random_rough':
             {'lin_vel_x': [-1.5, 1.5], 'lin_vel_y': [-1.0, 1.0], 'ang_vel_yaw': [-1.5, 1.5]},
         'hf_pyramid_slope':
@@ -416,31 +416,31 @@ class Go2RLGymCommandCfg(CommandTermCfg):
     }
     resampling_time: float = 5.0
     resampling_time_range: tuple[float, float] = (5.0, 5.0)
-    """Time before command are changed [s]"""
+    """指令变更前的时间 [s]"""
     limit_ang_vel_at_zero_command_prob: float = 0.2
-    """Probability of add limiting angular velocity commands when zero command is sampled"""
+    """零指令采样时添加极限角速度指令的概率"""
     limit_vel_prob: float = 0.2
-    """Probability of limiting linear velocity command"""
+    """极限线速度指令采样概率"""
     num_steps_per_iter: int = 24
-    """Number of envs steps for each training iteration"""
+    """每次训练迭代的环境步数"""
 
     @configclass
     class Ranges:
         lin_vel_x: tuple[float, float] = [-0.5, 0.5]
-        """Range for the linear-x velocity command [m/s]"""
+        """x 方向线速度指令范围 [m/s]"""
         lin_vel_y: tuple[float, float] = [-0.5, 0.5]
-        """Range for the linear-y velocity command [m/s]"""
+        """y 方向线速度指令范围 [m/s]"""
         ang_vel_yaw: tuple[float, float] = [-1.0, 1.0]
-        """Range for the angular-z velocity command [rad/s]"""
+        """偏航角速度指令范围 [rad/s]"""
 
     ranges: Ranges = Ranges()
 
     goal_vel_visualizer_cfg: VisualizationMarkersCfg = GREEN_ARROW_X_MARKER_CFG.replace(
         prim_path="/Visuals/Command/velocity_goal"
     )
-    """The configuration for the goal velocity visualization marker. Defaults to GREEN_ARROW_X_MARKER_CFG."""
+    """目标速度可视化标记配置，默认 GREEN_ARROW_X_MARKER_CFG。"""
 
     current_vel_visualizer_cfg: VisualizationMarkersCfg = BLUE_ARROW_X_MARKER_CFG.replace(
         prim_path="/Visuals/Command/velocity_current"
     )
-    """The configuration for the current velocity visualization marker. Defaults to BLUE_ARROW_X_MARKER_CFG."""
+    """当前速度可视化标记配置，默认 BLUE_ARROW_X_MARKER_CFG。"""

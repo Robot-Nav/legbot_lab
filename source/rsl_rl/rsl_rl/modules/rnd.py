@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+"""随机网络蒸馏（RND）模块，用于提供内在探索奖励。"""
+
 from __future__ import annotations
 
 import torch
@@ -15,10 +17,12 @@ from rsl_rl.networks import MLP, EmpiricalDiscountedVariationNormalization, Empi
 
 
 class RandomNetworkDistillation(nn.Module):
-    """Implementation of Random Network Distillation (RND) [1].
+    """随机网络蒸馏（RND）实现。
 
-    References:
-        .. [1] Burda, Yuri, et al. "Exploration by Random Network Distillation." arXiv preprint arXiv:1810.12894 (2018).
+    通过固定目标网络与可训练预测网络之间的 embedding 差异计算内在奖励，
+    鼓励智能体探索未充分访问的状态。
+
+    参考文献：Burda, Yuri, et al. "Exploration by Random Network Distillation." arXiv:1810.12894 (2018).
     """
 
     def __init__(
@@ -28,55 +32,39 @@ class RandomNetworkDistillation(nn.Module):
         num_outputs: int,
         predictor_hidden_dims: tuple[int] | list[int],
         target_hidden_dims: tuple[int] | list[int],
-        activation: str = "elu",
+        activation: str = 'elu',
         weight: float = 0.0,
         state_normalization: bool = False,
         reward_normalization: bool = False,
-        device: str = "cpu",
+        device: str = 'cpu',
         weight_schedule: dict | None = None,
     ) -> None:
-        """Initialize the RND module.
+        """初始化 RND 模块。
 
-        - If :attr:`state_normalization` is True, then the input state is normalized using an Empirical Normalization
-          layer.
-        - If :attr:`reward_normalization` is True, then the intrinsic reward is normalized using an Empirical Discounted
-          Variation Normalization layer.
-        - If the hidden dimensions are -1 in the predictor and target networks configuration, then the number of states
-          is used as the hidden dimension.
+        - 启用 state_normalization 时，使用经验归一化层处理输入状态。
+        - 启用 reward_normalization 时，使用经验折扣变化归一化层处理内在奖励。
+        - predictor 与 target 隐藏层维度为 -1 时，自动使用 num_states 作为隐藏层维度。
 
-        Args:
-            num_states: Number of states/inputs to the predictor and target networks.
-            obs_groups: Dictionary of observation groups.
-            num_outputs: Number of outputs (embedding size) of the predictor and target networks.
-            predictor_hidden_dims: List of hidden dimensions of the predictor network.
-            target_hidden_dims: List of hidden dimensions of the target network.
-            activation: Activation function.
-            weight: Scaling factor of the intrinsic reward.
-            state_normalization: Whether to normalize the input state.
-            reward_normalization: Whether to normalize the intrinsic reward.
-            device: Device to use.
-            weight_schedule: Type of schedule to use for the RND weight parameter.
-                It is a dictionary with the following keys:
-
-                - "mode": Type of schedule to use for the RND weight parameter.
-                    - "constant": Constant weight schedule.
-                    - "step": Step weight schedule.
-                    - "linear": Linear weight schedule.
-
-                For the "step" weight schedule, the following parameters are required:
-
-                - "final_step": Step at which the weight parameter is set to the final value.
-                - "final_value": Final value of the weight parameter.
-
-                For the "linear" weight schedule, the following parameters are required:
-                - "initial_step": Step at which the weight parameter is set to the initial value.
-                - "final_step": Step at which the weight parameter is set to the final value.
-                - "final_value": Final value of the weight parameter.
+        参数:
+            num_states: 预测网络与目标网络的输入状态维度。
+            obs_groups: 观测分组字典。
+            num_outputs: 预测网络与目标网络的输出 embedding 维度。
+            predictor_hidden_dims: 预测网络隐藏层维度列表。
+            target_hidden_dims: 目标网络隐藏层维度列表。
+            activation: 激活函数。
+            weight: 内在奖励缩放系数。
+            state_normalization: 是否对输入状态进行归一化。
+            reward_normalization: 是否对内在奖励进行归一化。
+            device: 计算设备。
+            weight_schedule: RND 权重调度配置字典，支持以下模式：
+                - 'constant'：恒定权重。
+                - 'step'：在 final_step 时跳变为 final_value。
+                - 'linear'：在 initial_step 到 final_step 之间线性变化到 final_value。
         """
-        # Initialize parent class
+        # 初始化父类
         super().__init__()
 
-        # Store parameters
+        # 保存参数
         self.num_states = num_states
         self.obs_groups = obs_groups
         self.num_outputs = num_outputs
@@ -85,63 +73,66 @@ class RandomNetworkDistillation(nn.Module):
         self.state_normalization = state_normalization
         self.reward_normalization = reward_normalization
 
-        # Normalization of input gates
+        # 输入状态归一化
         if state_normalization:
             self.state_normalizer = EmpiricalNormalization(shape=[self.num_states], until=1.0e8).to(self.device)
         else:
             self.state_normalizer = torch.nn.Identity()
 
-        # Normalization of intrinsic reward
+        # 内在奖励归一化
         if reward_normalization:
             self.reward_normalizer = EmpiricalDiscountedVariationNormalization(shape=[], until=1.0e8).to(self.device)
         else:
             self.reward_normalizer = torch.nn.Identity()
 
-        # Counter for the number of updates
+        # 更新计数器
         self.update_counter = 0
 
-        # Resolve weight schedule
+        # 解析权重调度策略
         if weight_schedule is not None:
             self.weight_scheduler_params = weight_schedule
-            self.weight_scheduler = getattr(self, f"_{weight_schedule['mode']}_weight_schedule")
+            self.weight_scheduler = getattr(self, f'_{weight_schedule["mode"]}_weight_schedule')
         else:
             self.weight_scheduler = None
 
-        # Create network architecture
+        # 构建预测网络与目标网络
         self.predictor = MLP(num_states, num_outputs, predictor_hidden_dims, activation).to(self.device)
         self.target = MLP(num_states, num_outputs, target_hidden_dims, activation).to(self.device)
 
-        # Make target network not trainable
+        # 目标网络不参与训练
         self.target.eval()
 
     def get_intrinsic_reward(self, obs: TensorDict) -> torch.Tensor:
-        # Note: The counter is updated number of env steps per learning iteration
+        """根据观测计算内在奖励。"""
+        # 计数器按每次学习迭代中的环境步数递增
         self.update_counter += 1
-        # Extract the rnd state from the observation
+        # 从观测中提取 RND 状态
         rnd_state = self.get_rnd_state(obs)
         rnd_state = self.state_normalizer(rnd_state)
-        # Obtain the embedding of the rnd state from the target and predictor networks
+        # 分别通过目标网络与预测网络获取 embedding
         target_embedding = self.target(rnd_state).detach()
         predictor_embedding = self.predictor(rnd_state).detach()
-        # Compute the intrinsic reward as the distance between the embeddings
+        # 内在奖励为两个 embedding 之间的距离
         intrinsic_reward = torch.linalg.norm(target_embedding - predictor_embedding, dim=1)
-        # Normalize intrinsic reward
+        # 归一化内在奖励
         intrinsic_reward = self.reward_normalizer(intrinsic_reward)
-        # Check the weight schedule
+        # 根据调度策略计算当前权重
         if self.weight_scheduler is not None:
             self.weight = self.weight_scheduler(step=self.update_counter, **self.weight_scheduler_params)
         else:
             self.weight = self.initial_weight
-        # Scale intrinsic reward
+        # 缩放内在奖励
         intrinsic_reward *= self.weight
 
         return intrinsic_reward
 
     def forward(self, *args: Any, **kwargs: dict[str, Any]) -> NoReturn:
-        raise RuntimeError("Forward method is not implemented. Use get_intrinsic_reward instead.")
+        """未实现：RND 模块通过 get_intrinsic_reward 计算奖励。"""
+        raise RuntimeError('RND 模块未实现 forward 方法，请使用 get_intrinsic_reward。')
 
     def train(self, mode: bool = True) -> RandomNetworkDistillation:
-        # Set module into training mode
+        """设置训练模式（目标网络始终保持评估模式）。"""
+        # 仅预测网络参与训练
         self.predictor.train(mode)
         if self.state_normalization:
             self.state_normalizer.train(mode)
@@ -150,27 +141,33 @@ class RandomNetworkDistillation(nn.Module):
         return self
 
     def eval(self) -> RandomNetworkDistillation:
+        """设置评估模式。"""
         return self.train(False)
 
     def get_rnd_state(self, obs: TensorDict) -> torch.Tensor:
-        obs_list = [obs[obs_group] for obs_group in self.obs_groups["rnd_state"]]
+        """拼接 RND 状态观测组。"""
+        obs_list = [obs[obs_group] for obs_group in self.obs_groups['rnd_state']]
         return torch.cat(obs_list, dim=-1)
 
     def update_normalization(self, obs: TensorDict) -> None:
-        # Normalize the state
+        """更新 RND 状态归一化统计量。"""
+        # 归一化输入状态
         if self.state_normalization:
             rnd_state = self.get_rnd_state(obs)
             self.state_normalizer.update(rnd_state)
 
     def _constant_weight_schedule(self, step: int, **kwargs: dict[str, Any]) -> float:
+        """恒定权重调度。"""
         return self.initial_weight
 
     def _step_weight_schedule(self, step: int, final_step: int, final_value: float, **kwargs: dict[str, Any]) -> float:
+        """阶跃权重调度。"""
         return self.initial_weight if step < final_step else final_value
 
     def _linear_weight_schedule(
         self, step: int, initial_step: int, final_step: int, final_value: float, **kwargs: dict[str, Any]
     ) -> float:
+        """线性权重调度。"""
         if step < initial_step:
             return self.initial_weight
         elif step > final_step:
@@ -182,29 +179,30 @@ class RandomNetworkDistillation(nn.Module):
 
 
 def resolve_rnd_config(alg_cfg: dict, obs: TensorDict, obs_groups: dict[str, list[str]], env: VecEnv) -> dict:
-    """Resolve the RND configuration.
+    """解析 RND 配置。
 
-    Args:
-        alg_cfg: Algorithm configuration dictionary.
-        obs: Observation dictionary.
-        obs_groups: Observation groups dictionary.
-        env: Environment object.
+    根据观测分组计算 RND 状态维度，并注入配置；同时按环境时间步长缩放权重。
 
-    Returns:
-        The resolved algorithm configuration dictionary.
+    参数:
+        alg_cfg: 算法配置字典。
+        obs: 观测字典。
+        obs_groups: 观测分组字典。
+        env: 环境对象。
+
+    返回:
+        解析后的算法配置字典。
     """
-    # Resolve dimension of rnd gated state
-    if "rnd_cfg" in alg_cfg and alg_cfg["rnd_cfg"] is not None:
-        # Get dimension of rnd gated state
+    # 计算 RND 状态维度
+    if 'rnd_cfg' in alg_cfg and alg_cfg['rnd_cfg'] is not None:
         num_rnd_state = 0
-        for obs_group in obs_groups["rnd_state"]:
-            assert len(obs[obs_group].shape) == 2, "The RND module only supports 1D observations."
+        for obs_group in obs_groups['rnd_state']:
+            assert len(obs[obs_group].shape) == 2, 'RND 模块仅支持 1D 观测。'
             num_rnd_state += obs[obs_group].shape[-1]
-        # Add rnd gated state to config
-        alg_cfg["rnd_cfg"]["num_states"] = num_rnd_state
-        alg_cfg["rnd_cfg"]["obs_groups"] = obs_groups
-        # Scale down the rnd weight with timestep
-        alg_cfg["rnd_cfg"]["weight"] *= env.unwrapped.step_dt
+        # 将 RND 状态维度与观测分组写入配置
+        alg_cfg['rnd_cfg']['num_states'] = num_rnd_state
+        alg_cfg['rnd_cfg']['obs_groups'] = obs_groups
+        # 按环境时间步长缩放权重
+        alg_cfg['rnd_cfg']['weight'] *= env.unwrapped.step_dt
     else:
-        alg_cfg["rnd_cfg"] = None
+        alg_cfg['rnd_cfg'] = None
     return alg_cfg

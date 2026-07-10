@@ -19,8 +19,8 @@ def joint_pos_rel_without_wheel(
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     wheel_asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
-    """The joint positions of the asset w.r.t. the default joint positions.(Without the wheel joints)"""
-    # extract the used quantities (to enable type-hinting)
+    """资源关节位置相对于默认关节位置（不含轮式关节）。"""
+    # 提取使用到的量（用于类型提示）
     asset: Articulation = env.scene[asset_cfg.name]
     joint_pos_rel = asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids]
     joint_pos_rel[:, wheel_asset_cfg.joint_ids] = 0

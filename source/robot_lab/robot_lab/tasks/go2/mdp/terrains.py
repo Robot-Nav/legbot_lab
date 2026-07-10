@@ -10,7 +10,7 @@ from isaaclab.terrains.height_field.utils import height_field_to_mesh
 
 
 class PerSubTerrainSlopeThresholdGenerator(TerrainGenerator):
-    """Terrain generator that lets each height-field sub-terrain override slope_threshold."""
+    """允许每个高度场地形覆盖 slope_threshold 的地形生成器。"""
 
     def __init__(self, cfg, device: str = "cpu"):
         self._apply_sub_terrain_border_width(cfg)
@@ -63,13 +63,13 @@ class Go2TerrainGeneratorCfg(terrain_gen.TerrainGeneratorCfg):
 
 
 def with_slope_threshold(sub_terrain_cfg, slope_threshold: float | None):
-    """Attach a per-sub-terrain slope-threshold override to a terrain config."""
+    """为地形配置附加每个子地形的坡度阈值覆盖。"""
     sub_terrain_cfg.slope_threshold_override = slope_threshold
     return sub_terrain_cfg
 
 
 # -----------------------------------------------------------------------------
-# Default RobotLab terrain setup
+# RobotLab 默认地形配置
 # -----------------------------------------------------------------------------
 
 DEFAULT_TERRAIN_CFG = terrain_gen.TerrainGeneratorCfg(
@@ -129,11 +129,11 @@ DEFAULT_TERRAIN_CFG = terrain_gen.TerrainGeneratorCfg(
 
 
 # -----------------------------------------------------------------------------
-# Go2 Terrain setup
+# Go2 地形配置
 # -----------------------------------------------------------------------------
 @height_field_to_mesh
 def wave_terrain(difficulty: float, cfg) -> np.ndarray:
-    """wave terrain: wave plus random uniform roughness."""
+    """波浪地形：波浪叠加随机均匀粗糙度。"""
     wave = hf_terrains.wave_terrain.__wrapped__(difficulty, cfg)
     rough = hf_terrains.random_uniform_terrain.__wrapped__(difficulty, cfg)
     return np.rint(wave + rough).astype(np.int16)
@@ -141,7 +141,7 @@ def wave_terrain(difficulty: float, cfg) -> np.ndarray:
 
 @height_field_to_mesh
 def rough_slope_terrain(difficulty: float, cfg) -> np.ndarray:
-    """rough slope terrain: slope plus random uniform roughness."""
+    """粗糙斜坡地形：斜坡叠加随机均匀粗糙度。"""
     slope = hf_terrains.pyramid_sloped_terrain.__wrapped__(difficulty, cfg)
     rough = hf_terrains.random_uniform_terrain.__wrapped__(difficulty, cfg)
     return np.rint(slope + rough).astype(np.int16)
@@ -168,15 +168,15 @@ class RoughSlopeTerrainCfg(terrain_gen.HfPyramidSlopedTerrainCfg):
 
 
 TERRAIN_CFG = Go2TerrainGeneratorCfg(
-    size=(9.0, 9.0),  # 8.0 terrain + 0.5*2 sub_terrain_border_width
+    size=(9.0, 9.0),  # 8.0 地形 + 0.5*2 子地形边界宽度
     border_width=25.0,
     sub_terrain_border_width=0.5,
     num_rows=10,
     num_cols=20,
     horizontal_scale=0.1,
     vertical_scale=0.005,
-    # slope correction = 0.75 ~ 36.9 degrees by default,
-    # but recommended to set for each terrain type separately using with_slope_threshold
+    # 默认坡度修正 0.75 ~ 36.9 度，
+    # 但建议对每个地形类型单独使用 with_slope_threshold 设置
     slope_threshold=0.75,
     use_gym_difficulty=True,
     use_cache=False,
@@ -185,7 +185,7 @@ TERRAIN_CFG = Go2TerrainGeneratorCfg(
             WaveTerrainCfg(
                 proportion=0.05,
             ),
-            10.0, # effectively disable slope correction for wave terrain
+            10.0, # 对波浪地形实际禁用坡度修正
         ),
         "slope_up": with_slope_threshold(
             terrain_gen.HfInvertedPyramidSlopedTerrainCfg(
@@ -193,7 +193,7 @@ TERRAIN_CFG = Go2TerrainGeneratorCfg(
                 slope_range=(0.1, 0.568),
                 platform_width=3.0,
             ),
-            10.0, # effectively disable slope correction for slope_up terrain
+            10.0, # 对上坡地形实际禁用坡度修正
         ),
         "slope_down": with_slope_threshold(
             terrain_gen.HfPyramidSlopedTerrainCfg(
@@ -201,13 +201,13 @@ TERRAIN_CFG = Go2TerrainGeneratorCfg(
                 slope_range=(0.1, 0.568),
                 platform_width=3.0,
             ),
-            10.0, # effectively disable slope correction for slope_down terrain
+            10.0, # 对下坡地形实际禁用坡度修正
         ),
         "rough_slope": with_slope_threshold(
             RoughSlopeTerrainCfg(
                 proportion=0.05,
             ),
-            10.0, # effectively disable slope correction for rough_slope terrain
+            10.0, # 对粗糙斜坡实际禁用坡度修正
         ),
         "stairs_up": with_slope_threshold(
             terrain_gen.HfInvertedPyramidStairsTerrainCfg(
@@ -216,7 +216,7 @@ TERRAIN_CFG = Go2TerrainGeneratorCfg(
                 step_width=0.31,
                 platform_width=3.0,
             ),
-            0.25, # enable slope correction for rough_slope terrain by 14.0 degrees, which is recommended for stairs terrain
+            0.25, # 对楼梯地形启用 14.0 度的坡度修正
         ),
         "stairs_down": with_slope_threshold(
             terrain_gen.HfPyramidStairsTerrainCfg(
@@ -225,7 +225,7 @@ TERRAIN_CFG = Go2TerrainGeneratorCfg(
                 step_width=0.31,
                 platform_width=3.0,
             ),
-            0.25, # enable slope correction for rough_slope terrain by 14.0 degrees, which is recommended for stairs terrain
+            0.25, # 对楼梯地形启用 14.0 度的坡度修正
         ),
         "obstacles": with_slope_threshold(
             terrain_gen.HfDiscreteObstaclesTerrainCfg(
@@ -235,7 +235,7 @@ TERRAIN_CFG = Go2TerrainGeneratorCfg(
                 num_obstacles=20,
                 platform_width=3.0,
             ),
-            0.25, # enable slope correction for rough_slope terrain by 14.0 degrees
+            0.25, # 对障碍物地形启用 14.0 度的坡度修正
         ),
         "stepping_stones": with_slope_threshold(
             terrain_gen.HfSteppingStonesTerrainCfg(
@@ -246,7 +246,7 @@ TERRAIN_CFG = Go2TerrainGeneratorCfg(
                 holes_depth=-10.0,
                 platform_width=4.0,
             ),
-            0.25, # enable slope correction for rough_slope terrain by 14.0 degrees
+            0.25, # 对垫脚石地形启用 14.0 度的坡度修正
         ),
         "gap": terrain_gen.MeshGapTerrainCfg(
             proportion=0.0,

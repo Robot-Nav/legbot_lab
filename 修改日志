@@ -41,3 +41,29 @@
 
 **vbot_mujoco 项目 (1 文件):**
 - `legbot/xmls/legbot.xml`
+
+## 2026-07-10
+
+### 髋关节Z偏移更新
+
+| 参数 | 原值 (m) | 新值 (m) | 依据 |
+|------|---------|---------|------|
+| 所有hip关节Z偏移 | 0 | **0.012** | 机身高度减小28mm→中心下移14mm→髋关节物理位置不变，相对新base原点Z=+12mm |
+
+### 修改文件清单
+
+**go2_rl_robotlab 项目 (4 文件):**
+- `legbot/xmls/legbot.xml` — 4个hip body pos
+- `legbot_description/meshes/legbot.xml` — 4个hip body pos
+- `legbot_description/legbot_training.xml` — 4个hip body pos
+- `legbot_description/urdf/legbot_description.urdf` — 4个hip joint origin
+
+## 2026-07-10
+
+### 核心训练与算法代码中文注释
+
+- 对 `source/robot_lab`、`source/rsl_rl`、`scripts/rsl_rl` 下全部 65 个核心 Python 文件添加/替换为工业级中文注释。
+- 所有英文注释已替换为中文；模块、类、公共方法均补充中文 docstring。
+- 字符串字面量统一为单引号；docstring 保持三重双引号。
+- 修复 `scripts/rsl_rl/train.py` 与 `source/rsl_rl/rsl_rl/runners/on_policy_runner_cts.py` 中 f-string 转义导致的语法错误。
+- 全部修改后的 Python 文件已通过 `python3 -m py_compile` 语法检查。

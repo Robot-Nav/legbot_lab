@@ -6,24 +6,18 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Package containing asset and sensor configurations."""
+"""存放机器人模型、传感器等资源的配置。"""
 
 import os
 import toml
 
-##
-# Configuration for different assets.
-##
+ISAACLAB_ASSETS_EXT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+"""扩展源码目录路径。"""
 
-# Conveniences to other module directories via relative paths
-ISAACLAB_ASSETS_EXT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-"""Path to the extension source directory."""
+ISAACLAB_ASSETS_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../resources'))
+"""扩展数据资源目录路径。"""
 
-ISAACLAB_ASSETS_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../resources"))
-"""Path to the extension data directory."""
+ISAACLAB_ASSETS_METADATA = toml.load(os.path.join(ISAACLAB_ASSETS_EXT_DIR, 'config', 'extension.toml'))
+"""从 extension.toml 解析得到的扩展元数据字典。"""
 
-ISAACLAB_ASSETS_METADATA = toml.load(os.path.join(ISAACLAB_ASSETS_EXT_DIR, "config", "extension.toml"))
-"""Extension metadata dictionary parsed from the extension.toml file."""
-
-# Configure the module-level variables
-__version__ = ISAACLAB_ASSETS_METADATA["package"]["version"]
+__version__ = ISAACLAB_ASSETS_METADATA['package']['version']

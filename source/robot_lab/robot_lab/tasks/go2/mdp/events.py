@@ -24,40 +24,38 @@ def randomize_rigid_body_inertia(
     operation: Literal["add", "scale", "abs"],
     distribution: Literal["uniform", "log_uniform", "gaussian"] = "uniform",
 ):
-    """Randomize the inertia tensors of the bodies by adding, scaling, or setting random values.
+    """通过加、缩放或设置随机值来随机化刚体惯性张量。
 
-    This function allows randomizing only the diagonal inertia tensor components (xx, yy, zz) of the bodies.
-    The function samples random values from the given distribution parameters and adds, scales, or sets the values
-    into the physics simulation based on the operation.
+    本函数仅随机化刚体惯性张量的对角分量（xx, yy, zz）。
+    从给定分布参数中采样随机值，并根据 operation 将其加到、缩放或设置到物理仿真中。
 
     .. tip::
-        This function uses CPU tensors to assign the body inertias. It is recommended to use this function
-        only during the initialization of the environment.
+        本函数使用 CPU 张量设置刚体惯性，建议仅在环境初始化时使用。
     """
-    # extract the used quantities (to enable type-hinting)
+    # 提取使用到的量（用于类型提示）
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
 
-    # resolve environment ids
+    # 解析环境 ID
     if env_ids is None:
         env_ids = torch.arange(env.scene.num_envs, device="cpu")
     else:
         env_ids = env_ids.cpu()
 
-    # resolve body indices
+    # 解析刚体索引
     if asset_cfg.body_ids == slice(None):
         body_ids = torch.arange(asset.num_bodies, dtype=torch.int, device="cpu")
     else:
         body_ids = torch.tensor(asset_cfg.body_ids, dtype=torch.int, device="cpu")
 
-    # get the current inertia tensors of the bodies (num_assets, num_bodies, 9 for articulations or 9 for rigid objects)
+    # 获取当前刚体惯性张量（articulations 为 (num_assets, num_bodies, 9)）
     inertias = asset.root_physx_view.get_inertias()
 
-    # apply randomization on default values
+    # 在默认值上应用随机化
     inertias[env_ids[:, None], body_ids, :] = asset.data.default_inertia[env_ids[:, None], body_ids, :].clone()
 
-    # randomize each diagonal element (xx, yy, zz -> indices 0, 4, 8)
+    # 随机化每个对角元素（xx, yy, zz -> 索引 0, 4, 8）
     for idx in [0, 4, 8]:
-        # Extract and randomize the specific diagonal element
+        # 提取并随机化特定对角元素
         randomized_inertias = _randomize_prop_by_op(
             inertias[:, :, idx],
             inertia_distribution_params,
@@ -66,10 +64,10 @@ def randomize_rigid_body_inertia(
             operation,
             distribution,
         )
-        # Assign the randomized values back to the inertia tensor
+        # 将随机化后的值写回惯性张量
         inertias[env_ids[:, None], body_ids, idx] = randomized_inertias
 
-    # set the inertia tensors into the physics simulation
+    # 将惯性张量设置到物理仿真中
     asset.root_physx_view.set_inertias(inertias, env_ids)
 
 
@@ -81,41 +79,32 @@ def randomize_com_positions(
     operation: Literal["add", "scale", "abs"],
     distribution: Literal["uniform", "log_uniform", "gaussian"] = "uniform",
 ):
-    """Randomize the center of mass (COM) positions for the rigid bodies.
+    """随机化刚体质心位置。
 
-    This function allows randomizing the COM positions of the bodies in the physics simulation. The positions can be
-    randomized by adding, scaling, or setting random values sampled from the specified distribution.
+    本函数可对物理仿真中刚体的质心位置进行随机化，可通过加、缩放或设置从指定分布采样的随机值。
 
     .. tip::
-        This function is intended for initialization or offline adjustments, as it modifies physics properties directly.
-
-    Args:
-        env (ManagerBasedEnv): The simulation environment.
-        env_ids (torch.Tensor | None): Specific environment indices to apply randomization, or None for all environments.
-        asset_cfg (SceneEntityCfg): The configuration for the target asset whose COM will be randomized.
-        com_distribution_params (tuple[float, float]): Parameters of the distribution (e.g., min and max for uniform).
-        operation (Literal["add", "scale", "abs"]): The operation to apply for randomization.
-        distribution (Literal["uniform", "log_uniform", "gaussian"]): The distribution to sample random values from.
+        由于直接修改物理属性，建议在初始化或离线调整时使用。
     """
-    # Extract the asset (Articulation or RigidObject)
+    # 提取目标资源（Articulation 或 RigidObject）
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
 
-    # Resolve environment indices
+    # 解析环境 ID
     if env_ids is None:
         env_ids = torch.arange(env.scene.num_envs, device="cpu")
     else:
         env_ids = env_ids.cpu()
 
-    # Resolve body indices
+    # 解析刚体索引
     if asset_cfg.body_ids == slice(None):
         body_ids = torch.arange(asset.num_bodies, dtype=torch.int, device="cpu")
     else:
         body_ids = torch.tensor(asset_cfg.body_ids, dtype=torch.int, device="cpu")
 
-    # Get the current COM offsets (num_assets, num_bodies, 3)
+    # 获取当前质心偏移（形状：num_assets, num_bodies, 3）
     com_offsets = asset.root_physx_view.get_coms()
 
-    for dim_idx in range(3):  # Randomize x, y, z independently
+    for dim_idx in range(3):  # 独立随机化 x, y, z
         randomized_offset = _randomize_prop_by_op(
             com_offsets[:, :, dim_idx],
             com_distribution_params,
@@ -126,13 +115,11 @@ def randomize_com_positions(
         )
         com_offsets[env_ids[:, None], body_ids, dim_idx] = randomized_offset[env_ids[:, None], body_ids]
 
-    # Set the randomized COM offsets into the simulation
+    # 将随机化后的质心偏移写入仿真
     asset.root_physx_view.set_coms(com_offsets, env_ids)
 
 
-"""
-Internal helper functions.
-"""
+"""内部辅助函数。"""
 
 
 def _randomize_prop_by_op(
@@ -143,24 +130,24 @@ def _randomize_prop_by_op(
     operation: Literal["add", "scale", "abs"],
     distribution: Literal["uniform", "log_uniform", "gaussian"],
 ) -> torch.Tensor:
-    """Perform data randomization based on the given operation and distribution.
+    """根据指定操作与分布对数据进行随机化。
 
-    Args:
-        data: The data tensor to be randomized. Shape is (dim_0, dim_1).
-        distribution_parameters: The parameters for the distribution to sample values from.
-        dim_0_ids: The indices of the first dimension to randomize.
-        dim_1_ids: The indices of the second dimension to randomize.
-        operation: The operation to perform on the data. Options: 'add', 'scale', 'abs'.
-        distribution: The distribution to sample the random values from. Options: 'uniform', 'log_uniform'.
+    参数:
+        data: 待随机化的数据张量，形状为 (dim_0, dim_1)。
+        distribution_parameters: 采样分布参数。
+        dim_0_ids: 第一维随机化索引。
+        dim_1_ids: 第二维随机化索引。
+        operation: 对数据执行的操作，可选 'add'、'scale'、'abs'。
+        distribution: 随机值采样分布，可选 'uniform'、'log_uniform'、'gaussian'。
 
-    Returns:
-        The data tensor after randomization. Shape is (dim_0, dim_1).
+    返回:
+        随机化后的数据张量，形状为 (dim_0, dim_1)。
 
-    Raises:
-        NotImplementedError: If the operation or distribution is not supported.
+    异常:
+        NotImplementedError: 不支持的操作或分布。
     """
-    # resolve shape
-    # -- dim 0
+    # 解析形状
+    # -- 维度 0
     if dim_0_ids is None:
         n_dim_0 = data.shape[0]
         dim_0_ids = slice(None)
@@ -168,13 +155,13 @@ def _randomize_prop_by_op(
         n_dim_0 = len(dim_0_ids)
         if not isinstance(dim_1_ids, slice):
             dim_0_ids = dim_0_ids[:, None]
-    # -- dim 1
+    # -- 维度 1
     if isinstance(dim_1_ids, slice):
         n_dim_1 = data.shape[1]
     else:
         n_dim_1 = len(dim_1_ids)
 
-    # resolve the distribution
+    # 解析分布
     if distribution == "uniform":
         dist_fn = math_utils.sample_uniform
     elif distribution == "log_uniform":
@@ -183,10 +170,9 @@ def _randomize_prop_by_op(
         dist_fn = math_utils.sample_gaussian
     else:
         raise NotImplementedError(
-            f"Unknown distribution: '{distribution}' for joint properties randomization."
-            " Please use 'uniform', 'log_uniform', 'gaussian'."
+            f"未知分布: '{distribution}'，请使用 'uniform'、'log_uniform' 或 'gaussian'。"
         )
-    # perform the operation
+    # 执行操作
     if operation == "add":
         data[dim_0_ids, dim_1_ids] += dist_fn(*distribution_parameters, (n_dim_0, n_dim_1), device=data.device)
     elif operation == "scale":
@@ -195,7 +181,7 @@ def _randomize_prop_by_op(
         data[dim_0_ids, dim_1_ids] = dist_fn(*distribution_parameters, (n_dim_0, n_dim_1), device=data.device)
     else:
         raise NotImplementedError(
-            f"Unknown operation: '{operation}' for property randomization. Please use 'add', 'scale', or 'abs'."
+            f"未知操作: '{operation}'，请使用 'add'、'scale' 或 'abs'。"
         )
     return data
 
@@ -207,32 +193,29 @@ def reset_root_state_uniform(
     velocity_range: dict[str, tuple[float, float]],
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ):
-    """Reset the asset root state to a random position and velocity uniformly within the given ranges.
+    """在指定范围内均匀随机重置资源根状态。
 
-    This function randomizes the root position and velocity of the asset.
+    本函数对资源的根位置与速度进行随机化：
 
-    * It samples the root position from the given ranges and adds them to the default root position, before setting
-      them into the physics simulation.
-    * It samples the root orientation from the given ranges and sets them into the physics simulation.
-    * It samples the root velocity from the given ranges and sets them into the physics simulation.
+    * 从给定范围采样位置偏移，加到默认根位置上，再写入物理仿真。
+    * 从给定范围采样朝向并写入物理仿真。
+    * 从给定范围采样速度并写入物理仿真。
 
-    The function takes a dictionary of pose and velocity ranges for each axis and rotation. The keys of the
-    dictionary are ``x``, ``y``, ``z``, ``roll``, ``pitch``, and ``yaw``. The values are tuples of the form
-    ``(min, max)``. If the dictionary does not contain a key, the position or velocity is set to zero for that axis.
+    位置与速度范围通过字典为每个轴和旋转指定，键为 ``x``、``y``、``z``、``roll``、``pitch``、``yaw``，
+    值为 ``(min, max)`` 元组。若字典缺少某键，则该轴位置或速度置零。
 
-    Note: If "pits" terrain exists, environments on pit terrain will be reset to default state without random
-    perturbations to avoid the robot falling into the pit.
+    注意：若存在 "pits" 地形，位于该地形的环境将重置为默认状态而不添加随机扰动，以避免机器人落入坑中。
     """
-    # extract the used quantities (to enable type-hinting)
+    # 提取使用到的量（用于类型提示）
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
 
-    # Separate pit and non-pit environments
-    # Check which environments are assigned to pit terrain (not random reset)
+    # 分离坑地形与非坑地形环境
+    # 检查哪些环境被分配到 pits 地形（不随机重置）
     assigned_to_pits = is_env_assigned_to_terrain(env, "pits")
     pit_env_ids = env_ids[assigned_to_pits[env_ids]]
     non_pit_env_ids = env_ids[~assigned_to_pits[env_ids]]
 
-    # Reset pit environments to default state (no random perturbations)
+    # 将坑地形环境重置为默认状态（无随机扰动）
     if len(pit_env_ids) > 0:
         root_states = asset.data.default_root_state[pit_env_ids].clone()
         positions = root_states[:, 0:3] + env.scene.env_origins[pit_env_ids]
@@ -241,11 +224,11 @@ def reset_root_state_uniform(
         asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=pit_env_ids)
         asset.write_root_velocity_to_sim(velocities, env_ids=pit_env_ids)
 
-    # Reset non-pit environments with random perturbations
+    # 对非坑地形环境添加随机扰动后重置
     if len(non_pit_env_ids) > 0:
         root_states = asset.data.default_root_state[non_pit_env_ids].clone()
 
-        # poses
+        # 位姿
         range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]]
         ranges = torch.tensor(range_list, device=asset.device)
         rand_samples = math_utils.sample_uniform(
@@ -255,7 +238,7 @@ def reset_root_state_uniform(
         positions = root_states[:, 0:3] + env.scene.env_origins[non_pit_env_ids] + rand_samples[:, 0:3]
         orientations_delta = math_utils.quat_from_euler_xyz(rand_samples[:, 3], rand_samples[:, 4], rand_samples[:, 5])
         orientations = math_utils.quat_mul(root_states[:, 3:7], orientations_delta)
-        # velocities
+        # 速度
         range_list = [velocity_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]]
         ranges = torch.tensor(range_list, device=asset.device)
         rand_samples = math_utils.sample_uniform(
@@ -264,7 +247,7 @@ def reset_root_state_uniform(
 
         velocities = root_states[:, 7:13] + rand_samples
 
-        # set into the physics simulation
+        # 写入物理仿真
         asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=non_pit_env_ids)
         asset.write_root_velocity_to_sim(velocities, env_ids=non_pit_env_ids)
 
@@ -274,7 +257,7 @@ def randomize_action_joint_pos_offset(
     action_term_name: str,
     offset_range: tuple[float, float],
 ):
-    """Randomize the motor zero-offset on a joint-position action term."""
+    """对关节位置动作项的电机零偏进行随机化。"""
     if env_ids is None:
         env_ids = torch.arange(env.scene.num_envs, device=env.device)
     elif not isinstance(env_ids, torch.Tensor):
@@ -287,8 +270,8 @@ def randomize_action_joint_pos_offset(
     action_term = env.action_manager.get_term(action_term_name)
     if not hasattr(action_term, "_offset") or not isinstance(action_term._offset, torch.Tensor):
         raise TypeError(
-            f"Action term '{action_term_name}' does not expose a tensor '_offset', "
-            "so it cannot be used for motor zero-offset randomization."
+            f"动作项 '{action_term_name}' 未暴露张量 '_offset'，"
+            "无法用于电机零偏随机化。"
         )
 
     cache_name = f"_default_action_offset_{action_term_name}"

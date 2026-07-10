@@ -1,19 +1,20 @@
+"""LegBot 强化学习环境定义。
+
+复用 Go2 的自定义动作管理器以支持动作平滑性奖励。
+"""
+
 from isaaclab.envs import ManagerBasedRLEnv, ManagerBasedRLEnvCfg
 
 from robot_lab.tasks.go2.manager.action_manager import ActionManagerGo2
 
 
 class LegbotEnv(ManagerBasedRLEnv):
-    """LegBot environment.
-
-    Reuses Go2's ActionManagerGo2 which maintains _prev_prev_action
-    for second-order action smoothness reward computation.
-    """
+    """LegBot 四足机器人强化学习环境。"""
 
     cfg: ManagerBasedRLEnvCfg
 
     def load_managers(self):
+        """加载管理器并覆盖为 Go2 动作管理器。"""
         super().load_managers()
-        # override action manager (same as Go2)
         self.action_manager = ActionManagerGo2(self.cfg.actions, self)
-        print("[LegbotEnv-INFO] Overriding action manager with ActionManagerGo2: ", self.action_manager)
+        print('[LegbotEnv-INFO] 使用 ActionManagerGo2 覆盖动作管理器: ', self.action_manager)

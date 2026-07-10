@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""This sub-module contains the functions that are specific to the locomotion environments."""
+"""该子模块包含移动环境相关的马尔可夫决策过程函数。"""
 
 from isaaclab.envs.mdp import *  # noqa: F401, F403
 from isaaclab_tasks.manager_based.locomotion.velocity.mdp import *  # noqa: F401, F403

@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Helper functions."""
+"""工具函数集合。"""
 
 from .utils import (
     get_param,
@@ -17,12 +17,12 @@ from .utils import (
 from .exporter_cts import export_cts_policy_as_jit
 
 __all__ = [
-    "export_cts_policy_as_jit",
-    "get_param",
-    "resolve_callable",
-    "resolve_nn_activation",
-    "resolve_obs_groups",
-    "resolve_optimizer",
-    "split_and_pad_trajectories",
-    "unpad_trajectories",
+    'export_cts_policy_as_jit',
+    'get_param',
+    'resolve_callable',
+    'resolve_nn_activation',
+    'resolve_obs_groups',
+    'resolve_optimizer',
+    'split_and_pad_trajectories',
+    'unpad_trajectories',
 ]

@@ -34,9 +34,9 @@ class PPORunnerCfg(RslRlOnPolicyRunnerCfg):
 class RslRlMoeCtsActorCriticCfg(RslRlPpoActorCriticCfg):
     class_name = "ActorCriticMoECTS"
     init_noise_std = 1.0
-    expert_num = 8 # number of experts in the student model
+    expert_num = 8 # 学生模型中的专家数量
     latent_dim = 32
-    norm_type = 'l2norm' # normalization type for encoders: l2norm, simnorm
+    norm_type = 'l2norm' # 编码器归一化类型：l2norm、simnorm
     teacher_encoder_hidden_dims = [512, 256]
     student_encoder_hidden_dims = [512, 256, 256]
     actor_hidden_dims=[512, 256, 128]
@@ -49,7 +49,7 @@ class RslRlMoeCtsActorCriticCfg(RslRlPpoActorCriticCfg):
 class RslRlMoeCtsAlgorithmCfg(RslRlPpoAlgorithmCfg):
     class_name = "MoECTS"
     value_loss_coef = 1.0
-    load_balance_coef = 0.01  # coefficient for load balance loss
+    load_balance_coef = 0.01  # 负载均衡损失系数
     use_clipped_value_loss = True
     clip_param = 0.2
     entropy_coef = 0.01
@@ -64,7 +64,7 @@ class RslRlMoeCtsAlgorithmCfg(RslRlPpoAlgorithmCfg):
     weight_decay = 0.0
     desired_kl = 0.01
     max_grad_norm = 1.0
-    teacher_env_ratio = 0.75  # percentage of envs assigned to teacher
+    teacher_env_ratio = 0.75  # 分配给教师网络的环境比例
 
 @configclass
 class MoECTSRunnerCfg(RslRlOnPolicyRunnerCfg):
@@ -77,7 +77,7 @@ class MoECTSRunnerCfg(RslRlOnPolicyRunnerCfg):
     algorithm = RslRlMoeCtsAlgorithmCfg()
     obs_groups: dict = {"policy": ["policy"], "critic": ["critic"]}
 
-# concat elu inspired by concat relu from https://arxiv.org/pdf/2303.07507
+# 受 https://arxiv.org/pdf/2303.07507 中 concat relu 启发，使用 concat elu
 @configclass
 class MoECTSCatELURunnerCfg(MoECTSRunnerCfg):
     def __post_init__(self):

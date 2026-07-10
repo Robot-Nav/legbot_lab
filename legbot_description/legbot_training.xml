@@ -50,7 +50,7 @@
       <geom name="collision_low_bar_RL_box" size="0.008 0.008 0.0065" pos="-0.108 0.042 -0.086" type="box" class="collision" />
       <geom name="collision_low_bar_RR_box" size="0.008 0.008 0.0065" pos="-0.108 -0.042 -0.086" type="box" class="collision" />
 
-      <body name="FR_hip" pos="0.18453 -0.051 0">
+      <body name="FR_hip" pos="0.18453 -0.051 0.012">
         <inertial pos="-0.027882 0.015355 0" quat="-0.137609 0.678417 0.233155 0.682973" mass="0.079643" diaginertia="8.72171e-05 7.7874e-05 2.29089e-05" />
         <joint name="FR_hip_joint" class="R_hip_joint" />
         <geom name="visual_FR_hip" type="cylinder" size="0.046 0.02" pos="0 -0.04875 0" quat="0.707107 0 0.707107 0" rgba="0.898039 0.917647 0.929412 1" class="visual" />
@@ -79,7 +79,7 @@
         </body>
       </body>
 
-      <body name="FL_hip" pos="0.18453 0.051 0">
+      <body name="FL_hip" pos="0.18453 0.051 0.012">
         <inertial pos="-0.027882 -0.015355 0" quat="0.137609 0.678417 -0.233155 0.682973" mass="0.079643" diaginertia="8.72171e-05 7.7874e-05 2.29089e-05" />
         <joint name="FL_hip_joint" class="L_hip_joint" />
         <geom name="visual_FL_hip" type="cylinder" size="0.046 0.02" pos="0 0.04875 0" quat="0.707107 0 0.707107 0" rgba="1 1 1 1" class="visual" />
@@ -108,7 +108,7 @@
         </body>
       </body>
 
-      <body name="RR_hip" pos="-0.18453 -0.051 0">
+      <body name="RR_hip" pos="-0.18453 -0.051 0.012">
         <inertial pos="0.027882 0.015355 0" quat="0.233155 0.682973 -0.137609 0.678417" mass="0.079643" diaginertia="8.72171e-05 7.7874e-05 2.29089e-05" />
         <joint name="RR_hip_joint" class="R_hip_joint" />
         <geom name="visual_RR_hip" type="cylinder" size="0.046 0.02" pos="0 -0.04875 0" quat="0.707107 0 0.707107 0" rgba="0.898039 0.917647 0.929412 1" class="visual" />
@@ -137,7 +137,7 @@
         </body>
       </body>
 
-      <body name="RL_hip" pos="-0.18453 0.051 0">
+      <body name="RL_hip" pos="-0.18453 0.051 0.012">
         <inertial pos="0.027882 -0.015355 0" quat="-0.233155 0.682973 0.137609 0.678417" mass="0.079643" diaginertia="8.72171e-05 7.7874e-05 2.29089e-05" />
         <joint name="RL_hip_joint" class="L_hip_joint" />
         <geom name="visual_RL_hip" type="cylinder" size="0.046 0.02" pos="0 0.04875 0" quat="0.707107 0 0.707107 0" rgba="1 1 1 1" class="visual" />

@@ -1,10 +1,9 @@
 # Copyright (c) 2024-2025 Ziqi Fan
 # SPDX-License-Identifier: Apache-2.0
 
-"""Common functions that can be used to create curriculum for the learning environment.
+"""用于学习环境的课程学习公共函数。
 
-The functions can be passed to the :class:`isaaclab.managers.CurriculumTermCfg` object to enable
-the curriculum introduced by the function.
+这些函数可传递给 :class:`isaaclab.managers.CurriculumTermCfg` 对象以启用相应课程。
 """
 
 from __future__ import annotations
@@ -24,9 +23,9 @@ def command_levels_lin_vel(
     reward_term_name: str,
     range_multiplier: Sequence[float] = (0.1, 1.0),
 ) -> None:
-    """command_levels_lin_vel"""
+    """线速度指令课程。"""
     base_velocity_ranges = env.command_manager.get_term("base_velocity").cfg.ranges
-    # Get original velocity ranges (ONLY ON FIRST EPISODE)
+    # 仅在第一个 episode 获取原始速度范围
     if env.common_step_counter == 0:
         env._original_vel_x = torch.tensor(base_velocity_ranges.lin_vel_x, device=env.device)
         env._original_vel_y = torch.tensor(base_velocity_ranges.lin_vel_y, device=env.device)
@@ -35,26 +34,26 @@ def command_levels_lin_vel(
         env._initial_vel_y = env._original_vel_y * range_multiplier[0]
         env._final_vel_y = env._original_vel_y * range_multiplier[1]
 
-        # Initialize command ranges to initial values
+        # 将指令范围初始化为起始值
         base_velocity_ranges.lin_vel_x = env._initial_vel_x.tolist()
         base_velocity_ranges.lin_vel_y = env._initial_vel_y.tolist()
 
-    # avoid updating command curriculum at each step since the maximum command is common to all envs
+    # 避免每步更新指令课程，因为最大指令对所有环境共享
     if env.common_step_counter % env.max_episode_length == 0:
         episode_sums = env.reward_manager._episode_sums[reward_term_name]
         reward_term_cfg = env.reward_manager.get_term_cfg(reward_term_name)
         delta_command = torch.tensor([-0.1, 0.1], device=env.device)
 
-        # If the tracking reward is above 80% of the maximum, increase the range of commands
+        # 若跟踪奖励超过最大值的 80%，则扩大指令范围
         if torch.mean(episode_sums[env_ids]) / env.max_episode_length_s > 0.8 * reward_term_cfg.weight:
             new_vel_x = torch.tensor(base_velocity_ranges.lin_vel_x, device=env.device) + delta_command
             new_vel_y = torch.tensor(base_velocity_ranges.lin_vel_y, device=env.device) + delta_command
 
-            # Clamp to ensure we don't exceed final ranges
+            # 限制不超过最终范围
             new_vel_x = torch.clamp(new_vel_x, min=env._final_vel_x[0], max=env._final_vel_x[1])
             new_vel_y = torch.clamp(new_vel_y, min=env._final_vel_y[0], max=env._final_vel_y[1])
 
-            # Update ranges
+            # 更新范围
             base_velocity_ranges.lin_vel_x = new_vel_x.tolist()
             base_velocity_ranges.lin_vel_y = new_vel_y.tolist()
 
@@ -67,31 +66,31 @@ def command_levels_ang_vel(
     reward_term_name: str,
     range_multiplier: Sequence[float] = (0.1, 1.0),
 ) -> None:
-    """command_levels_ang_vel"""
+    """角速度指令课程。"""
     base_velocity_ranges = env.command_manager.get_term("base_velocity").cfg.ranges
-    # Get original angular velocity ranges (ONLY ON FIRST EPISODE)
+    # 仅在第一个 episode 获取原始角速度范围
     if env.common_step_counter == 0:
         env._original_ang_vel_z = torch.tensor(base_velocity_ranges.ang_vel_z, device=env.device)
         env._initial_ang_vel_z = env._original_ang_vel_z * range_multiplier[0]
         env._final_ang_vel_z = env._original_ang_vel_z * range_multiplier[1]
 
-        # Initialize command ranges to initial values
+        # 将指令范围初始化为起始值
         base_velocity_ranges.ang_vel_z = env._initial_ang_vel_z.tolist()
 
-    # avoid updating command curriculum at each step since the maximum command is common to all envs
+    # 避免每步更新指令课程，因为最大指令对所有环境共享
     if env.common_step_counter % env.max_episode_length == 0:
         episode_sums = env.reward_manager._episode_sums[reward_term_name]
         reward_term_cfg = env.reward_manager.get_term_cfg(reward_term_name)
         delta_command = torch.tensor([-0.1, 0.1], device=env.device)
 
-        # If the tracking reward is above 80% of the maximum, increase the range of commands
+        # 若跟踪奖励超过最大值的 80%，则扩大指令范围
         if torch.mean(episode_sums[env_ids]) / env.max_episode_length_s > 0.8 * reward_term_cfg.weight:
             new_ang_vel_z = torch.tensor(base_velocity_ranges.ang_vel_z, device=env.device) + delta_command
 
-            # Clamp to ensure we don't exceed final ranges
+            # 限制不超过最终范围
             new_ang_vel_z = torch.clamp(new_ang_vel_z, min=env._final_ang_vel_z[0], max=env._final_ang_vel_z[1])
 
-            # Update ranges
+            # 更新范围
             base_velocity_ranges.ang_vel_z = new_ang_vel_z.tolist()
 
     return torch.tensor(base_velocity_ranges.ang_vel_z[1], device=env.device)
@@ -102,9 +101,7 @@ def command_curriculum(
     command_term_name: str,
     num_steps_per_iter: int = 24,
 ) -> float:
-    """
-    阶跃式指令课程 (数据存储在 CommandCfg 中)。
-    """
+    """阶跃式指令课程（数据存储在 CommandCfg 中）。"""
     try:
         cmd_term = env.command_manager.get_term(command_term_name)
         cmd_cfg = cmd_term.cfg
@@ -182,7 +179,7 @@ def gradual_reward_weight_modification(
     start_it: int,
     end_it: int,
 ):
-    """Curriculum that gradually modifies a reward weight between an initial and final value over a range of steps."""
+    """在指定步数范围内将奖励权重从初始值渐变到最终值的课程。"""
     current_it = env.common_step_counter // 24
     if current_it < start_it:
         return
@@ -197,9 +194,7 @@ def gradual_reward_weight_modification(
     env.reward_manager.set_term_cfg(term_name, term_cfg)
     
 def terrain_levels_vel_gym(env: ManagerBasedRLEnv, env_ids: Sequence[int]) -> float:
-    """
-    使用 max_move_distance 而非 reset 时的瞬间位移, 比较标准基于 commands_xy_accumulation
-    """
+    """使用 max_move_distance 而非 reset 时的瞬间位移，比较标准基于 commands_xy_accumulation。"""
     terrain = env.scene.terrain
     command: Go2RLGymCommand = env.command_manager.get_term("base_velocity")
 

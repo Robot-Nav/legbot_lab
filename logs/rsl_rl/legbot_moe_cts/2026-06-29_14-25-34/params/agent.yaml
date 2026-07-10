@@ -1,0 +1,70 @@
+seed: 42
+device: cuda:0
+num_steps_per_env: 24
+max_iterations: 300000
+empirical_normalization: false
+policy:
+  class_name: ActorCriticMoECTS
+  init_noise_std: 1.0
+  noise_std_type: scalar
+  actor_hidden_dims:
+  - 512
+  - 256
+  - 128
+  critic_hidden_dims:
+  - 512
+  - 256
+  - 128
+  activation: elu
+  expert_num: 8
+  latent_dim: 32
+  norm_type: l2norm
+  teacher_encoder_hidden_dims:
+  - 512
+  - 256
+  student_encoder_hidden_dims:
+  - 512
+  - 256
+  - 256
+  actor_obs_normalization: false
+  critic_obs_normalization: false
+algorithm:
+  class_name: MoECTS
+  num_learning_epochs: 5
+  num_mini_batches: 4
+  learning_rate: 0.001
+  schedule: adaptive
+  gamma: 0.99
+  lam: 0.95
+  entropy_coef: 0.01
+  desired_kl: 0.01
+  max_grad_norm: 1.0
+  value_loss_coef: 1.0
+  use_clipped_value_loss: true
+  clip_param: 0.2
+  normalize_advantage_per_mini_batch: false
+  symmetry_cfg: null
+  rnd_cfg: null
+  load_balance_coef: 0.01
+  student_encoder_learning_rate: 0.001
+  betas: !!python/tuple
+  - 0.9
+  - 0.999
+  weight_decay: 0.0
+  teacher_env_ratio: 0.75
+clip_actions: null
+save_interval: 500
+experiment_name: legbot_moe_cts
+run_name: ''
+logger: tensorboard
+neptune_project: isaaclab
+wandb_project: isaaclab
+resume: true
+load_run: 2026-06-27_11-08-53
+load_checkpoint: model_155500.pt
+class_name: OnPolicyRunnerCTS
+obs_groups:
+  policy:
+  - policy
+  critic:
+  - critic

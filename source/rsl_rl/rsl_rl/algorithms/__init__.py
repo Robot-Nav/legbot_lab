@@ -3,10 +3,10 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Implementation of different learning algorithms."""
+"""强化学习算法实现。"""
 
 from .distillation import Distillation
 from .ppo import PPO
 from .moe_cts import MoECTS
 
-__all__ = ["PPO", "Distillation", "MoECTS"]
+__all__ = ['PPO', 'Distillation', 'MoECTS']

@@ -1,0 +1,52 @@
+<mujoco>
+  <compiler angle="radian" assetdir="assets" autolimits="true"/>
+
+  <asset>
+
+    <!-- Textures -->
+    <texture type="2d" colorspace="sRGB" name="ball01" file="ball01.png"/>
+    <texture type="2d" colorspace="linear" name="ball01_ro" file="ball01_ro.png"/>
+
+    <!-- Materials -->
+    <material name="MI_ROLLBALL" rgba="1 1 1 1" reflectance="0.5" metallic="0.20000000298023224" roughness="1.0">
+      <layer texture="ball01" role="rgb"/>
+      <layer texture="ball01_ro" role="orm"/>
+    </material>
+    <material name="MI_gold" rgba="1.0 0.7726222276687622 0.06890170276165009 1.0" reflectance="0.5" metallic="1.0" roughness="0.15000000596046448"/>
+
+    <!-- Visual meshes -->
+    <mesh class="visual" name="V_ROLLBALL" file="V_ROLLBALL.obj"/>
+    <mesh class="visual" name="V_ROLLBALL_in" file="V_ROLLBALL_in.obj"/>
+
+    <!-- Collision meshes -->
+  </asset>
+
+  <default>
+      <default class="visual">
+        <geom type="mesh" contype="0" conaffinity="0" group="2" density="0"/>
+      </default>
+      <default class="collision">
+        <geom type="mesh" rgba="1 1 1 1" group="3" contype="1" conaffinity="1"/>
+          <default class="C_ROLLBALL">
+            <geom type="sphere" rgba="1 1 1 1" size="0.375" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" density="1000.0"/>
+          </default>
+      </default>
+  </default>
+
+  <worldbody>
+
+    <body name="B_body" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+      <geom class="C_ROLLBALL"/>
+      <geom class="visual" mesh="V_ROLLBALL" pos="0.0 0.0 0.0" quat="0.5000000596046448 -0.5 0.5 0.4999999403953552" material="MI_ROLLBALL"/>
+      <geom class="visual" mesh="V_ROLLBALL_in" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" material="MI_gold"/>
+    </body>
+  </worldbody>
+  <contact>
+  </contact>
+  <equality>
+  </equality>
+  <tendon>
+  </tendon>
+  <actuator>
+  </actuator>
+</mujoco>

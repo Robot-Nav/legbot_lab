@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+"""通用工具函数：激活函数/优化器解析、轨迹处理、可调用对象解析等。"""
+
 from __future__ import annotations
 
 import importlib
@@ -16,11 +18,11 @@ import rsl_rl
 
 
 def get_param(param: Any, idx: int) -> Any:
-    """Get a parameter for the given index.
+    """获取索引对应的参数值。
 
-    Args:
-        param: Parameter or list/tuple of parameters.
-        idx: Index to get the parameter for.
+    参数:
+        param: 单个参数或参数列表/元组。
+        idx: 目标索引。
     """
     if isinstance(param, (tuple, list)):
         return param[idx]
@@ -29,125 +31,125 @@ def get_param(param: Any, idx: int) -> Any:
 
 
 def resolve_nn_activation(act_name: str) -> torch.nn.Module:
-    """Resolve the activation function from the name.
+    """根据名称解析激活函数。
 
-    Args:
-        act_name: Name of the activation function.
+    参数:
+        act_name: 激活函数名称。
 
-    Returns:
-        The activation function.
+    返回:
+        对应的激活函数模块。
 
-    Raises:
-        ValueError: If the activation function is not found.
+    抛出:
+        ValueError: 未找到对应激活函数时。
     """
     act_dict = {
-        "elu": torch.nn.ELU(),
-        "selu": torch.nn.SELU(),
-        "relu": torch.nn.ReLU(),
-        "crelu": torch.nn.CELU(),
-        "lrelu": torch.nn.LeakyReLU(),
-        "tanh": torch.nn.Tanh(),
-        "sigmoid": torch.nn.Sigmoid(),
-        "softplus": torch.nn.Softplus(),
-        "gelu": torch.nn.GELU(),
-        "swish": torch.nn.SiLU(),
-        "mish": torch.nn.Mish(),
-        "identity": torch.nn.Identity(),
+        'elu': torch.nn.ELU(),
+        'selu': torch.nn.SELU(),
+        'relu': torch.nn.ReLU(),
+        'crelu': torch.nn.CELU(),
+        'lrelu': torch.nn.LeakyReLU(),
+        'tanh': torch.nn.Tanh(),
+        'sigmoid': torch.nn.Sigmoid(),
+        'softplus': torch.nn.Softplus(),
+        'gelu': torch.nn.GELU(),
+        'swish': torch.nn.SiLU(),
+        'mish': torch.nn.Mish(),
+        'identity': torch.nn.Identity(),
     }
 
     act_name = act_name.lower()
     if act_name in act_dict:
         return act_dict[act_name]
     else:
-        raise ValueError(f"Invalid activation function '{act_name}'. Valid activations are: {list(act_dict.keys())}")
+        raise ValueError(f'无效激活函数：{act_name}，可用：{list(act_dict.keys())}')
 
 
 def resolve_optimizer(optimizer_name: str) -> torch.optim.Optimizer:
-    """Resolve the optimizer from the name.
+    """根据名称解析优化器。
 
-    Args:
-        optimizer_name: Name of the optimizer.
+    参数:
+        optimizer_name: 优化器名称。
 
-    Returns:
-        The optimizer.
+    返回:
+        对应的优化器类。
 
-    Raises:
-        ValueError: If the optimizer is not found.
+    抛出:
+        ValueError: 未找到对应优化器时。
     """
     optimizer_dict = {
-        "adam": torch.optim.Adam,
-        "adamw": torch.optim.AdamW,
-        "sgd": torch.optim.SGD,
-        "rmsprop": torch.optim.RMSprop,
+        'adam': torch.optim.Adam,
+        'adamw': torch.optim.AdamW,
+        'sgd': torch.optim.SGD,
+        'rmsprop': torch.optim.RMSprop,
     }
 
     optimizer_name = optimizer_name.lower()
     if optimizer_name in optimizer_dict:
         return optimizer_dict[optimizer_name]
     else:
-        raise ValueError(f"Invalid optimizer '{optimizer_name}'. Valid optimizers are: {list(optimizer_dict.keys())}")
+        raise ValueError(f'无效优化器：{optimizer_name}，可用：{list(optimizer_dict.keys())}')
 
 
 def split_and_pad_trajectories(
     tensor: torch.Tensor | TensorDict, dones: torch.Tensor
 ) -> tuple[torch.Tensor | TensorDict, torch.Tensor]:
-    """Split trajectories at done indices.
+    """在终止位置切分轨迹并填充到相同长度。
 
-    Split trajectories, concatenate them and pad with zeros up to the length of the longest trajectory. Return masks
-    corresponding to valid parts of the trajectories.
+    将轨迹按终止标志切分、拼接，并用零填充至最长轨迹长度；
+    同时返回标识有效部分的掩码。
 
-    Example (transposed for readability):
-        Input: [[a1, a2, a3, a4 | a5, a6],
-                 [b1, b2 | b3, b4, b5 | b6]]
+    输入维度顺序：[time, num_envs, ...]
 
-        Output:[[a1, a2, a3, a4], | [[True, True, True, True],
-                [a5, a6, 0, 0],   |  [True, True, False, False],
-                [b1, b2, 0, 0],   |  [True, True, False, False],
-                [b3, b4, b5, 0],  |  [True, True, True, False],
-                [b6, 0, 0, 0]]    |  [True, False, False, False]]
+    示例：
+        输入：[[a1, a2, a3, a4 | a5, a6],
+              [b1, b2 | b3, b4, b5 | b6]]
 
-    Assumes that the input has the following order of dimensions: [time, number of envs, additional dimensions]
+        输出：[[a1, a2, a3, a4],  | [[True, True, True, True],
+              [a5, a6, 0, 0],    |  [True, True, False, False],
+              [b1, b2, 0, 0],    |  [True, True, False, False],
+              [b3, b4, b5, 0],   |  [True, True, True, False],
+              [b6, 0, 0, 0]]     |  [True, False, False, False]]
     """
     dones = dones.clone()
     dones[-1] = 1
-    # Permute the buffers to have the order (num_envs, num_transitions_per_env, ...) for correct reshaping
+    # 调整维度顺序为 (num_envs, time, ...) 以便正确 reshape
     flat_dones = dones.transpose(1, 0).reshape(-1, 1)
-    # Get length of trajectory by counting the number of successive not done elements
+    # 通过统计连续未终止元素数量得到轨迹长度
     done_indices = torch.cat((flat_dones.new_tensor([-1], dtype=torch.int64), flat_dones.nonzero()[:, 0]))
     trajectory_lengths = done_indices[1:] - done_indices[:-1]
     trajectory_lengths_list = trajectory_lengths.tolist()
-    # Extract the individual trajectories
+    # 提取每条轨迹
     if isinstance(tensor, TensorDict):
         padded_trajectories = {}
         for k, v in tensor.items():
-            # Split the tensor into trajectories
+            # 切分轨迹
             trajectories = torch.split(v.transpose(1, 0).flatten(0, 1), trajectory_lengths_list)
-            # Add at least one full length trajectory
+            # 添加一条完整长度的零轨迹以支持 pad_sequence
             trajectories = (*trajectories, torch.zeros(v.shape[0], *v.shape[2:], device=v.device))
-            # Pad the trajectories to the length of the longest trajectory
+            # 填充至最长轨迹
             padded_trajectories[k] = torch.nn.utils.rnn.pad_sequence(trajectories)  # type: ignore
-            # Remove the added trajectory
+            # 移除添加的零轨迹
             padded_trajectories[k] = padded_trajectories[k][:, :-1]
         padded_trajectories = TensorDict(
             padded_trajectories, batch_size=[tensor.batch_size[0], len(trajectory_lengths_list)], device=tensor.device
         )
     else:
-        # Split the tensor into trajectories
+        # 切分轨迹
         trajectories = torch.split(tensor.transpose(1, 0).flatten(0, 1), trajectory_lengths_list)
-        # Add at least one full length trajectory
+        # 添加一条完整长度的零轨迹以支持 pad_sequence
         trajectories = (*trajectories, torch.zeros(tensor.shape[0], *tensor.shape[2:], device=tensor.device))
-        # Pad the trajectories to the length of the longest trajectory
+        # 填充至最长轨迹
         padded_trajectories = torch.nn.utils.rnn.pad_sequence(trajectories)  # type: ignore
-        # Remove the added trajectory
+        # 移除添加的零轨迹
         padded_trajectories = padded_trajectories[:, :-1]
-    # Create masks for the valid parts of the trajectories
+    # 构造有效部分掩码
     trajectory_masks = trajectory_lengths > torch.arange(0, tensor.shape[0], device=tensor.device).unsqueeze(1)
     return padded_trajectories, trajectory_masks
 
 
 def unpad_trajectories(trajectories: torch.Tensor | TensorDict, masks: torch.Tensor) -> torch.Tensor | TensorDict:
-    """Do the inverse operation of `split_and_pad_trajectories()`."""
-    # Need to transpose before and after the masking to have proper reshaping
+    """split_and_pad_trajectories 的逆操作，将填充轨迹还原。"""
+    # 通过转置与掩码还原原始形状
     return (
         trajectories.transpose(1, 0)[masks.transpose(1, 0)]
         .view(-1, trajectories.shape[0], trajectories.shape[-1])
@@ -156,60 +158,55 @@ def unpad_trajectories(trajectories: torch.Tensor | TensorDict, masks: torch.Ten
 
 
 def resolve_callable(callable_or_name: type | Callable | str) -> Callable:
-    """Resolve a callable from a string, type, or return callable directly.
+    """将字符串、类型或可调用对象解析为可调用对象。
 
-    This function enables passing custom classes or functions directly or as strings. The following formats are
-    supported:
-        - Direct callable: Pass a type or function directly (e.g., MyClass, my_func)
-        - Qualified name with colon: "module.path:Attr.Nested" (explicit, recommended)
-        - Qualified name with dot: "module.path.ClassName" (implicit)
-        - Simple name: e.g. "PPO", "ActorCritic", ... (looks for callable in rsl_rl)
+    支持以下格式：
+        - 直接传入类型或函数（如 MyClass、my_func）。
+        - 冒号分隔限定名：'module.path:Attr.Nested'（推荐）。
+        - 点分隔限定名：'module.path.ClassName'。
+        - 简单名称：如 'PPO'、'ActorCritic'（在 rsl_rl 包中查找）。
 
-    Args:
-        callable_or_name: A callable (type/function) or string name.
+    参数:
+        callable_or_name: 可调用对象或字符串名称。
 
-    Returns:
-        The resolved callable.
+    返回:
+        解析后的可调用对象。
 
-    Raises:
-        TypeError: If input is neither a callable nor a string.
-        ImportError: If the module cannot be imported.
-        AttributeError: If the attribute cannot be found in the module.
-        ValueError: If a simple name cannot be found in rsl_rl packages.
+    抛出:
+        TypeError: 输入既不是可调用对象也不是字符串。
+        ImportError: 模块无法导入。
+        AttributeError: 模块中找不到对应属性。
+        ValueError: 简单名称在 rsl_rl 包中找不到。
     """
-    # Already a callable - return directly
+    # 直接传入可调用对象
     if callable(callable_or_name):
         return callable_or_name
 
-    # Must be a string at this point
+    # 必须是字符串
     if not isinstance(callable_or_name, str):
-        raise TypeError(f"Expected callable or string, got {type(callable_or_name)}")
+        raise TypeError(f'期望可调用对象或字符串，得到 {type(callable_or_name)}')
 
-    # Handle qualified name with colon separator (e.g., "module.path:Attr.Nested")
-    if ":" in callable_or_name:
-        module_path, attr_path = callable_or_name.rsplit(":", 1)
-        # Try to import the module
+    # 冒号分隔（如 'module.path:Attr.Nested'）
+    if ':' in callable_or_name:
+        module_path, attr_path = callable_or_name.rsplit(':', 1)
         module = importlib.import_module(module_path)
-        # Try to get the attribute
         obj = module
-        for attr in attr_path.split("."):
+        for attr in attr_path.split('.'):
             obj = getattr(obj, attr)
         return obj  # type: ignore
 
-    # Handle qualified name with dot separator (e.g., "module.path.ClassName")
-    if "." in callable_or_name:
-        parts = callable_or_name.split(".")
+    # 点分隔（如 'module.path.ClassName'）
+    if '.' in callable_or_name:
+        parts = callable_or_name.split('.')
         module_found = False
         for i in range(len(parts) - 1, 0, -1):
-            # Try to import the module with the first i parts
-            module_path = ".".join(parts[:i])
+            module_path = '.'.join(parts[:i])
             attr_parts = parts[i:]
             try:
                 module = importlib.import_module(module_path)
             except ModuleNotFoundError:
                 continue
             module_found = True
-            # Once a module is found, try to get the attribute
             obj = module
             try:
                 for attr in attr_parts:
@@ -218,123 +215,106 @@ def resolve_callable(callable_or_name: type | Callable | str) -> Callable:
             except AttributeError:
                 continue
         if module_found:
-            raise AttributeError(f"Could not resolve '{callable_or_name}': attribute not found in module")
+            raise AttributeError(f"无法解析 '{callable_or_name}'：模块中未找到对应属性")
         else:
-            raise ImportError(f"Could not resolve '{callable_or_name}': no valid module.attr split found")
+            raise ImportError(f"无法解析 '{callable_or_name}'：未找到有效的 module.attr 切分")
 
-    # Simple name - look for it in rsl_rl
-    for _, module_name, _ in pkgutil.iter_modules(rsl_rl.__path__, "rsl_rl."):
+    # 简单名称：在 rsl_rl 包中查找
+    for _, module_name, _ in pkgutil.iter_modules(rsl_rl.__path__, 'rsl_rl.'):
         module = importlib.import_module(module_name)
         if hasattr(module, callable_or_name):
             return getattr(module, callable_or_name)
 
-    # Raise error if no approach worked
+    # 全部失败则抛出异常
     raise ValueError(
-        f"Could not resolve '{callable_or_name}'. Use qualified name like 'module.path:ClassName' "
-        f"or pass the class directly."
+        f"无法解析 '{callable_or_name}'。请使用 'module.path:ClassName' 形式的限定名或直接传入类。"
     )
 
 
 def resolve_obs_groups(
     obs: TensorDict, obs_groups: dict[str, list[str]], default_sets: list[str]
 ) -> dict[str, list[str]]:
-    """Validate the observation configuration and resolve missing observation sets.
+    """校验观测配置并解析缺失的观测集合。
 
-    The input is an observation dictionary `obs` containing observation groups and a configuration dictionary
-    `obs_groups` where the keys are the observation sets and the values are lists of observation groups.
-
-    The configuration dictionary could for example look like:
+    输入 obs 包含环境返回的观测组，obs_groups 定义各观测集合使用的观测组列表，例如：
         {
-            "policy": ["group_1", "group_2"],
-            "critic": ["group_1", "group_3"]
+            'policy': ['group_1', 'group_2'],
+            'critic': ['group_1', 'group_3']
         }
 
-    This means that the 'policy' observation set will contain the observations "group_1" and "group_2" and the 'critic'
-    observation set will contain the observations "group_1" and "group_3". This function will check that all the
-    observations in the 'policy' and 'critic' observation sets are present in the observation dictionary from the
-    environment.
+    函数会检查 obs_groups 中所有观测组都存在于环境观测中。
 
-    Additionally, if one of the `default_sets`, e.g. "critic", is not present in the configuration dictionary, this
-    function will:
+    若 default_sets 中某项（如 'critic'）未在 obs_groups 中提供，则按以下规则默认填充：
+        1. 若环境观测中存在同名组，则将该组作为该观测集合。
+        2. 否则使用 'policy' 观测集合的观测组。
 
-    1. Check if a group with the same name exists in the observations and assign this group to the observation set.
-    2. If 1. fails, it will assign the observations from the 'policy' observation set to the default observation set.
+    参数:
+        obs: 环境返回的观测字典。
+        obs_groups: 观测集合配置。
+        default_sets: 算法需要的保留观测集合名（除 'policy' 外）。
 
-    Args:
-        obs: Observations from the environment in the form of a dictionary.
-        obs_groups: Observation sets configuration.
-        default_sets: Reserved observation set names used by the algorithm (besides 'policy'). If not provided in
-            'obs_groups', a default behavior gets triggered.
+    返回:
+        解析后的观测集合配置。
 
-    Returns:
-        The resolved observation groups.
-
-    Raises:
-        ValueError: If any observation set is an empty list.
-        ValueError: If any observation set contains an observation term that is not present in the observations.
+    抛出:
+        ValueError: 观测集合为空列表，或包含环境不存在的观测组。
     """
-    # Check if policy observation set exists
-    if "policy" not in obs_groups:
-        if "policy" in obs:
-            obs_groups["policy"] = ["policy"]
+    # 检查 policy 观测集合
+    if 'policy' not in obs_groups:
+        if 'policy' in obs:
+            obs_groups['policy'] = ['policy']
             warnings.warn(
-                "The observation configuration dictionary 'obs_groups' must contain the 'policy' key."
-                " As an observation group with the name 'policy' was found, this is assumed to be the observation set."
-                " Consider adding the 'policy' key to the 'obs_groups' dictionary for clarity."
-                " This behavior will be removed in a future version."
+                "观测配置字典 'obs_groups' 必须包含 'policy' 键。"
+                "由于环境观测中存在名为 'policy' 的组，已将其作为 policy 观测集合。"
+                "建议显式在 'obs_groups' 中添加 'policy' 键。该默认行为将在未来版本移除。"
             )
         else:
             raise ValueError(
-                "The observation configuration dictionary 'obs_groups' must contain the 'policy' key."
-                f" Found keys: {list(obs_groups.keys())}"
+                f"观测配置字典 'obs_groups' 必须包含 'policy' 键。当前键：{list(obs_groups.keys())}"
             )
 
-    # Check all observation sets for valid observation groups
+    # 校验所有观测集合
     for set_name, groups in obs_groups.items():
-        # Check if the list is empty
+        # 不能为空列表
         if len(groups) == 0:
-            msg = f"The '{set_name}' key in the 'obs_groups' dictionary can not be an empty list."
+            msg = f"'obs_groups' 中的 '{set_name}' 键不能是空列表。"
             if set_name in default_sets:
                 if set_name not in obs:
-                    msg += " Consider removing the key to default to the observations used for the 'policy' set."
+                    msg += "建议删除该键以默认使用 'policy' 集合的观测组。"
                 else:
-                    msg += (
-                        f" Consider removing the key to default to the observation '{set_name}' from the environment."
-                    )
+                    msg += f"建议删除该键以默认使用环境中的 '{set_name}' 观测组。"
             raise ValueError(msg)
-        # Check groups exist inside the observations from the environment
+        # 检查观测组是否存在于环境观测中
         for group in groups:
             if group not in obs:
                 raise ValueError(
-                    f"Observation '{group}' in observation set '{set_name}' not found in the observations from the"
-                    f" environment. Available observations from the environment: {list(obs.keys())}"
+                    f"观测集合 '{set_name}' 中的观测组 '{group}' 不存在于环境观测中。"
+                    f"环境可用观测组：{list(obs.keys())}"
                 )
 
-    # Fill missing observation sets
+    # 填充缺失的默认观测集合
     for default_set_name in default_sets:
         if default_set_name not in obs_groups:
             if default_set_name in obs:
                 obs_groups[default_set_name] = [default_set_name]
                 warnings.warn(
-                    f"The observation configuration dictionary 'obs_groups' must contain the '{default_set_name}' key."
-                    f" As an observation group with the name '{default_set_name}' was found, this is assumed to be the"
-                    f" observation set. Consider adding the '{default_set_name}' key to the 'obs_groups' dictionary for"
-                    " clarity. This behavior will be removed in a future version."
+                    f"观测配置字典 'obs_groups' 必须包含 '{default_set_name}' 键。"
+                    f"由于环境观测中存在名为 '{default_set_name}' 的组，已将其作为该观测集合。"
+                    f"建议显式在 'obs_groups' 中添加 '{default_set_name}' 键。该默认行为将在未来版本移除。"
                 )
             else:
-                obs_groups[default_set_name] = obs_groups["policy"].copy()
+                obs_groups[default_set_name] = obs_groups['policy'].copy()
                 warnings.warn(
-                    f"The observation configuration dictionary 'obs_groups' must contain the '{default_set_name}' key."
-                    f" As the configuration for '{default_set_name}' is missing, the observations from the 'policy' set"
-                    f" are used. Consider adding the '{default_set_name}' key to the 'obs_groups' dictionary for"
-                    " clarity. This behavior will be removed in a future version."
+                    f"观测配置字典 'obs_groups' 必须包含 '{default_set_name}' 键。"
+                    f"由于缺少 '{default_set_name}' 配置，已使用 'policy' 集合的观测组。"
+                    f"建议显式在 'obs_groups' 中添加 '{default_set_name}' 键。该默认行为将在未来版本移除。"
                 )
 
-    # Print the final parsed observation sets
-    print("-" * 80)
-    print("Resolved observation sets: ")
+    # 打印最终解析结果
+    print('-' * 80)
+    print('解析后的观测集合：')
     for set_name, groups in obs_groups.items():
-        print("\t", set_name, ": ", groups)
-    print("-" * 80)
+        print('\t', set_name, ': ', groups)
+    print('-' * 80)
 
     return obs_groups

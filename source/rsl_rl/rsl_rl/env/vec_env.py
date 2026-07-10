@@ -3,89 +3,87 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+"""向量化环境抽象接口。"""
+
 from __future__ import annotations
 
-import torch
 from abc import ABC, abstractmethod
+
+import torch
 from tensordict import TensorDict
 
 
 class VecEnv(ABC):
-    """Abstract class for a vectorized environment.
+    """向量化环境抽象类。
 
-    The vectorized environment is a collection of environments that are synchronized. This means that the same type of
-    action is applied to all environments and the same type of observation is returned from all environments.
+    向量化环境是一组同步运行的环境集合：对所有环境应用相同类型的动作，
+    并返回相同类型的观测。
     """
 
     num_envs: int
-    """Number of environments."""
+    """环境数量。"""
 
     num_actions: int
-    """Number of actions."""
+    """动作维度。"""
 
     max_episode_length: int | torch.Tensor
-    """Maximum episode length.
+    """最大回合长度。
 
-    The maximum episode length can be a scalar or a tensor. If it is a scalar, it is the same for all environments.
-    If it is a tensor, it is the maximum episode length for each environment. This is useful for dynamic episode
-    lengths.
+    可以是标量（所有环境相同）或张量（每个环境独立），
+    用于支持动态回合长度。
     """
 
     episode_length_buf: torch.Tensor
-    """Buffer for current episode lengths."""
+    """当前各环境的回合长度缓冲区。"""
 
     device: torch.device | str
-    """Device to use."""
+    """计算设备。"""
 
     cfg: dict | object
-    """Configuration object."""
+    """配置对象。"""
 
     @abstractmethod
     def get_observations(self) -> TensorDict:
-        """Return the current observations.
+        """返回当前观测。
 
-        Returns:
-            The observations from the environment.
+        返回:
+            环境当前观测。
         """
         raise NotImplementedError
 
     @abstractmethod
     def step(self, actions: torch.Tensor) -> tuple[TensorDict, torch.Tensor, torch.Tensor, dict]:
-        """Apply input action to the environment.
+        """将动作应用到环境并推进一步。
 
-        Args:
-            actions: Input actions to apply. Shape: (num_envs, num_actions)
+        参数:
+            actions: 输入动作，形状：(num_envs, num_actions)。
 
-        Returns:
-            observations: Observations from the environment.
-            rewards: Rewards from the environment. Shape: (num_envs,)
-            dones: Done flags from the environment. Shape: (num_envs,)
-            extras: Extra information from the environment.
+        返回:
+            observations: 环境观测。
+            rewards: 环境奖励，形状：(num_envs,)。
+            dones: 环境终止标志，形状：(num_envs,)。
+            extras: 环境额外信息。
 
-        Observations:
-            The observations TensorDict usually contains multiple observation groups. The `obs_groups`
-            dictionary of the runner configuration specifies which observation groups are used for which
-            purpose, i.e., it maps the available observation groups to observation sets. The observation sets
-            (keys of the `obs_groups` dictionary) currently used by rsl_rl are:
+        观测说明:
+            返回的 TensorDict 通常包含多个观测组。runner 配置中的 `obs_groups`
+            定义了各观测集合使用哪些观测组，即将可用观测组映射到特定用途的观测集合。
+            RSL-RL 当前使用的观测集合包括：
 
-            - "policy": Specified observation groups are used as input to the actor/student network.
-            - "critic": Specified observation groups are used as input to the critic network.
-            - "teacher": Specified observation groups are used as input to the teacher network.
-            - "rnd_state": Specified observation groups are used as input to the RND network.
+            - 'policy': 指定观测组作为演员/学生网络输入。
+            - 'critic': 指定观测组作为评论家网络输入。
+            - 'teacher': 指定观测组作为教师网络输入。
+            - 'rnd_state': 指定观测组作为 RND 网络输入。
 
-            Incomplete or incorrect configurations are handled in the `resolve_obs_groups()` function in
-            `rsl_rl/utils/utils.py`.
+            不完整或错误的配置会在 `rsl_rl/utils/utils.py` 的 `resolve_obs_groups()` 中处理。
 
-        Extras:
-            The extras dictionary includes metrics such as the episode reward, episode length, etc. The following
-            dictionary keys are used by rsl_rl:
+        Extras 说明:
+            extras 字典包含回合奖励、回合长度等指标。RSL-RL 使用以下键：
 
-            - "time_outs" (torch.Tensor): Timeouts for the environments. These correspond to terminations that
-               happen due to time limits and not due to the environment reaching a terminal state. This is useful
-               for environments that have a fixed episode length.
+            - 'time_outs' (torch.Tensor): 因达到时间限制而触发的超时终止标志，
+              与环境到达真实终止状态不同，常用于固定长度回合。
 
-            - "log" (dict[str, float | torch.Tensor]): Additional information for logging and debugging purposes.
-               The key should be a string and start with "/" for namespacing. The value can be a scalar or a
-               tensor. If it is a tensor, the mean of the tensor is used for logging.
+            - 'log' (dict[str, float | torch.Tensor]): 用于日志与调试的附加信息。
+              键应为字符串，建议以 '/' 开头进行命名空间划分；值为标量或张量，
+              张量会自动取均值后记录。
         """
         raise NotImplementedError

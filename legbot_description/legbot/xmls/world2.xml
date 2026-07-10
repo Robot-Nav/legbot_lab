@@ -1,0 +1,17 @@
+<!-- world.xml -->
+<!-- 无灯光，纯场景碰撞 -->
+<mujoco>
+    <asset>
+    <model name="section01C" file="section01/0120_C_section01.xml"/>
+    <model name="section02C" file="section02/0120_C_section02.xml"/>
+    <model name="section03C" file="section03/0122_C_section03.xml"/>
+  </asset>
+  <worldbody>
+
+    <!-- 加载碰撞体场景文件 -->
+    <!-- 为了能辨认，带有基础材质 -->
+    <attach model="section01C" prefix="0"/>
+    <attach model="section02C" prefix="1"/>
+    <attach model="section03C" prefix="2"/>
+  </worldbody>
+</mujoco>

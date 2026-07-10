@@ -3,9 +3,9 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Implementation of transitions storage for RL-agent."""
+"""强化学习智能体转移数据存储实现。"""
 
 from .rollout_storage import RolloutStorage
 from .rollout_storage_cts import RolloutStorageCTS
 
-__all__ = ["RolloutStorage", "RolloutStorageCTS"]
+__all__ = ['RolloutStorage', 'RolloutStorageCTS']

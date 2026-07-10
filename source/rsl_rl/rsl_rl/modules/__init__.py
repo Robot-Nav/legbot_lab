@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Definitions for neural-network components for RL-agents."""
+"""强化学习智能体神经网络组件定义。"""
 
 from .actor_critic import ActorCritic
 from .actor_critic_cnn import ActorCriticCNN
@@ -15,13 +15,13 @@ from .student_teacher_recurrent import StudentTeacherRecurrent
 from .symmetry import resolve_symmetry_config
 
 __all__ = [
-    "ActorCritic",
-    "ActorCriticCNN",
-    "ActorCriticRecurrent",
-    "ActorCriticMoECTS",
-    "RandomNetworkDistillation",
-    "StudentTeacher",
-    "StudentTeacherRecurrent",
-    "resolve_rnd_config",
-    "resolve_symmetry_config",
+    'ActorCritic',
+    'ActorCriticCNN',
+    'ActorCriticRecurrent',
+    'ActorCriticMoECTS',
+    'RandomNetworkDistillation',
+    'StudentTeacher',
+    'StudentTeacherRecurrent',
+    'resolve_rnd_config',
+    'resolve_symmetry_config',
 ]
