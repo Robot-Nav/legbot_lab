@@ -1,4 +1,4 @@
-#  <p align="center"> Legbot Lab </p>
+<h1 align="center">Legbot Lab</h1>
 
 
 
@@ -39,7 +39,7 @@
   - [编译与运行](#编译与运行)
 - [MDP 定义](#mdp-定义)
   - [观测空间](#观测空间策略网络)
-  - [行动空间](#行动空间)
+  - [动作空间](#动作空间)
   - [Critic 特权信息](#critic-特权信息)
   - [终止条件](#终止条件)
 - [奖励函数设计](#奖励函数设计)
@@ -48,6 +48,9 @@
 - [安全保护机制](#安全保护机制)
 - [技术栈](#技术栈)
 - [项目团队](#项目团队)
+- [许可证](#许可证)
+- [引用](#引用)
+- [致谢](#致谢)
 
 ---
 
@@ -76,86 +79,153 @@ PPO 的核心思想是通过**裁剪策略更新幅度**来限制新旧策略之
 
 ### 算法公式
 
-#### 1. 策略梯度目标函数（Clipped Surrogate Objective）
 
-$$L^{CLIP}(\theta) = \hat{\mathbb{E}}_t \left[ \min \left( r_t(\theta) \hat{A}_t, \ \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_t \right) \right]$$
+#### 1. 裁剪代理目标（Clipped Surrogate Objective）
+
+PPO 通过重要性采样比率衡量新旧策略对同一动作的概率变化：
+
+$$
+r_t(\theta)=\frac{\pi_\theta(a_t\mid s_t)}{\pi_{\theta_{\mathrm{old}}}(a_t\mid s_t)}
+$$
+
+裁剪代理目标为：
+
+$$
+L^{\mathrm{CLIP}}(\theta)=\hat{\mathbb{E}}_t\left[\min\left(r_t(\theta)\hat{A}_t,\mathrm{clip}\left(r_t(\theta),1-\epsilon,1+\epsilon\right)\hat{A}_t\right)\right]
+$$
 
 其中：
-- $r_t(\theta) = \frac{\pi_\theta(a_t | s_t)}{\pi_{\theta_{old}}(a_t | s_t)}$ 是重要性采样比率
-- $\hat{A}_t$ 是优势函数估计值
-- $\epsilon$ 是裁剪参数（本项目设为 **0.2**）
 
-#### 2. 广义优势估计 (GAE)
+- $r_t(\theta)$ 为重要性采样比率；
+- $\hat{A}_t$ 为优势函数估计；
+- $\epsilon$ 为裁剪参数，本项目设置为 **0.2**。
 
-$$A_t^{GAE(\gamma, \lambda)} = \sum_{l=0}^{\infty} (\gamma \lambda)^l \delta_{t+l}$$
+#### 2. 广义优势估计（GAE）
 
-其中 $\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$ 是 TD 残差：
-- $\gamma$ 是折扣因子（本项目设为 **0.99**）
-- $\lambda$ 是 GAE 参数（本项目设为 **0.95**）
+为避免与重要性采样比率 $r_t(\theta)$ 混淆，下式使用 $R_t$ 表示时刻 $t$ 的即时奖励。
+
+TD 残差为：
+
+$$
+\delta_t=R_t+\gamma V_\phi(s_{t+1})-V_\phi(s_t)
+$$
+
+广义优势估计为：
+
+$$
+\hat{A}_t^{\mathrm{GAE}}=\sum_{l=0}^{\infty}(\gamma\lambda)^l\delta_{t+l}
+$$
+
+其中：
+
+- $\delta_t$ 为 TD 残差；
+- $\gamma$ 为折扣因子，本项目设置为 **0.99**；
+- $\lambda$ 为 GAE 参数，本项目设置为 **0.95**。
 
 #### 3. 价值函数损失
 
-$$L^{VF}(\phi) = \hat{\mathbb{E}}_t \left[ \frac{1}{2} \left( V_\phi(s_t) - \hat{R}_t \right)^2 \right]$$
-
-其中 $\hat{R}_t = A_t + V_\phi(s_t)$ 是目标回报。
-
-#### 4. 总损失函数
-
-$$L(\theta, \phi) = L^{CLIP}(\theta) - c_1 \cdot L^{VF}(\phi) + c_2 \cdot S[\pi_\theta](s_t)$$
-
-其中 $S[\pi_\theta]$ 是策略熵，鼓励探索。本项目设置：
-- 价值损失系数 $c_1 = 1.0$
-- 熵系数 $c_2 = 0.01$
-
-#### 5. 自适应学习率（KL 散度控制）
-
-PPO 使用自适应学习率，基于 KL 散度动态调整：
+价值网络使用目标价值作为监督信号：
 
 $$
-\text{if } KL > \text{desired\_kl} \times 2,\quad
-\alpha \leftarrow \alpha \times 1.5
+\hat{V}_t=\hat{A}_t+V_\phi(s_t)
 $$
 
+价值函数损失为：
+
 $$
-\text{if } KL < \text{desired\_kl} \times 0.5,\quad
-\alpha \leftarrow \alpha \times 0.67
+L^{\mathrm{VF}}(\phi)=\hat{\mathbb{E}}_t\left[\frac{1}{2}\left(V_\phi(s_t)-\hat{V}_t\right)^2\right]
 $$
 
-本项目目标 KL 散度设为 **0.01**。
+#### 4. PPO 总目标与训练损失
 
-#### 6. PD 控制器
+从最大化目标的角度，PPO 的组合目标可写为：
 
-策略输出关节位置命令，通过 PD 控制器转换为力矩：
+$$
+J(\theta,\phi)=L^{\mathrm{CLIP}}(\theta)-c_1L^{\mathrm{VF}}(\phi)+c_2H\left[\pi_\theta(\cdot\mid s_t)\right]
+$$
 
-$$\tau = K_p \cdot (q_{des} - q) + K_d \cdot (\dot{q}_{des} - \dot{q})$$
+实际程序通常采用梯度下降，因此最小化的总损失写为：
 
-其中 $K_p = 60$ N·m/rad，$K_d = 4.0$ N·m·s/rad。
+$$
+L_{\mathrm{total}}(\theta,\phi)=-L^{\mathrm{CLIP}}(\theta)+c_1L^{\mathrm{VF}}(\phi)-c_2H\left[\pi_\theta(\cdot\mid s_t)\right]
+$$
 
-#### 7. 动作映射
+其中，策略熵用于增加策略的探索能力。本项目的相关系数设置如下：
 
-$$q_{des} = q_{default} + 0.25 \cdot a$$
+* 价值损失系数：c₁ = 1.0；
+* 熵系数：c₂ = 0.01。
 
-其中 $a \in [-1, 1]^{12}$ 是策略网络输出，$q_{default}$ 是默认站立姿态：
-- Hip 关节：$0.0$ rad
-- Thigh 关节：$0.9$ rad
-- Calf 关节：$-1.8$ rad
+### 5. 自适应学习率（KL 散度控制）
+
+PPO 根据实际 KL 散度与目标 KL 散度之间的关系动态调整学习率。
+
+当实际 KL 散度过大时，降低学习率：
+
+$$D_{KL}\gt 2D_{KL}^{target},\qquad \alpha\leftarrow\max\left(\alpha_{min},\frac{\alpha}{1.5}\right)$$
+
+当实际 KL 散度过小时，提高学习率：
+
+$$0\lt D_{KL}\lt 0.5D_{KL}^{target},\qquad \alpha\leftarrow\min\left(\alpha_{max},1.5\alpha\right)$$
+
+其余情况下，保持当前学习率不变：
+
+$$\alpha\leftarrow\alpha$$
+
+本项目的目标 KL 散度设置为 0.01。其中，αmin 和 αmax 分别表示学习率下限和学习率上限。
+
+### 6. PD 控制器
+
+策略输出关节期望位置，并通过 PD 控制器计算关节力矩：
+
+$$\tau=K_p(q_{des}-q)+K_d(\dot{q}_{des}-\dot{q})$$
+
+训练仿真中的执行器增益设置为：
+
+* Kp = 50 N·m/rad；
+* Kd = 3.0 N·m·s/rad。
+
+实物部署的 FixStand 状态采用：
+
+* Kp = 60 N·m/rad；
+* Kd = 4.0 N·m·s/rad。
+
+不同运行状态下的 PD 增益，应分别以训练配置文件和部署配置文件为准。
+
+### 7. 动作映射
+
+首先对高斯策略网络输出的动作进行逐元素裁剪：
+
+$$\widetilde{\mathbf{a}}=\min\left(\max\left(\mathbf{a},-100\right),100\right)$$
+
+随后将裁剪后的动作映射为关节期望位置：
+
+$$\mathbf{q}*{des}=\mathbf{q}*{default}+0.25\widetilde{\mathbf{a}}$$
+
+其中，a 为 12 维高斯策略网络原始输出。环境首先将各维动作裁剪到 [-100, 100]，随后乘以 0.25 rad，并叠加到默认关节位置。因此，策略输出并未通过 tanh 函数硬限制在 [-1, 1]。
+
+默认站立姿态设置如下：
+
+* Hip 关节：0.0 rad；
+* Thigh 关节：0.9 rad；
+* Calf 关节：-1.8 rad。
+
 
 ### 网络架构
 
 | 组件 | 架构 |
 |------|------|
-| Actor（策略网络） | MLP: `[obs_dim] → 512 → 256 → 128 → 12`，ELU 激活 |
-| Critic（价值网络） | MLP: `[critic_obs_dim] → 512 → 256 → 128 → 1`，ELU 激活 |
-| 初始化 | 正交初始化，初始噪声标准差 = 1.0 |
+| Actor（策略网络） | MLP：`[actor_obs_dim] → 512 → 256 → 128 → 12`，ELU 激活 |
+| Critic（价值网络） | MLP：`[critic_obs_dim] → 512 → 256 → 128 → 1`，ELU 激活 |
+| 策略分布 | 高斯策略，初始动作噪声标准差为 1.0 |
 
-策略网络的观测包含 **10 帧历史**（`history_length=10`），用于捕捉时序动态信息。
+单帧策略观测维度为 **45**。配置设置了 `history_length=10`、`concatenate_terms=True` 和 `flatten_history_dim=True`，因此 10 帧历史观测会被展平拼接，Actor 的实际输入维度为 $45\times10=450$。
 
 ---
 
 ## 项目结构
 
 ```
-legbot_mujoco/
+legbot_lab/
 ├── README.md                          # 项目文档（中文）
 ├── README_EN.md                       # 项目文档（英文）
 ├── env_cfg.py                         # 主环境配置（4096并行环境PPO训练）
@@ -178,12 +248,12 @@ legbot_mujoco/
 │   ├── deploy/                        # C++ 部署代码（Sim2Real）
 │   │   ├── include/
 │   │   │   ├── FSM/                   # 有限状态机
-│   │   │   │   ├── CtrlFSM.h          # 1kHz 主状态机
+│   │   │   │   ├── CtrlFSM.h          # 1 kHz 主状态机
 │   │   │   │   ├── State_FixStand.h   # 站姿状态
 │   │   │   │   ├── State_Passive.h    # 被动阻尼状态
 │   │   │   │   └── State_RLBase.h     # RL 策略运行状态
 │   │   │   ├── deploy_safety.h        # 安全保护（力矩/温度/姿态超限）
-│   │   │   ├── deploy_csv_logger.h    # 50Hz CSV 诊断日志
+│   │   │   ├── deploy_csv_logger.h    # 50 Hz CSV 诊断日志
 │   │   │   └── param.h               # 命令行参数解析
 │   │   └── robots/legbot/
 │   │       ├── config/config.yaml     # FSM 配置 & 安全参数
@@ -199,7 +269,7 @@ legbot_mujoco/
 │   │   └── physics_joystick.h         # 手柄/键盘驱动
 │   └── config.yaml                    # 仿真配置
 ├── serial_dds_gateway/                # 串口⇔DDS 硬件网关
-│   ├── src/legbot_rt_gait_pd.cpp      # 网关主程序（500Hz）
+│   ├── src/legbot_rt_gait_pd.cpp      # 网关主程序（500 Hz）
 │   ├── include/                       # IMU 帧解析/电机协议
 │   └── start_gateway.sh               # 一键启动脚本
 ├── legbot/                            # NumPy 训练环境（独立导航任务）
@@ -266,7 +336,7 @@ Legbot 机器人 URDF 模型定义文件位于 [legbot_rl_lab/unitree_ros/robots
 
 | 参数 | 值 |
 |------|-----|
-| 板载电脑 | Orange Pi 6 (aarch64) |
+| 板载电脑 | Orange Pi 6 （aarch64） |
 | 传感器 | 自制串口 IMU（加速度 + 陀螺仪） |
 | 通信总线 | USB-CAN × 2 + USB-串口（IMU） |
 | 控制频率 | 1 kHz（控制器）/ 500 Hz（网关） |
@@ -306,6 +376,8 @@ python legbot_rl_lab/scripts/rsl_rl/train.py \
     --max_iterations 50000
 ```
 
+> 说明：PPO 配置文件中的默认最大迭代次数为 **100000**；上述命令通过 `--max_iterations 50000` 将本次训练覆盖为 **50000** 次迭代。
+
 **命令行参数：**
 
 | 参数 | 说明 | 默认值 |
@@ -313,7 +385,7 @@ python legbot_rl_lab/scripts/rsl_rl/train.py \
 | `--task` | 训练任务名称 | Unitree-Legbot-Velocity |
 | `--headless` | 无渲染模式（加速训练） | False |
 | `--num_envs` | 并行环境数量 | 4096 |
-| `--max_iterations` | 最大训练迭代次数 | 50000 |
+| `--max_iterations` | 最大训练迭代次数 | 配置默认 100000；示例命令覆盖为 50000 |
 | `--seed` | 随机种子 | 随机 |
 | `--resume` | 从断点恢复训练 | False |
 | `--load_run` | 恢复时指定运行目录 | - |
@@ -368,7 +440,7 @@ python legbot_rl_lab/scripts/rsl_rl/play.py --task Unitree-Legbot-Velocity
 └────────────────────┘                                └──────────────────────┘          └──────────────┘
          │                                                      │
    运行在香橙派上                                          运行在香橙派上
-   1kHz 控制循环                                          500Hz 协议转换
+   1 kHz 控制循环                                          500 Hz 协议转换
    └──────────── 共享 lo 网卡 ────────────┘
 ```
 
@@ -442,17 +514,19 @@ Passive（阻尼模式）──LT+A──► FixStand（站姿）──Start─�
 | 上一动作 | 12 | 1.0 | - |
 | **总计** | **45** | | |
 
-策略网络还包含 **10 帧历史观测**（`history_length=10`），用于时序建模。
+单帧策略观测共 **45 维**。配置设置了 **10 帧历史观测**，并将历史维展平拼接，因此 Actor 的实际输入维度为 **450 维**。
 
-### 行动空间
+### 动作空间
 
 | 参数 | 值 |
 |------|-----|
 | 控制方式 | 关节位置控制 (PD) |
-| 动作范围 | $[-1, 1]^{12}$ |
+| 策略原始输出 | $\mathbb{R}^{12}$（高斯策略，非硬限幅） |
+| 环境动作裁剪 | $[-100,100]^{12}$ |
 | 动作缩放 | ×0.25 rad |
-| PD 刚度 $K_p$ | 60 N·m/rad |
-| PD 阻尼 $K_d$ | 4.0 N·m·s/rad |
+| 训练执行器刚度 $K_p$ | 50 N·m/rad |
+| 训练执行器阻尼 $K_d$ | 3.0 N·m·s/rad |
+| FixStand 部署增益 | $K_p=60$ N·m/rad，$K_d=4.0$ N·m·s/rad |
 | 默认髋角 (hip) | 0.0 rad |
 | 默认大腿角 (thigh) | 0.9 rad |
 | 默认小腿角 (calf) | -1.8 rad |
@@ -468,6 +542,8 @@ Critic 网络可观测到策略无法获取的信息（Asymmetric Actor-Critic�
 | 关节力矩 | 12 | 真实力矩 |
 | 足部接触力 | 4 | 四足法向力 |
 | 高度扫描（大范围） | 187 | 1.6×1.0m 地形高度图 |
+
+Critic 使用当前单帧的 45 维基础观测，并额外加入 218 维特权信息，因此 Critic 总输入维度为 **263 维**；Critic 不使用 Actor 的 10 帧历史拼接。
 
 ### 终止条件
 
@@ -485,9 +561,9 @@ Critic 网络可观测到策略无法获取的信息（Asymmetric Actor-Critic�
 ### 正奖励（跟踪目标）
 
 | 奖励项 | 权重 | 公式 | 说明 |
-|--------|------|------|------|
-| 线速度跟踪 | +1.0 | $\exp(-\|v_{xy} - v_{cmd}\|^2 / 0.5)$ | 指数核，σ=0.5 |
-| 角速度跟踪 | +0.5 | $\exp(-\|\omega_z - \omega_{cmd}\|^2 / 0.5)$ | 指数核，σ=0.5 |
+|---|---:|---|---|
+| 线速度跟踪 | +1.0 | $\exp(-((v_x-v_x^{cmd})^2+(v_y-v_y^{cmd})^2)/0.5)$ | 线速度跟踪指数奖励 |
+| 角速度跟踪 | +0.5 | $\exp(-(\omega_z-\omega_z^{cmd})^2/0.5)$ | 偏航角速度跟踪指数奖励 |
 
 ### 负奖励（惩罚项）
 
@@ -495,13 +571,13 @@ Critic 网络可观测到策略无法获取的信息（Asymmetric Actor-Critic�
 |--------|------|------|
 | 垂直线速度 L2 | -2.0 | 防止上下晃动 |
 | 水平角速度 L2 | -0.05 | 抑制 roll/pitch |
-| 基座高度偏差 L2 | -1.0 ~ -10.0 | 课程学习，保持 0.28m 目标高度 |
+| 基座高度偏差 L2 | -1.0 ~ -10.0 | 课程学习，保持 0.28 m 目标高度 |
 | 关节加速度 L2 | -1e-7 | 鼓励平滑运动 |
 | 关节功率 | -2e-5 | 降低能耗 |
 | 关节力矩 L2 | -1e-4 | 避免过大扭矩 |
 | 动作变化率 L2 | -0.01 | 鼓励平滑控制 |
 | 动作平滑性 L2 | -0.01 | 三阶导数惩罚 |
-| 不期望接触 | -1.0 | 大腿/小腿不应触地（阈值 5N） |
+| 不期望接触 | -1.0 | 大腿/小腿不应触地（阈值 5 N） |
 | 关节限位 | -2.0 | 避免超出关节范围 |
 | 足部调节 | -0.05 | 足部高度和间距约束 |
 | Hip 位置 L1 | -0.05 | 静止时 Hip 保持 0 附近 |
@@ -530,7 +606,7 @@ Critic 网络可观测到策略无法获取的信息（Asymmetric Actor-Critic�
 | 基座质量 | U(-1.0, 1.0) kg | 加法 | 模拟负载变化（±1kg） |
 | 非基座部件质量 | U(0.9, 1.1) | 乘法 | 连杆质量 ±10% |
 | 转动惯量 | U(0.9, 1.1) | 乘法 | 所有部件 ±10% |
-| 质心位置 | U(-0.05, 0.05) m | 偏移 | base 质心 ±5cm（x/y/z） |
+| 质心位置 | U(-0.05, 0.05) m | 偏移 | base 质心 ±5 cm（x/y/z） |
 
 ### 摩擦与接触随机化
 
@@ -565,7 +641,7 @@ Critic 网络可观测到策略无法获取的信息（Asymmetric Actor-Critic�
 | 基座线速度 | U(-0.5, 0.5) m/s | 随机初始速度 |
 | 基座角速度 | U(-0.5, 0.5) rad/s | 随机初始角速度 |
 
-### 外力扰动
+### 周期性推扰
 
 > 模式：`interval`，每 4 秒触发一次
 
@@ -585,7 +661,7 @@ Critic 网络可观测到策略无法获取的信息（Asymmetric Actor-Critic�
 | 关节位置 | U(-0.03, 0.03) | 1.0 |
 | 关节速度 | U(-2.0, 2.0) | 0.05 |
 
-> 注：Critic 观测不使用噪声（`enable_corruption=False`），确保价值估计准确。
+> 注：Critic 观测不叠加观测噪声（`enable_corruption=False`），有助于降低价值估计中的额外随机扰动。
 
 ### 地形随机化
 
@@ -611,28 +687,30 @@ Critic 网络可观测到策略无法获取的信息（Asymmetric Actor-Critic�
 | 学习轮数 | 5 |
 | Mini-batch 数量 | 4 |
 | 目标 KL 散度 | 0.01 |
-| 最大迭代次数 | 50,000 |
+| 最大迭代次数 | 100,000（配置默认值） |
 
 ### 训练规模
 
 | 参数 | 值 |
 |------|-----|
 | 并行环境数 | 4,096 |
-| 物理步长 | 0.005 s (200 Hz) |
-| 解耦系数 | 4（控制频率 = 50 Hz） |
+| 物理步长 | 0.005 s （200 Hz） |
+| 控制降频系数（decimation） | 4（控制频率为 50 Hz） |
 | Episode 长度 | 25 s（1,250 控制步） |
 | 每次迭代样本数 | 4,096 × 24 = 98,304 |
-| 总训练步数上限 | ~4.9 × 10⁹ |
+| 总训练步数上限 | 4,096 × 24 × 100,000 ≈ 9.83 × 10⁹ |
 
-### 网络架构
+### 网络配置汇总
 
 | 参数 | 值 |
 |------|-----|
 | 隐藏层维度 | [512, 256, 128] |
 | 激活函数 | ELU |
-| 策略观测维度 | 45（含 10 帧历史） |
+| 单帧策略观测维度 | 45 |
+| 历史长度 | 10 帧 |
+| Actor 实际输入维度 | 450（45 × 10 帧，历史维展平拼接） |
 | 策略输出维度 | 12（关节位置偏移） |
-| Critic 观测维度 | ~263（含高度扫描 187 维） |
+| Critic 观测维度 | 263 |
 
 ---
 
@@ -644,7 +722,7 @@ Critic 网络可观测到策略无法获取的信息（Asymmetric Actor-Critic�
 |--------|------|------|
 | Action Clip | ±100 | 策略原始输出裁剪 |
 | 关节角度限位 | 可配置 | 硬限位保护 |
-| 力矩限幅 | ±40 Nm | 力矩裁剪 |
+| 力矩限幅 | ±40 N·m | 力矩裁剪 |
 | 角度变化限幅 | 0.05 rad/tick | 防神经网络突跳 |
 | 速度变化限幅 | 1.0 rad/s/tick | 防速度突变 |
 
@@ -654,7 +732,7 @@ Critic 网络可观测到策略无法获取的信息（Asymmetric Actor-Critic�
 |--------|------|------|
 | 通信超时 | - | → Passive |
 | 关节速度 | 30 rad/s | → Passive |
-| 反馈力矩 | 45 Nm | → Passive |
+| 反馈力矩 | 45 N·m | → Passive |
 | 电机温度 | 80°C | → Passive |
 | IMU Roll | ±0.5 rad (~28°) | → Passive |
 | IMU Pitch | ±0.5 rad (~28°) | → Passive |
@@ -676,7 +754,7 @@ Critic 网络可观测到策略无法获取的信息（Asymmetric Actor-Critic�
 | 机器人模型 | URDF / MJCF |
 | 配置管理 | Hydra / YAML |
 | 仿真验证 | MuJoCo + DDS 桥接 |
-| 板载电脑 | Orange Pi 6 (aarch64) |
+| 板载电脑 | Orange Pi 6 （aarch64） |
 | 电机 | RobStride RS02 |
 
 ---
@@ -718,3 +796,9 @@ MIT License
   url={https://arxiv.org/abs/2209.12827},
 }
 ```
+
+---
+
+## 致谢
+
+感谢 **unitree_rl_lab** 团队提供的开源训练框架、工程实现与社区贡献。本项目在其相关工作基础上完成了 Legbot 机器人的环境适配、训练配置、仿真验证与 Sim2Real 部署开发，在此表示诚挚感谢。
