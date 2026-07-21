@@ -111,8 +111,15 @@ $$L(\theta, \phi) = L^{CLIP}(\theta) - c_1 \cdot L^{VF}(\phi) + c_2 \cdot S[\pi_
 
 PPO 使用自适应学习率，基于 KL 散度动态调整：
 
-$$\text{if } KL > \text{desired_kl} \times 2: \ \alpha \leftarrow \alpha \times 1.5$$
-$$\text{if } KL < \text{desired_kl} \times 0.5: \ \alpha \leftarrow \alpha \times 0.67$$
+$$
+\text{if } KL > \text{desired\_kl} \times 2,\quad
+\alpha \leftarrow \alpha \times 1.5
+$$
+
+$$
+\text{if } KL < \text{desired\_kl} \times 0.5,\quad
+\alpha \leftarrow \alpha \times 0.67
+$$
 
 本项目目标 KL 散度设为 **0.01**。
 
