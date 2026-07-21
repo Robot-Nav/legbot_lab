@@ -10,6 +10,15 @@
 
 ---
 
+video：
+
+https://github.com/user-attachments/assets/99bb00bd-92cd-465d-ac19-94da37ae8810
+
+https://github.com/user-attachments/assets/27bc7f0d-1e84-4d5d-b683-ce9b36bfb287
+
+
+---
+
 ## 项目概述
 
 **LegBot RL RobotLab** 是基于 NVIDIA IsaacLab 框架的四足机器人（LegBot）强化学习训练与部署项目。本项目实现了 **MoE-CTS（Mixture of Experts - Concurrent Teacher-Student）** 算法，是 [CTS 论文](https://arxiv.org/pdf/2405.10830) 的 IsaacLab 实现，同时也是 [go2_rl_gym](https://github.com/wty-yy/go2_rl_gym) 的复现与改进版本。
