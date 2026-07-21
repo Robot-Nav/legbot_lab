@@ -19,6 +19,15 @@
 > 基于 NVIDIA Isaac Lab 框架的四足机器人 Legbot 强化学习训练与 Sim2Real 部署项目
 
 ---
+sim2sim：
+
+https://github.com/user-attachments/assets/5bf8b438-5e9c-414b-8c85-f02dfa7652be
+
+sim2real：
+
+https://github.com/user-attachments/assets/eef8a52f-630c-465d-b445-44af1b34fdec
+
+---
 
 ## 目录
 
