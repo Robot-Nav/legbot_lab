@@ -296,7 +296,7 @@ legbot_lab/
 
 ## 机器人参数
 
-Legbot 机器人 URDF 模型定义文件位于 [legbot_rl_lab/unitree_ros/robots/legbot_description/urdf/legbot_description.urdf](legbot_rl_lab/unitree_ros/robots/legbot_description/urdf/legbot_description.urdf)。
+Legbot 机器人 URDF 模型定义文件位于 [legbot_rl_lab/unitree_ros/robots/legbot_description/urdf/legbot_description.urdf](https://github.com/Robot-Nav/legbot_lab/tree/PPO-CTS-MOE/legbot_description)。
 
 ### 质量分布
 
