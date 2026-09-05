@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.eggs/
+build/
+dist/
+wheels/
+
+# Model checkpoints and exported policies (do not commit)
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.npz
+*.npy
+*.pb
+
+# Logs and outputs
+logs/
+outputs/
+runs/
+recordings/
+videos/
+wandb/
+.neptune/
+docker/artifacts/
+*.log
+*.tmp
+
+# Isaac Sim / Omniverse
+_isaac_sim*
+_repo
+_build
+.lastformat
+*.dmp
+**/.thumbs
+
+# IDE / editors
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# LSP / caches
+pyrightconfig.json
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build artifacts
+*.o
+*.a
+
+# Proprietary assets: Legbot-WF model, meshes, URDF and scenes
+resources/legbot_wf/
+
+# Pre-trained policies used for Sim2Sim
+deploy/pre_train/
