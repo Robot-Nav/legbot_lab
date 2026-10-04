@@ -1,7 +1,7 @@
 """Run a 16-DOF Legbot CTS policy in MuJoCo.
 
-The first 12 policy actions are leg position offsets.  The final four actions
-are wheel velocity commands, matching ``robot_lab.tasks.legbot.env_cfg``.
+Policy actions use motor order: hip, thigh, calf, wheel for each leg,
+matching ``robot_lab.tasks.legbot.env_cfg`` and W1W deployment.
 """
 
 from __future__ import annotations
@@ -36,10 +36,10 @@ CONFIG_NAME = "legbot.yaml"
 VIDEO_DIR = Path(__file__).with_name("videos")
 ROOT_DIR = Path(__file__).resolve().parents[2]
 TERRAIN_XMLS = {
-    "flat": ROOT_DIR / "resources" / "legbot_wf" / "legbot.xml",
-    "stairs": ROOT_DIR / "resources" / "legbot_wf" / "legbot_stairs.xml",
-    "rough": ROOT_DIR / "resources" / "legbot_wf" / "legbot_rough.xml",
-    "mixed": ROOT_DIR / "resources" / "legbot_wf" / "legbot_mixed.xml",
+    "flat": ROOT_DIR / "resources" / "w1w_wf" / "legbot.xml",
+    "stairs": ROOT_DIR / "resources" / "w1w_wf" / "legbot_stairs.xml",
+    "rough": ROOT_DIR / "resources" / "w1w_wf" / "legbot_rough.xml",
+    "mixed": ROOT_DIR / "resources" / "w1w_wf" / "legbot_mixed.xml",
 }
 
 
@@ -74,24 +74,25 @@ def validate_config(cfg, model: mujoco.MjModel) -> None:
             f"Unexpected MuJoCo dimensions: nq={model.nq}, nv={model.nv}, nu={model.nu}; "
             f"expected {7 + expected}, {6 + expected}, {expected}."
         )
-    expected_obs = 9 + cfg.num_leg_joints + 2 * cfg.num_actions
+    expected_obs = 9 + 3 * cfg.num_actions
     if cfg.num_obs != expected_obs:
         raise ValueError(f"num_obs={cfg.num_obs}, but Legbot observation layout requires {expected_obs}.")
-    if cfg.history_len != 10:
-        raise ValueError(f"history_len must match training history length 10, got {cfg.history_len}.")
+    if cfg.history_len != 4:
+        raise ValueError(f"history_len must match training history length 4, got {cfg.history_len}.")
 
 
 def build_single_obs(data, action_model: np.ndarray, cmd: np.ndarray, cfg) -> np.ndarray:
     joint_pos_mj = (data.qpos[7:] - cfg.default_angles) * cfg.dof_pos_scale
     joint_vel_mj = data.qvel[6:] * cfg.dof_vel_scale
     joint_pos_model = joint_pos_mj[cfg.idx_mj2model]
+    joint_pos_model[[3, 7, 11, 15]] = 0.0
     joint_vel_model = joint_vel_mj[cfg.idx_mj2model]
     obs = np.concatenate(
         (
             data.qvel[3:6] * cfg.ang_vel_scale,
             gravity_from_quat(data.qpos[3:7]),
             cmd * cfg.cmd_scale,
-            joint_pos_model[: cfg.num_leg_joints],
+            joint_pos_model,
             joint_vel_model,
             action_model,
         )
@@ -103,15 +104,14 @@ def build_single_obs(data, action_model: np.ndarray, cmd: np.ndarray, cfg) -> np
 
 def action_to_targets(action_model: np.ndarray, cfg) -> tuple[np.ndarray, np.ndarray]:
     """Convert model-order actions to MuJoCo-order position/velocity targets."""
+    action_model = np.clip(action_model, -10.0, 10.0)
     default_model = cfg.default_angles[cfg.idx_mj2model]
     target_pos_model = default_model.copy()
     target_vel_model = np.zeros(cfg.num_actions, dtype=np.float32)
-    target_pos_model[: cfg.num_leg_joints] += (
-        action_model[: cfg.num_leg_joints] * cfg.action_pos_scale
-    )
-    target_vel_model[cfg.num_leg_joints :] = (
-        action_model[cfg.num_leg_joints :] * cfg.action_vel_scale
-    )
+    leg_indices = [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14]
+    wheel_indices = [3, 7, 11, 15]
+    target_pos_model[leg_indices] += action_model[leg_indices] * cfg.action_pos_scale
+    target_vel_model[wheel_indices] = np.clip(action_model[wheel_indices] * cfg.action_vel_scale, -150.0, 150.0)
     return target_pos_model[cfg.idx_model2mj], target_vel_model[cfg.idx_model2mj]
 
 
@@ -207,6 +207,9 @@ def main() -> None:
                 action_model = action_tensor.cpu().numpy().reshape(-1).astype(np.float32, copy=False)
                 if action_model.shape != (cfg.num_actions,):
                     raise RuntimeError(f"Policy returned shape {action_model.shape}; expected ({cfg.num_actions},).")
+                if not np.all(np.isfinite(action_model)):
+                    raise RuntimeError("Policy returned NaN or Inf actions.")
+                action_model = np.clip(action_model, -10.0, 10.0)
                 next_pos, next_vel = action_to_targets(action_model, cfg)
                 pos_history.append(next_pos.copy())
                 vel_history.append(next_vel.copy())

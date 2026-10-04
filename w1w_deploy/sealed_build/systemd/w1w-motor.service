@@ -1,0 +1,19 @@
+[Unit]
+Description=W1W CPU-bound unified 16-motor service
+Requires=w1w-can.service
+After=w1w-can.service
+
+[Service]
+Type=simple
+User=root
+RuntimeDirectory=w1w
+RuntimeDirectoryMode=0755
+ExecStart=@PREFIX@/bin/can_service_wheel --bind-host 127.0.0.1 --port 55100 --cycle-us 1429 --wheel-cycle-us 1429 --timeout-ms 100
+Restart=no
+KillSignal=SIGTERM
+TimeoutStopSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

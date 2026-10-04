@@ -1,6 +1,7 @@
 from isaaclab.envs import ManagerBasedRLEnv, ManagerBasedRLEnvCfg
 
-from robot_lab.tasks.go2.manager.action_manager import ActionManagerGo2
+from robot_lab.tasks.go2.manager.action_manager import ActionManagerLegbot
+from .observations import LegbotObservationManager
 
 
 class LegbotEnv(ManagerBasedRLEnv):
@@ -8,6 +9,8 @@ class LegbotEnv(ManagerBasedRLEnv):
 
     def load_managers(self):
         super().load_managers()
-        # 复用 Go2 的自定义 ActionManager（维护 prev_prev_action，用于动作平滑奖励）
-        self.action_manager = ActionManagerGo2(self.cfg.actions, self)
-        print("[LegbotEnv-INFO] Overriding action manager with ActionManagerGo2: ", self.action_manager)
+        # Policy actions and last_action follow motor order: three leg joints then one wheel per leg.
+        self.action_manager = ActionManagerLegbot(self.cfg.actions, self)
+        self.observation_manager = LegbotObservationManager(self.cfg.observations, self)
+        print("[LegbotEnv-INFO] Using deployment-aligned CTS observations.")
+        print("[LegbotEnv-INFO] Overriding action manager with ActionManagerLegbot: ", self.action_manager)

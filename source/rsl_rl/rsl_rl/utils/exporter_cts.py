@@ -53,6 +53,7 @@ class _TorchPolicyExporter(torch.nn.Module):
         self.history_len = self.num_actor_obs // self.num_single_obs
         self.feature_dims = _resolve_cts_feature_dims(self.num_single_obs, self.num_actions)
         self.register_buffer("obs_history", torch.zeros(1, self.num_actor_obs, dtype=torch.float32))
+        self.history_initialized = False
 
         if actor_obs_normalizer:
             self.actor_obs_normalizer = copy.deepcopy(actor_obs_normalizer)
@@ -82,10 +83,13 @@ class _TorchPolicyExporter(torch.nn.Module):
             single_end = single_offset + dim
             block = self.obs_history[:, history_offset:block_end]
             shifted_block = torch.cat([block[:, dim:], single_obs[:, single_offset:single_end]], dim=-1)
+            if not self.history_initialized:
+                shifted_block = single_obs[:, single_offset:single_end].repeat(1, self.history_len)
             next_history[:, history_offset:block_end] = shifted_block
             history_offset = block_end
             single_offset = single_end
         self.obs_history.copy_(next_history)
+        self.history_initialized = True
 
         single_obs = self.single_obs_normalizer(single_obs)
         obs_a = self.actor_obs_normalizer(self.obs_history)
@@ -98,6 +102,7 @@ class _TorchPolicyExporter(torch.nn.Module):
     @torch.jit.export
     def reset(self):
         self.obs_history.zero_()
+        self.history_initialized = False
 
     def export(self, path, filename):
         os.makedirs(path, exist_ok=True)

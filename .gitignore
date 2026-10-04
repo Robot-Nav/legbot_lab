@@ -56,6 +56,24 @@ pyrightconfig.json
 
 # Proprietary assets: Legbot-WF model, meshes, URDF and scenes
 resources/legbot_wf/
+resources/w1w_wf/
+
+# Local model archives and packaged robot releases
+/w1w_129_build.zip
+/w1w_urdf1.zip
+*.tar.gz
+*.tgz
+
+# Local credentials and machine-specific agent configuration
+.env
+.env.*
+.aws/
+.agents/
+.codex/
 
 # Pre-trained policies used for Sim2Sim
 deploy/pre_train/
+
+# W1W deployment source is tracked; local environments and compiled executables are not.
+w1w_deploy/venv/
+w1w_deploy/elrs_service/elrs_service

@@ -45,6 +45,25 @@ class ActionManagerGo2(ActionManager):
     def prev_prev_action(self):
         return self._prev_prev_action
     
+
+class ActionManagerLegbot(ActionManagerGo2):
+    """Keep policy actions in motor order while dispatching leg and wheel terms."""
+
+    LEG_INDICES = (0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14)
+    WHEEL_INDICES = (3, 7, 11, 15)
+
+    def process_action(self, action: torch.Tensor):
+        if action.shape[1] != self.total_action_dim:
+            raise ValueError(f"Invalid action shape, expected: {self.total_action_dim}, received: {action.shape[1]}.")
+        if self.total_action_dim != 16 or tuple(self._terms) != ("joint_pos", "wheel_vel"):
+            raise ValueError("Legbot requires 12 joint_pos actions and 4 wheel_vel actions.")
+
+        self._prev_prev_action[:] = self._prev_action
+        self._prev_action[:] = self._action
+        self._action[:] = action.to(self.device)
+        self._terms["joint_pos"].process_actions(self._action[:, self.LEG_INDICES])
+        self._terms["wheel_vel"].process_actions(self._action[:, self.WHEEL_INDICES])
+
 # ActionManagerGo2WithDelay is a custom ActionManager that 
 # maintain _prev_prev_action for action smoothness reward computation.
 # and also do random action delay by process_action_with_delay() function.

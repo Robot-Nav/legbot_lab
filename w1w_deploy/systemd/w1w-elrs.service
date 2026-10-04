@@ -1,0 +1,19 @@
+[Unit]
+Description=W1W ELRS CRSF receiver service
+After=network.target
+
+[Service]
+Type=simple
+User=@RUN_USER@
+Group=@RUN_USER@
+SupplementaryGroups=dialout
+EnvironmentFile=-/etc/default/w1w
+ExecStart=@PREFIX@/current/bin/elrs_service --device ${W1W_ELRS_DEVICE} --baud ${W1W_ELRS_BAUD} --port ${W1W_ELRS_PORT} --cycle-us ${W1W_ELRS_CYCLE_US} --timeout-ms ${W1W_ELRS_TIMEOUT_MS} --stats
+Restart=on-failure
+RestartSec=2
+KillSignal=SIGTERM
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

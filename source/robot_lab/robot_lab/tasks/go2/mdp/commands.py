@@ -124,6 +124,7 @@ class Go2RLGymCommand(CommandTerm):
         env = self._env
         if len(env_ids) == 0:
             return
+        previous_commands = self.commands[env_ids].clone()
         # update command curriculum with train steps
         if len(self.cfg.command_range_curriculum):
             current_iter = env.common_step_counter // self.cfg.num_steps_per_iter
@@ -198,9 +199,7 @@ class Go2RLGymCommand(CommandTerm):
                 if self.cfg.limit_vel_invert_when_continuous:
                     was_limited = self.last_is_limit_vel[lim_env_ids]
                     invert_env_ids = lim_env_ids[was_limited]
-                    self.commands[invert_env_ids, 0] *= -1.0
-                    self.commands[invert_env_ids, 1] *= -1.0
-                    self.commands[invert_env_ids, 2] *= -1.0
+                    self.commands[invert_env_ids] = -previous_commands[lim_mask][was_limited]
                     change_lim_env_ids = lim_env_ids[~was_limited]
                 vel_idx = torch.randint(0, self.limit_vel_comb.shape[0], (len(change_lim_env_ids),), device=self.device)
                 lin_vel_x_lim = torch.where(
@@ -243,7 +242,7 @@ class Go2RLGymCommand(CommandTerm):
             zero_mask = (rand_prob >= min_prob) * (rand_prob < max_prob) * (next_time_left > 0.0)
             zero_env_ids = env_ids[zero_mask]
             if len(zero_env_ids) > 0:
-                self.commands[zero_env_ids, :2] = 0.0
+                self.commands[zero_env_ids] = 0.0
                 self.time_left[zero_env_ids] = next_time_left[zero_mask]
                 if self.cfg.limit_ang_vel_at_zero_command_prob > 0.0:
                     ang_vel_rand = torch.rand(len(zero_env_ids), device=self.device)  # independent distribution

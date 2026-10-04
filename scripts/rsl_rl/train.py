@@ -38,6 +38,7 @@ parser.add_argument(
     '--agent', type=str, default='rsl_rl_cfg_entry_point', help='Name of the RL agent configuration entry point.'
 )
 parser.add_argument('--seed', type=int, default=None, help='Seed used for the environment')
+parser.add_argument('--stall_timeout', type=float, default=0, help='Dump CTS training stacks after an iteration stalls for this many seconds; 0 disables.')
 parser.add_argument('--max_iterations', type=int, default=None, help='RL Policy training iterations.')
 parser.add_argument(
     '--distributed', action='store_true', default=False, help='Run training with multiple GPUs or nodes.'
@@ -87,6 +88,8 @@ from datetime import datetime
 
 # 本地导入
 from rsl_rl_utils import Logger
+from simulator_failures import exit_on_fatal_simulator_error
+from runtime_diagnostics import save_runtime_diagnostics
 
 import omni
 from rsl_rl.runners import DistillationRunner, OnPolicyRunner, OnPolicyRunnerCTS
@@ -117,11 +120,6 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     """使用 RSL-RL 智能体执行训练。"""
     # 使用非 Hydra 命令行参数覆盖配置
     agent_cfg = cli_args.update_rsl_rl_cfg(agent_cfg, args_cli)
-    agent_cfg_dict = agent_cfg.to_dict()
-    agent_cfg_dict['robogauge'] = {
-        'enabled': args_cli.robogauge,
-        'port': args_cli.robogauge_port,
-    }
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
     agent_cfg.max_iterations = (
         args_cli.max_iterations if args_cli.max_iterations is not None else agent_cfg.max_iterations
@@ -131,6 +129,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # 注意：部分随机化在环境初始化时发生，因此在此处设置种子
     env_cfg.seed = agent_cfg.seed
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
+    if args_cli.device is not None:
+        agent_cfg.device = args_cli.device
     # 检查 CPU 设备与分布式训练的不兼容组合
     if args_cli.distributed and args_cli.device is not None and 'cpu' in args_cli.device:
         raise ValueError(
@@ -147,6 +147,23 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         seed = agent_cfg.seed + app_launcher.local_rank
         env_cfg.seed = seed
         agent_cfg.seed = seed
+
+    if hasattr(env_cfg, "commands") and hasattr(env_cfg.commands, "base_velocity"):
+        command_cfg = env_cfg.commands.base_velocity
+        if hasattr(command_cfg, "num_steps_per_iter"):
+            command_cfg.num_steps_per_iter = agent_cfg.num_steps_per_env
+    if hasattr(env_cfg, "curriculum"):
+        for term in vars(env_cfg.curriculum).values():
+            if getattr(getattr(term, "func", None), "__name__", "") == "gradual_reward_weight_modification":
+                term.params["num_steps_per_iter"] = agent_cfg.num_steps_per_env
+
+    # Snapshot after all CLI and distributed overrides.
+    agent_cfg_dict = agent_cfg.to_dict()
+    agent_cfg_dict['stall_timeout'] = args_cli.stall_timeout
+    agent_cfg_dict['robogauge'] = {
+        'enabled': args_cli.robogauge,
+        'port': args_cli.robogauge_port,
+    }
 
     # 指定实验日志根目录
     log_root_path = os.path.join('logs', 'rsl_rl', agent_cfg.experiment_name)
@@ -170,6 +187,16 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     # 为环境设置日志目录（适用于所有环境类型）
     env_cfg.log_dir = log_dir
+
+    # Capture Python initialization errors and tracebacks as well as progress.
+    sys.stdout = Logger(os.path.join(log_dir, 'train.log'))
+    sys.stderr = Logger(os.path.join(log_dir, 'stderr.log'), terminal=sys.stderr)
+    robot = getattr(env_cfg.scene, 'robot', None)
+    if robot is not None:
+        print(f"[INFO] Robot asset: {getattr(robot.spawn, 'asset_path', None)}")
+    print(f"[INFO] Environments: {env_cfg.scene.num_envs}; simulation: {env_cfg.sim.device}; learner: {agent_cfg.device}")
+
+    save_runtime_diagnostics(log_dir)
 
     # 创建 Isaac 环境
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode='rgb_array' if args_cli.video else None)
@@ -215,10 +242,14 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     # 将配置写入日志目录
     dump_yaml(os.path.join(log_dir, 'params', 'env.yaml'), env_cfg)
-    dump_yaml(os.path.join(log_dir, 'params', 'agent.yaml'), agent_cfg)
-    sys.stdout = Logger(os.path.join(log_dir, 'train.log'))
-    # 运行训练
-    runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)
+    dump_yaml(os.path.join(log_dir, 'params', 'agent.yaml'), agent_cfg_dict)
+    # A failed CUDA context can hang in native simulator destruction. Preserve
+    # the traceback and leave with failure; never save tensors from that context.
+    try:
+        runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)
+    except Exception as error:
+        exit_on_fatal_simulator_error(error, log_dir, env_cfg.sim.device)
+        raise
 
     # 关闭仿真器
     env.close()

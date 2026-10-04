@@ -23,7 +23,12 @@ def joint_pos_rel_without_wheel(
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
     joint_pos_rel = asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids]
-    joint_pos_rel[:, wheel_asset_cfg.joint_ids] = 0
+    # wheel_asset_cfg.joint_ids index the articulation, not the selected observation columns.
+    all_ids = range(asset.data.joint_pos.shape[1])
+    joint_ids = list(all_ids[asset_cfg.joint_ids]) if isinstance(asset_cfg.joint_ids, slice) else list(asset_cfg.joint_ids)
+    wheel_ids = set(all_ids[wheel_asset_cfg.joint_ids] if isinstance(wheel_asset_cfg.joint_ids, slice) else wheel_asset_cfg.joint_ids)
+    wheel_columns = [column for column, joint_id in enumerate(joint_ids) if joint_id in wheel_ids]
+    joint_pos_rel[:, wheel_columns] = 0
     return joint_pos_rel
 
 

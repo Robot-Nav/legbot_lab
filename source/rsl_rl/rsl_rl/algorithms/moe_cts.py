@@ -121,13 +121,22 @@ class MoECTS:
         self.normalize_advantage_per_mini_batch = normalize_advantage_per_mini_batch
         
         # Teacher-student environment split
-        self.teacher_num_envs = max(int(num_envs * teacher_env_ratio), 1)
+        if num_envs < 2 or not 0.0 < teacher_env_ratio < 1.0:
+            raise ValueError("CTS requires at least two environments and 0 < teacher_env_ratio < 1.")
+        self.teacher_num_envs = min(max(int(num_envs * teacher_env_ratio), 1), num_envs - 1)
         self.student_num_envs = num_envs - self.teacher_num_envs
-        student_env_ratio = 1 - teacher_env_ratio
-        self.teacher_env_idxs = torch.tensor([i for i in range(num_envs) if i % int(1/student_env_ratio) != 0], device=self.device)
-        self.student_env_idxs = torch.tensor([i for i in range(num_envs) if i % int(1/student_env_ratio) == 0], device=self.device)
-        assert len(self.teacher_env_idxs) == self.teacher_num_envs, f"{len(self.teacher_env_idxs)=} != {self.teacher_num_envs=}"
-        assert len(self.student_env_idxs) == self.student_num_envs, f"{len(self.student_env_idxs)=} != {self.student_num_envs=}"
+        if storage.teacher_num_envs != self.teacher_num_envs:
+            raise ValueError("CTS storage and algorithm teacher counts must agree.")
+        if min(self.teacher_num_envs, self.student_num_envs) * storage.num_transitions_per_env < num_mini_batches:
+            raise ValueError("Each CTS mini-batch must contain both teacher and student samples.")
+        # Spread students over terrain columns; preserve 0, 4, 8, ... at ratio 0.75.
+        self.student_env_idxs = torch.div(
+            torch.arange(self.student_num_envs, device=self.device) * num_envs,
+            self.student_num_envs, rounding_mode="floor",
+        )
+        teacher_mask = torch.ones(num_envs, dtype=torch.bool, device=self.device)
+        teacher_mask[self.student_env_idxs] = False
+        self.teacher_env_idxs = teacher_mask.nonzero(as_tuple=False).flatten()
         
     def act(self, obs: TensorDict) -> torch.Tensor:
         # Compute the actions and values
@@ -233,9 +242,10 @@ class MoECTS:
         # RND loss
         mean_rnd_loss = 0 if self.rnd else None
 
+        self.optimizer_stu_enc.zero_grad(set_to_none=True)
+
         # Get mini batch generator
         generator = self.storage.mini_batch_generator(self.num_mini_batches, self.num_learning_epochs)
-        data = list(generator)
 
         # Iterate over batches
         teacher_samples = self.teacher_num_envs * self.storage.num_transitions_per_env // self.num_mini_batches
@@ -251,7 +261,7 @@ class MoECTS:
             old_sigma_batch,
             hidden_states_batch,
             masks_batch,
-        ) in data:
+        ) in generator:
             original_batch_size = obs_batch.batch_size[0]
 
             # Check if we should normalize advantages per mini batch
@@ -363,7 +373,7 @@ class MoECTS:
 
             # Apply the gradients for PPO
             params_to_clip = itertools.chain.from_iterable(g['params'] for g in self.optimizer.param_groups)
-            nn.utils.clip_grad_norm_(params_to_clip, self.max_grad_norm)
+            nn.utils.clip_grad_norm_(params_to_clip, self.max_grad_norm, error_if_nonfinite=True)
             self.optimizer.step()
             # Apply the gradients for RND
             if self.rnd_optimizer:
@@ -388,7 +398,7 @@ class MoECTS:
             old_sigma_batch,
             hidden_states_batch,
             masks_batch,
-        ) in data:
+        ) in self.storage.mini_batch_generator(self.num_mini_batches, self.num_learning_epochs):
             # Student encoder loss
             obs_a_batch = self.policy.get_actor_obs(obs_batch)
             obs_a_batch = self.policy.actor_obs_normalizer(obs_a_batch)
@@ -408,7 +418,12 @@ class MoECTS:
             
             self.optimizer_stu_enc.zero_grad()
             student_loss.backward()
-            nn.utils.clip_grad_norm_(self.policy.student_moe_encoder.parameters(), self.max_grad_norm)
+            if self.is_multi_gpu:
+                for param in self.policy.student_moe_encoder.parameters():
+                    if param.grad is not None:
+                        torch.distributed.all_reduce(param.grad, op=torch.distributed.ReduceOp.SUM)
+                        param.grad.div_(self.gpu_world_size)
+            nn.utils.clip_grad_norm_(self.policy.student_moe_encoder.parameters(), self.max_grad_norm, error_if_nonfinite=True)
             self.optimizer_stu_enc.step()
 
             mean_latent_loss += latent_loss.item()

@@ -481,9 +481,8 @@ def feet_slide(
 def action_smoothness_l2(env: ManagerBasedRLEnv) -> torch.Tensor:
     # Penalize changes in actions
     diff = torch.square(env.action_manager.action - 2 * env.action_manager.prev_action + env.action_manager.prev_prev_action)
-    diff = diff * (env.action_manager.prev_action[:, :] != 0)  # ignore first step
-    diff = diff * (env.action_manager.prev_prev_action[:, :] != 0)  # ignore second step
-    return torch.sum(diff, dim=1)
+    # Reward is evaluated after the episode counter increments in env.step().
+    return torch.sum(diff, dim=1) * (env.episode_length_buf > 2)
 
 
 def upward(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:

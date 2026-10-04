@@ -181,9 +181,10 @@ def gradual_reward_weight_modification(
     final_weight: float,
     start_it: int,
     end_it: int,
+    num_steps_per_iter: int = 24,
 ):
     """Curriculum that gradually modifies a reward weight between an initial and final value over a range of steps."""
-    current_it = env.common_step_counter // 24
+    current_it = env.common_step_counter // num_steps_per_iter
     if current_it < start_it:
         return
 

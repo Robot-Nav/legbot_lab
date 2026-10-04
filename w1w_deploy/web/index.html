@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>轮足机器人电机监控</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #111315;
+    --panel: #191c1f;
+    --panel-2: #202428;
+    --line: #343a40;
+    --text: #f0f2f4;
+    --muted: #9aa3ab;
+    --green: #56c77a;
+    --yellow: #e6bd53;
+    --red: #ef6a62;
+    --cyan: #56b9ca;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, "Microsoft YaHei", system-ui, sans-serif;
+    letter-spacing: 0;
+  }
+  header {
+    min-height: 62px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--line);
+    background: #171a1d;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  h1 { margin: 0; font-size: 18px; font-weight: 650; }
+  .subtitle { color: var(--muted); font-size: 12px; }
+  .statusbar { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .metric, .badge {
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--panel);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .metric span { color: var(--muted); }
+  .badge.ok { color: var(--green); border-color: #2d6340; }
+  .badge.warn { color: var(--yellow); border-color: #67592b; }
+  .badge.bad { color: var(--red); border-color: #713733; }
+  main { max-width: 1500px; margin: 0 auto; padding: 16px 18px 28px; }
+  .safety {
+    min-height: 44px;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--cyan);
+    background: var(--panel);
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    border-radius: 4px;
+  }
+  .safety.warn { border-left-color: var(--yellow); }
+  .safety.bad { border-left-color: var(--red); background: #231819; }
+  .safety strong { font-size: 13px; }
+  .safety span { color: var(--muted); font-size: 12px; }
+  .legs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .leg { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; overflow: hidden; }
+  .leg-head {
+    height: 40px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--line);
+  }
+  .leg-head h2 { margin: 0; font-size: 14px; }
+  .leg-head span { color: var(--muted); font-size: 11px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 710px; table-layout: fixed; }
+  th, td { padding: 8px 7px; text-align: right; border-bottom: 1px solid #2b3035; font-size: 12px; }
+  tr:last-child td { border-bottom: 0; }
+  th { color: var(--muted); font-weight: 550; background: #1d2023; }
+  th:first-child, td:first-child { text-align: left; width: 114px; }
+  th:nth-child(2), td:nth-child(2) { text-align: center; width: 92px; }
+  th:last-child, td:last-child { text-align: left; width: 98px; }
+  tr.wheel { background: #182124; }
+  .motor-name { font-weight: 600; }
+  .motor-meta { color: var(--muted); font-size: 10px; margin-top: 2px; }
+  .online { color: var(--green); }
+  .offline, .fault { color: var(--red); }
+  .mode { color: var(--muted); }
+  .summary {
+    margin-top: 14px;
+    padding: 10px 12px;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 920px) {
+    .legs { grid-template-columns: 1fr; }
+    .statusbar { width: 100%; margin-left: 0; }
+  }
+  @media (max-width: 520px) {
+    header, main { padding-left: 10px; padding-right: 10px; }
+    .metric { flex: 1 1 calc(50% - 8px); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>轮足机器人电机监控</h1>
+    <div class="subtitle">12 关节 · 4 W190 轮毂 · 只读监控</div>
+  </div>
+  <div class="statusbar">
+    <div id="connection" class="badge bad">服务未连接</div>
+    <div class="metric"><span>控制周期</span><b id="cycle">-</b></div>
+    <div class="metric"><span>CAN 接收</span><b id="rxRate">-</b></div>
+    <div class="metric"><span>在线</span><b id="onlineCount">0/16</b></div>
+  </div>
+</header>
+
+<main>
+  <div id="safety" class="safety warn">
+    <strong id="safetyTitle">等待服务反馈</strong>
+    <span id="safetyDetail">网页仅发送固定阻尼：关节 Kd=5，轮毂 Kd=1</span>
+  </div>
+  <div id="legs" class="legs"></div>
+  <div class="summary">
+    <span>UDP 序号 <b id="sequence">-</b></span>
+    <span>命令年龄 <b id="commandAge">-</b></span>
+    <span>服务控制频率 <b id="txRate">-</b></span>
+    <span>刷新时间 <b id="updated">-</b></span>
+  </div>
+</main>
+
+<script>
+const LEGS = [
+  {name: '左前腿', bus: 'can0 / can4-ID1', indices: [0,1,2,3]},
+  {name: '右前腿', bus: 'can1 / can4-ID2', indices: [4,5,6,7]},
+  {name: '左后腿', bus: 'can2 / can5-ID1', indices: [8,9,10,11]},
+  {name: '右后腿', bus: 'can3 / can5-ID2', indices: [12,13,14,15]},
+];
+const TYPES = ['髋关节 · ID4', '大腿关节 · ID3', '小腿关节 · ID2', 'W190 轮毂'];
+
+function fmt(value, digits=3) {
+  return Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : '-';
+}
+
+function motorRow(motor, localIndex) {
+  const wheel = localIndex === 3;
+  const age = motor.comm_age_ms >= 65535 ? '∞' : `${motor.comm_age_ms} ms`;
+  const state = motor.online
+    ? `<span class="online">在线 · ${age}</span>`
+    : `<span class="offline">离线 · ${age}</span>`;
+  const faults = motor.faults?.length
+    ? `<span class="fault">${motor.faults.join('、')}</span>`
+    : '<span class="online">无</span>';
+  return `<tr class="${wheel ? 'wheel' : ''}">
+    <td><div class="motor-name">${motor.label}</div><div class="motor-meta">${TYPES[localIndex]}</div></td>
+    <td>${state}</td>
+    <td class="mode">${motor.pattern_name || '-'}</td>
+    <td>${fmt(motor.position)}</td>
+    <td>${fmt(motor.velocity)}</td>
+    <td>${fmt(motor.torque)}</td>
+    <td>${fmt(motor.temperature, 1)}</td>
+    <td>${motor.voltage == null ? '-' : fmt(motor.voltage, 1)}</td>
+    <td>${faults}</td>
+  </tr>`;
+}
+
+function renderLegs(motors) {
+  document.getElementById('legs').innerHTML = LEGS.map(leg => {
+    const selected = leg.indices.map(index => motors[index]).filter(Boolean);
+    const rows = selected.map((motor, index) => motorRow(motor, index)).join('');
+    return `<section class="leg">
+      <div class="leg-head"><h2>${leg.name}</h2><span>${leg.bus}</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>电机</th><th>通信</th><th>状态</th><th>位置 rad</th><th>速度 rad/s</th><th>力矩 Nm</th><th>温度 °C</th><th>电压 V</th><th>故障</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="9">等待反馈</td></tr>'}</tbody>
+      </table></div>
+    </section>`;
+  }).join('');
+}
+
+function renderSafety(state) {
+  const panel = document.getElementById('safety');
+  const title = document.getElementById('safetyTitle');
+  const detail = document.getElementById('safetyDetail');
+  const reasons = state.latch_reasons?.join('、') || '需要重启服务解除';
+  if (state.safety_state === 'latched') {
+    panel.className = 'safety bad'; title.textContent = '安全锁存：持续阻尼'; detail.textContent = reasons;
+  } else if (state.safety_state === 'running') {
+    panel.className = 'safety'; title.textContent = '主动控制运行中'; detail.textContent = '命令超时或任一电机掉线将永久锁存阻尼';
+  } else if (state.safety_state === 'ready') {
+    panel.className = 'safety'; title.textContent = '全部电机在线 · 安全阻尼'; detail.textContent = '关节 Kd=5，轮毂 Kd=1';
+  } else {
+    panel.className = 'safety warn'; title.textContent = '等待全部电机在线 · 安全阻尼'; detail.textContent = '未就绪时不接受主动控制';
+  }
+}
+
+async function poll() {
+  const connection = document.getElementById('connection');
+  try {
+    const response = await fetch('/api/state', {cache: 'no-store'});
+    const state = await response.json();
+    if (!state.ok) throw new Error(state.reason || '无服务反馈');
+    connection.className = 'badge ok'; connection.textContent = '服务已连接';
+    const online = state.motors.filter(motor => motor.online).length;
+    document.getElementById('onlineCount').textContent = `${online}/16`;
+    document.getElementById('cycle').textContent = `${fmt(state.cycle_time_us, 0)} µs`;
+    document.getElementById('rxRate').textContent = `${fmt(state.rx_rate_hz, 0)} fps`;
+    document.getElementById('sequence').textContent = state.sequence;
+    document.getElementById('commandAge').textContent = `${fmt(state.command_age_ms, 1)} ms`;
+    document.getElementById('txRate').textContent = `${fmt(state.tx_rate_hz, 0)} Hz`;
+    document.getElementById('updated').textContent = new Date().toLocaleTimeString();
+    renderSafety(state);
+    renderLegs(state.motors);
+  } catch (error) {
+    connection.className = 'badge bad'; connection.textContent = '服务未连接';
+    document.getElementById('safety').className = 'safety warn';
+    document.getElementById('safetyTitle').textContent = '等待服务反馈';
+    document.getElementById('safetyDetail').textContent = error.message;
+  }
+}
+
+renderLegs([]);
+poll();
+setInterval(poll, 250);
+</script>
+</body>
+</html>

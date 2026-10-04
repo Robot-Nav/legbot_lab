@@ -1,0 +1,20 @@
+[Unit]
+Description=W1W read-only motor monitor
+Requires=w1w-motor.service
+After=w1w-motor.service
+
+[Service]
+Type=simple
+User=@RUN_USER@
+WorkingDirectory=@PREFIX@/current/web
+ExecStart=/usr/bin/python3 -u @PREFIX@/current/web/server.py --http-host 0.0.0.0 --http-port 8080 --controller-host 127.0.0.1 --controller-port 55100 --tx-hz 50
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+PrivateTmp=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+

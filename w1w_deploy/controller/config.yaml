@@ -1,0 +1,67 @@
+control:
+  dt: 0.02
+
+observation:
+  num_actions: 16
+  num_obs: 57
+  history_len: 4
+  wheel_sim_indices: [3, 7, 11, 15]
+
+robot:
+  joint_names:
+    - FL_hip
+    - FL_thigh
+    - FL_calf
+    - FL_wheel
+    - FR_hip
+    - FR_thigh
+    - FR_calf
+    - FR_wheel
+    - RL_hip
+    - RL_thigh
+    - RL_calf
+    - RL_wheel
+    - RR_hip
+    - RR_thigh
+    - RR_calf
+    - RR_wheel
+  default_angles: [0.0, -0.68, 1.4, 0.0, 0.0, 0.68, -1.4, 0.0, 0.0, -0.68, 1.4, 0.0, 0.0, 0.68, -1.4, 0.0]
+  down_angles: [0.0, -1.2, 2.2, 0.0, 0.0, 1.2, -2.2, 0.0, 0.0, -1.2, 2.2, 0.0, 0.0, 1.2, -2.2, 0.0]
+  kp: [100, 100, 100, 0, 100, 100, 100, 0, 100, 100, 100, 0, 100, 100, 100, 0]
+  #kp: [65, 65, 65, 0, 65, 65, 65, 0, 65, 65, 65, 0, 65, 65, 65, 0]
+  kd: [2, 2, 2, 1.0, 2, 2, 2, 1.0, 2, 2, 2, 1.0, 2, 2, 2, 1.0]
+
+scales:
+  ang_vel: 0.25
+  cmd: [2.0, 2.0, 0.25]
+  dof_err: 1.0
+  dof_vel: 0.05
+  action: 0.25
+  vel_scale: 20
+
+max_cmd: [3.0, 1.0, 3.14]
+
+network:
+  motor:
+    host: 127.0.0.1
+    port: 55100
+  imu:
+    host: 127.0.0.1
+    port: 55200
+  elrs:
+    host: 127.0.0.1
+    port: 55201
+    emergency_active_high: false
+
+safety:
+  motor_ready_timeout_s: 20.0
+  motor_feedback_timeout_ms: 100.0
+  controller_send_deadline_ms: 80.0
+  active_acquire_timeout_ms: 50.0
+  imu_timeout_ms: 100.0
+  elrs_timeout_ms: 500.0
+  max_temperature_c: 85.0
+  rl_entry_blend_s: 0.3
+
+model:
+  path: policy.onnx

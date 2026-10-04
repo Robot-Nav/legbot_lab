@@ -205,7 +205,7 @@ class ActorCriticMoECTS(nn.Module):
             else:
                 raise ValueError(f"Unknown standard deviation type: {self.noise_std_type}. Should be 'scalar' or 'log'")
         # Create distribution
-        self.distribution = Normal(mean, std)
+        self.distribution = Normal(mean, std.clamp_min(1.0e-6))
 
     def act(self, obs: TensorDict, is_teacher: bool, **kwargs: dict[str, Any]) -> torch.Tensor:
         single_obs = self.single_obs_normalizer(obs['single_obs'])

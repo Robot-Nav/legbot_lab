@@ -36,6 +36,7 @@ parser.add_argument(
     '--disable_fabric', action='store_true', default=False, help='Disable fabric and use USD I/O operations.'
 )
 parser.add_argument('--num_envs', type=int, default=None, help='Number of environments to simulate.')
+parser.add_argument('--max_steps', type=int, default=0, help='Stop playback after this many steps; 0 runs until closed.')
 parser.add_argument('--task', type=str, default=None, help='Name of the task.')
 parser.add_argument(
     '--agent', type=str, default='rsl_rl_cfg_entry_point', help='Name of the RL agent configuration entry point.'
@@ -72,7 +73,8 @@ import gymnasium as gym
 import time
 import torch
 from tensordict import TensorDict
-from rsl_rl.runners import DistillationRunner, OnPolicyRunner, OnPolicyRunnerCTS
+from rsl_rl.runners import DistillationRunner, OnPolicyRunner
+from rsl_rl.modules import ActorCriticMoECTS
 
 from isaaclab.devices import Se2Keyboard, Se2KeyboardCfg
 from isaaclab.envs import (
@@ -139,8 +141,15 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     env_cfg.seed = agent_cfg.seed
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
 
-    # 推理时禁用随机化
+    if args_cli.device is not None:
+        agent_cfg.device = args_cli.device
+    if args_cli.disable_fabric:
+        env_cfg.sim.use_fabric = False
+
+    # 推理时禁用策略观测噪声；保留环境的物理随机化。
     env_cfg.observations.policy.enable_corruption = False
+    if hasattr(env_cfg.observations, "single_obs"):
+        env_cfg.observations.single_obs.enable_corruption = False
     # 移除随机推力
     env_cfg.events.randomize_apply_external_force_torque = None
     env_cfg.events.randomize_push_robot = None
@@ -182,6 +191,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     if args_cli.video:
         import imageio
         video_path = os.path.join(log_dir, 'videos', 'play', time.strftime('%Y-%m-%d_%H-%M-%S') + '.mp4')
+        os.makedirs(os.path.dirname(video_path), exist_ok=True)
         writer = imageio.get_writer(video_path, fps=int(1 / env.unwrapped.step_dt))
         # video_kwargs = {
         #     'video_folder': os.path.join(log_dir, 'videos', 'play'),
@@ -198,28 +208,38 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
     print(f'[INFO]: Loading model checkpoint from: {resume_path}')
-    # 加载已训练模型
-    if agent_cfg.class_name == 'OnPolicyRunner':
-        runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
-    elif agent_cfg.class_name == 'DistillationRunner':
-        runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
-    elif agent_cfg.class_name == 'OnPolicyRunnerCTS':
-        runner = OnPolicyRunnerCTS(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
+    if agent_cfg.class_name == 'OnPolicyRunnerCTS':
+        # Inference needs only the network. Constructing a PPO runner allocates
+        # rollout buffers and requires teacher/student environments even for
+        # --num_envs 1, which is unnecessary for playback and export.
+        policy_cfg = agent_cfg.policy.to_dict()
+        policy_cfg.pop('class_name', None)
+        policy_nn = ActorCriticMoECTS(
+            env.get_observations(), agent_cfg.obs_groups, env.num_actions, **policy_cfg
+        ).to(env.device)
+        checkpoint = torch.load(resume_path, map_location=env.device, weights_only=False)
+        policy_nn.load_state_dict(checkpoint['model_state_dict'])
+        policy_nn.eval()
+        policy = policy_nn.act_inference
+        base_env = env.unwrapped
+        progress = checkpoint.get('env_common_step_counter')
+        if progress is None:
+            progress = checkpoint.get('next_iter', checkpoint['iter'] + 1) * agent_cfg.num_steps_per_env
+        base_env.common_step_counter = int(progress)
+        env.reset()
     else:
-        raise ValueError(f'Unsupported runner class: {agent_cfg.class_name}')
-    runner.load(resume_path)
-
-    # 获取训练好的策略用于推理
-    policy = runner.get_inference_policy(device=env.unwrapped.device)
-
-    # 提取神经网络模块
-    # 使用 try-except 以保持向后兼容
-    try:
-        # 2.3 及以上版本
-        policy_nn = runner.alg.policy
-    except AttributeError:
-        # 2.2 及以下版本
-        policy_nn = runner.alg.actor_critic
+        if agent_cfg.class_name == 'OnPolicyRunner':
+            runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
+        elif agent_cfg.class_name == 'DistillationRunner':
+            runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
+        else:
+            raise ValueError(f'Unsupported runner class: {agent_cfg.class_name}')
+        runner.load(resume_path, load_optimizer=False)
+        policy = runner.get_inference_policy(device=env.unwrapped.device)
+        try:
+            policy_nn = runner.alg.policy
+        except AttributeError:
+            policy_nn = runner.alg.actor_critic
 
     # 提取归一化器
     if hasattr(policy_nn, 'actor_obs_normalizer'):
@@ -282,6 +302,12 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             policy_nn.reset(dones)
         if args_cli.video:
             writer.append_data(env.env.render())
+
+        timestep += 1
+        if args_cli.max_steps > 0 and timestep >= args_cli.max_steps:
+            break
+        if args_cli.video and timestep >= args_cli.video_length:
+            break
 
         # 实时评估时的时间延迟
         sleep_time = dt - (time.time() - start_time)

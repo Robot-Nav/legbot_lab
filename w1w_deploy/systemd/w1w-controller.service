@@ -1,0 +1,27 @@
+[Unit]
+Description=W1W 16-DOF ONNX policy controller (manual authorization required)
+Requires=w1w-motor.service w1w-imu.service w1w-elrs.service
+After=w1w-motor.service w1w-imu.service w1w-elrs.service
+ConditionPathExists=/run/w1w/controller-authorized
+
+[Service]
+Type=simple
+User=@RUN_USER@
+WorkingDirectory=@PREFIX@/current/controller
+Environment=PYTHONUNBUFFERED=1
+Environment=W1W_CONFIG=/etc/w1w/controller.yaml
+ExecStartPre=/usr/bin/test -f /run/w1w/controller-authorized
+ExecStart=@PREFIX@/current/scripts/run_controller.sh
+ExecStopPost=+/usr/bin/rm -f /run/w1w/controller-authorized
+Restart=no
+KillSignal=SIGTERM
+TimeoutStopSec=3
+CPUAffinity=4 5 6 7
+Nice=-10
+NoNewPrivileges=yes
+PrivateTmp=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PREFIX="${W1W_PREFIX:-/opt/w1w}"
+CONFIRM="I_HAVE_SUPPORTED_THE_ROBOT"
+
+require_root() {
+  if [[ ${EUID} -ne 0 ]]; then
+    echo "this command must run as root" >&2
+    exit 1
+  fi
+}
+
+confirm_support() {
+  if [[ ${1:-} != "${CONFIRM}" ]]; then
+    echo "robot support confirmation required:" >&2
+    echo "  $0 $2 ${CONFIRM}" >&2
+    exit 2
+  fi
+}
+
+case "${1:-help}" in
+  start-base)
+    require_root
+    if ! systemctl is-active --quiet w1w-motor.service && \
+       ss -H -lun | awk '{print $5}' | grep -Eq ':55100$'; then
+      echo "UDP 55100 is already occupied; stop the old motor process first" >&2
+      exit 1
+    fi
+    if ! systemctl is-active --quiet w1w-elrs.service && \
+       ss -H -lun | awk '{print $5}' | grep -Eq ':55201$'; then
+      echo "UDP 55201 is already occupied; stop the old ELRS process first" >&2
+      exit 1
+    fi
+    systemctl enable w1w-can.service w1w-motor.service w1w-imu.service w1w-elrs.service w1w-web.service
+    systemctl start w1w-can.service w1w-motor.service w1w-imu.service w1w-elrs.service w1w-web.service
+    ;;
+  stop-base)
+    require_root
+    systemctl stop w1w-controller.service w1w-web.service w1w-elrs.service w1w-imu.service w1w-motor.service
+    ;;
+  base-restart)
+    require_root
+    confirm_support "${2:-}" base-restart
+    systemctl stop w1w-controller.service
+    rm -f /run/w1w/controller-authorized
+    systemctl restart w1w-can.service w1w-motor.service w1w-imu.service w1w-elrs.service w1w-web.service
+    ;;
+  controller-start)
+    require_root
+    confirm_support "${2:-}" controller-start
+    if [[ ! -x "${PREFIX}/current/venv/bin/python" ]]; then
+      echo "policy environment is missing; run ${PREFIX}/current/scripts/setup_policy_env.sh" >&2
+      exit 1
+    fi
+    /usr/bin/python3 "${PREFIX}/current/scripts/base_health.py" --require-imu
+    "${PREFIX}/current/venv/bin/python" \
+      "${PREFIX}/current/scripts/elrs_health.py" --require-safe-start
+    run_user="$(systemctl show -p User --value w1w-controller.service)"
+    install -d -m 0755 /run/w1w
+    install -o "${run_user}" -g "${run_user}" -m 0600 /dev/null /run/w1w/controller-authorized
+    systemctl start w1w-controller.service
+    ;;
+  controller-stop)
+    require_root
+    systemctl stop w1w-controller.service
+    rm -f /run/w1w/controller-authorized
+    echo "controller stopped; if active control had started, the motor watchdog is now latched"
+    ;;
+  motor-rearm)
+    require_root
+    confirm_support "${2:-}" motor-rearm
+    systemctl stop w1w-controller.service
+    rm -f /run/w1w/controller-authorized
+    systemctl restart w1w-motor.service
+    sleep 1
+    /usr/bin/python3 "${PREFIX}/current/scripts/base_health.py"
+    ;;
+  health)
+    if [[ ! -x "${PREFIX}/current/venv/bin/python" ]]; then
+      echo "policy environment is missing; run ${PREFIX}/current/scripts/setup_policy_env.sh" >&2
+      exit 1
+    fi
+    /usr/bin/python3 "${PREFIX}/current/scripts/base_health.py" --require-imu
+    "${PREFIX}/current/venv/bin/python" \
+      "${PREFIX}/current/scripts/elrs_health.py" --require-safe-start
+    ;;
+  elrs-health)
+    if systemctl is-active --quiet w1w-controller.service; then
+      echo "refusing ELRS channel test while the policy controller is running" >&2
+      exit 1
+    fi
+    if [[ ! -x "${PREFIX}/current/venv/bin/python" ]]; then
+      echo "policy environment is missing; run ${PREFIX}/current/scripts/setup_policy_env.sh" >&2
+      exit 1
+    fi
+    "${PREFIX}/current/venv/bin/python" "${PREFIX}/current/scripts/elrs_health.py"
+    ;;
+  motor-health)
+    /usr/bin/python3 "${PREFIX}/current/scripts/base_health.py"
+    ;;
+  status)
+    systemctl --no-pager --full status \
+      w1w-can.service w1w-motor.service w1w-imu.service w1w-web.service \
+      w1w-elrs.service w1w-controller.service || true
+    ;;
+  logs)
+    unit="${2:-w1w-motor.service}"
+    case "${unit}" in
+      w1w-can.service|w1w-motor.service|w1w-imu.service|w1w-elrs.service|w1w-web.service|w1w-controller.service) ;;
+      *) echo "unsupported W1W unit: ${unit}" >&2; exit 2 ;;
+    esac
+    journalctl -fu "${unit}"
+    ;;
+  can-status)
+    for interface in can0 can1 can2 can3 can4 can5; do
+      ip -details -statistics link show "${interface}"
+    done
+    ;;
+  help|*)
+    cat <<EOF
+Usage: w1wctl COMMAND
+  start-base                 start CAN, damping motor, IMU, ELRS and read-only web services
+  stop-base                  stop the complete stack
+  health                     verify 16 motors and IMU using damping-only packets
+  elrs-health                show all 16 ELRS channels without motor control
+  motor-health               verify 16 motors without requiring IMU
+  status                     show all systemd unit states
+  can-status                 show detailed CAN/CAN FD counters
+  logs [UNIT]                follow a unit journal
+  controller-start ${CONFIRM}
+  controller-stop            stop policy control; active motor service will latch
+  motor-rearm ${CONFIRM}     clear motor latch by explicitly restarting its service
+  base-restart ${CONFIRM}    restart all safe base services
+EOF
+    ;;
+esac

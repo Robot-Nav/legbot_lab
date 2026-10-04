@@ -1,0 +1,24 @@
+[Unit]
+Description=W1W CPU-bound encrypted policy controller
+Requires=w1w-motor.service w1w-imu.service w1w-elrs.service
+After=w1w-motor.service w1w-imu.service w1w-elrs.service
+
+[Service]
+Type=simple
+User=kickpi
+Group=kickpi
+WorkingDirectory=@PREFIX@/lib/w1w/controller
+Environment=PYTHONUNBUFFERED=1
+ExecStart=@PREFIX@/bin/w1w-controller --config /etc/w1w/controller.yaml
+Restart=no
+KillSignal=SIGTERM
+TimeoutStopSec=3
+CPUAffinity=4 5 6 7
+Nice=-10
+NoNewPrivileges=true
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

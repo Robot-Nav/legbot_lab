@@ -40,12 +40,19 @@ class RslRlMoeCtsAlgorithmCfg(RslRlPpoAlgorithmCfg):
 
 @configclass
 class LegbotMoECTSRunnerCfg(RslRlOnPolicyRunnerCfg):
-    experiment_name = "legbot_wf_moe_cts"
+    experiment_name = "w1w_wf_moe_cts"
     class_name = "OnPolicyRunnerCTS"
     num_steps_per_env = 24
+    clip_actions = 10.0
     max_iterations = 300000
-    save_interval = 500
+    # Save frequently so a simulator stall does not discard hundreds of iterations.
+    save_interval = 50
     policy = RslRlMoeCtsActorCriticCfg()
     algorithm = RslRlMoeCtsAlgorithmCfg()
     obs_groups: dict = {"policy": ["policy"], "critic": ["critic"]}
     empirical_normalization = False
+
+
+@configclass
+class LegbotOriginalRunnerCfg(LegbotMoECTSRunnerCfg):
+    experiment_name = "w1w_original_moe_cts"

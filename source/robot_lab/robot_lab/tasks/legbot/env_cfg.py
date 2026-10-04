@@ -19,15 +19,19 @@ import robot_lab.tasks.go2.mdp as mdp
 from robot_lab.assets.legbot import LEGBOT_CFG, LEGBOT_LEG_JOINT_NAMES, LEGBOT_WHEEL_JOINT_NAMES
 from robot_lab.tasks.go2.mdp.terrains import TERRAIN_CFG
 
-# 16 个关节：12 腿 + 4 轮
-ALL_JOINT_NAMES = LEGBOT_LEG_JOINT_NAMES + LEGBOT_WHEEL_JOINT_NAMES
+# 16 个关节：每条腿 3 个关节 + 1 个轮子，顺序与实机电机一致
+ALL_JOINT_NAMES = [
+    joint
+    for leg in ("fl", "fr", "rl", "rr")
+    for joint in (f"{leg}_hip_joint", f"{leg}_thigh_joint", f"{leg}_calf_joint", f"{leg}_foot_joint")
+]
 
 BASE_LINK_NAME = "base"
 FOOT_LINK_NAME = ".*_foot"
-# 默认站姿的轮子最低点距 base 约 0.437 m。
-# Default kinematics put the wheel bottoms 0.4368 m below the base.  Keep the
-# locomotion target slightly lower to leave room for load/dynamic compression.
-BASE_HEIGHT_TARGET = 0.42
+# 部署站姿的轮子最低点距 base 约 0.506 m。
+# MuJoCo forward kinematics puts the wheel bottoms 0.506 m below the base.
+# Keep the target slightly lower for load and dynamic compression.
+BASE_HEIGHT_TARGET = 0.49
 
 
 ##
@@ -100,6 +104,17 @@ class LegbotSceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     base_velocity = mdp.Go2RLGymCommandCfg()
 
+    def __post_init__(self):
+        # The radio controller can request up to 3 m/s and 3.14 rad/s.
+        # Introduce these commands after the easier inherited stages.
+        self.base_velocity.command_range_curriculum = list(self.base_velocity.command_range_curriculum) + [
+            {"iter": 75000, "lin_vel_x": [-3.0, 3.0], "lin_vel_y": [-1.0, 1.0], "ang_vel_yaw": [-3.14, 3.14]}
+        ]
+        self.base_velocity.terrain_max_command_ranges = dict(self.base_velocity.terrain_max_command_ranges)
+        self.base_velocity.terrain_max_command_ranges["flat"] = {
+            "lin_vel_x": [-3.0, 3.0], "lin_vel_y": [-1.0, 1.0], "ang_vel_yaw": [-3.14, 3.14]
+        }
+
 
 @configclass
 class ActionsCfg:
@@ -118,7 +133,8 @@ class ActionsCfg:
         joint_names=LEGBOT_WHEEL_JOINT_NAMES,
         scale=20.0,
         use_default_offset=False,
-        clip={".*": (-104.72, 104.72)},
+        # W190 transport target limit; physical actuator speed remains 104.72 rad/s.
+        clip={".*": (-150.0, 150.0)},
         preserve_order=True,
     )
 
@@ -143,11 +159,14 @@ class ObservationsCfg:
             func=mdp.generated_commands,
             params={"command_name": "base_velocity"},
             clip=(-100.0, 100.0),
-            scale=1.0,
+            scale=(2.0, 2.0, 0.25),
         )
         joint_pos = ObsTerm(
-            func=mdp.joint_pos_rel,
-            params={"asset_cfg": SceneEntityCfg("robot", joint_names=LEGBOT_LEG_JOINT_NAMES, preserve_order=True)},
+            func=mdp.joint_pos_rel_without_wheel,
+            params={
+                "asset_cfg": SceneEntityCfg("robot", joint_names=ALL_JOINT_NAMES, preserve_order=True),
+                "wheel_asset_cfg": SceneEntityCfg("robot", joint_names=LEGBOT_WHEEL_JOINT_NAMES, preserve_order=True),
+            },
             noise=Unoise(n_min=-0.03, n_max=0.03),
             clip=(-100.0, 100.0),
             scale=1.0,
@@ -166,7 +185,7 @@ class ObservationsCfg:
         )
 
         def __post_init__(self):
-            self.history_length = 10
+            self.history_length = 4
             self.enable_corruption = True
             self.concatenate_terms = True
             self.flatten_history_dim = True
@@ -195,8 +214,11 @@ class ObservationsCfg:
             scale=1.0,
         )
         joint_pos = ObsTerm(
-            func=mdp.joint_pos_rel,
-            params={"asset_cfg": SceneEntityCfg("robot", joint_names=LEGBOT_LEG_JOINT_NAMES, preserve_order=True)},
+            func=mdp.joint_pos_rel_without_wheel,
+            params={
+                "asset_cfg": SceneEntityCfg("robot", joint_names=ALL_JOINT_NAMES, preserve_order=True),
+                "wheel_asset_cfg": SceneEntityCfg("robot", joint_names=LEGBOT_WHEEL_JOINT_NAMES, preserve_order=True),
+            },
             clip=(-100.0, 100.0),
             scale=1.0,
         )
@@ -285,7 +307,7 @@ class EventCfg:
         func=mdp.reset_joints_by_scale,
         mode="reset",
         params={
-            "position_range": (0.5, 1.5),
+            "position_range": (0.9, 1.1),
             "velocity_range": (0.0, 0.0),
         },
     )
@@ -442,7 +464,7 @@ class CurriculumCfg:
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel_gym)
     base_linear_velocity = CurrTerm(
         mdp.gradual_reward_weight_modification,
-        params={"term_name": "lin_vel_z_l2", "initial_weight": -2.0, "final_weight": -0.0, "start_it": 0, "end_it": 1500},
+        params={"term_name": "lin_vel_z_l2", "initial_weight": -2.0, "final_weight": -1.0, "start_it": 0, "end_it": 1500},
     )
     base_height_l2 = CurrTerm(
         mdp.gradual_reward_weight_modification,
@@ -458,7 +480,7 @@ class CurriculumCfg:
 class LegbotEnvCfg(ManagerBasedRLEnvCfg):
     """Legbot 轮足机器人粗糙地形环境配置。"""
 
-    scene: LegbotSceneCfg = LegbotSceneCfg(num_envs=16384, env_spacing=0.5)
+    scene: LegbotSceneCfg = LegbotSceneCfg(num_envs=2048, env_spacing=0.5)
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
     commands: CommandsCfg = CommandsCfg()
@@ -476,7 +498,10 @@ class LegbotEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physics_material = self.scene.terrain.physics_material
         self.sim.physx.gpu_max_rigid_patch_count = int(1 * 1024 * 1024)
         self.sim.physx.gpu_collision_stack_size = int(512 * 1024 * 1024)
-        self.sim.physx.enable_external_forces_every_iteration = True
+        # Only newer Isaac Lab versions expose this PhysX option. Adding an
+        # arbitrary Python attribute on older versions does not configure PhysX.
+        if hasattr(self.sim.physx, "enable_external_forces_every_iteration"):
+            self.sim.physx.enable_external_forces_every_iteration = True
 
         if self.scene.height_scanner is not None:
             self.scene.height_scanner.update_period = self.decimation * self.sim.dt
@@ -491,3 +516,15 @@ class LegbotEnvCfg(ManagerBasedRLEnvCfg):
         else:
             if self.scene.terrain.terrain_generator is not None:
                 self.scene.terrain.terrain_generator.curriculum = False
+
+
+@configclass
+class LegbotOriginalEnvCfg(LegbotEnvCfg):
+    """A/B task loading the SolidWorks URDF with the corrected front-right joint name and its mesh collisions."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        from pathlib import Path
+        self.scene.robot.spawn.asset_path = str(
+            Path(self.scene.robot.spawn.asset_path).with_name("w1w_urdf1.urdf")
+        )

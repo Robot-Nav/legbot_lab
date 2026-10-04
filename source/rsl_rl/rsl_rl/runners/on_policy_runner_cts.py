@@ -6,6 +6,8 @@
 from __future__ import annotations
 
 import os
+import copy
+import faulthandler
 import time
 import torch
 import warnings
@@ -44,9 +46,9 @@ class OnPolicyRunnerCTS:
     """On-policy runner for training and evaluation of actor-critic methods."""
 
     def __init__(self, env: VecEnv, train_cfg: dict, log_dir: str | None = None, device: str = "cpu") -> None:
-        self.cfg = train_cfg
-        self.policy_cfg = train_cfg["policy"]
-        self.alg_cfg = train_cfg["algorithm"]
+        self.cfg = copy.deepcopy(train_cfg)
+        self.policy_cfg = self.cfg["policy"]
+        self.alg_cfg = self.cfg["algorithm"]
         self.device = device
         self.env = env
 
@@ -89,6 +91,23 @@ class OnPolicyRunnerCTS:
             self.robogauge_client = None
 
     def learn(self, num_learning_iterations: int, init_at_random_ep_len: bool = False) -> None:
+        # Optional native watchdog: it can dump Python stacks even while a
+        # simulator extension holds the GIL. Never abort or save mid-update.
+        timeout = float(self.cfg.get("stall_timeout", 0))
+        self._stall_trace = None
+        if timeout <= 0:
+            return self._learn(num_learning_iterations, init_at_random_ep_len)
+        trace_path = os.path.join(self.logger.log_dir, "stall_tracebacks.log")
+        with open(trace_path, "a", buffering=1) as trace:
+            self._stall_trace = trace
+            try:
+                faulthandler.dump_traceback_later(timeout, repeat=True, file=trace)
+                self._learn(num_learning_iterations, init_at_random_ep_len)
+            finally:
+                faulthandler.cancel_dump_traceback_later()
+                self._stall_trace = None
+
+    def _learn(self, num_learning_iterations: int, init_at_random_ep_len: bool = False) -> None:
         # Randomize initial episode lengths (for exploration)
         if init_at_random_ep_len:
             self.env.episode_length_buf = torch.randint_like(
@@ -108,6 +127,11 @@ class OnPolicyRunnerCTS:
         start_it = self.current_learning_iteration
         total_it = start_it + num_learning_iterations
         for it in range(start_it, total_it):
+            if self._stall_trace is not None:
+                self._stall_trace.write(f"Starting iteration {it} at {time.time()}\n")
+                faulthandler.dump_traceback_later(
+                    float(self.cfg["stall_timeout"]), repeat=True, file=self._stall_trace
+                )
             start = time.time()
             # Rollout
             with torch.inference_mode():
@@ -153,7 +177,7 @@ class OnPolicyRunnerCTS:
             )
 
             # Save model
-            if it % self.cfg["save_interval"] == 0:
+            if self.logger.log_dir is not None and not self.logger.disable_logs and it % self.cfg["save_interval"] == 0:
                 self.save(os.path.join(self.logger.log_dir, f"model_{it}.pt"), it=it, last_model=False)  # type: ignore
 
         # Save the final model after training
@@ -171,6 +195,8 @@ class OnPolicyRunnerCTS:
             "optimizer_state_dict": self.alg.optimizer.state_dict(),
             "optimizer_stu_enc_state_dict": self.alg.optimizer_stu_enc.state_dict(),
             "iter": self.current_learning_iteration,
+            "next_iter": self.current_learning_iteration + 1,
+            "env_common_step_counter": getattr(self.env.unwrapped, "common_step_counter", None),
             "infos": infos,
         }
         # Save RND model if used
@@ -268,6 +294,7 @@ class OnPolicyRunnerCTS:
         if load_optimizer and resumed_training:
             # Algorithm optimizer
             self.alg.optimizer.load_state_dict(loaded_dict["optimizer_state_dict"])
+            self.alg.learning_rate = self.alg.optimizer.param_groups[0]["lr"]
             # Student encoder optimizer
             self.alg.optimizer_stu_enc.load_state_dict(loaded_dict["optimizer_stu_enc_state_dict"])
             # RND optimizer if used
@@ -275,7 +302,17 @@ class OnPolicyRunnerCTS:
                 self.alg.rnd_optimizer.load_state_dict(loaded_dict["rnd_optimizer_state_dict"])
         # Load current learning iteration
         if resumed_training:
-            self.current_learning_iteration = loaded_dict["iter"]
+            # Legacy checkpoints store the last completed zero-based iteration.
+            self.current_learning_iteration = loaded_dict.get("next_iter", loaded_dict["iter"] + 1)
+            base_env = self.env.unwrapped
+            if hasattr(base_env, "common_step_counter"):
+                progress = loaded_dict.get("env_common_step_counter")
+                if progress is None:
+                    progress = self.current_learning_iteration * self.cfg["num_steps_per_env"]
+                base_env.common_step_counter = int(progress)
+                # Reset recomputes reward curricula and resamples commands before
+                # the first resumed rollout. Physics/RNG state is not checkpointed.
+                self.env.reset()
         return loaded_dict["infos"]
 
     def get_inference_policy(self, device: str | None = None) -> callable:
@@ -385,7 +422,7 @@ class OnPolicyRunnerCTS:
 
         # Initialize the storage
         storage = RolloutStorageCTS(
-            "rl", self.env.num_envs, max(int(self.env.num_envs*self.alg_cfg["teacher_env_ratio"]), 1), self.cfg["num_steps_per_env"], obs, [self.env.num_actions], self.device
+            "rl", self.env.num_envs, min(max(int(self.env.num_envs*self.alg_cfg["teacher_env_ratio"]), 1), self.env.num_envs - 1), self.cfg["num_steps_per_env"], obs, [self.env.num_actions], self.device
         )
 
         # Initialize the algorithm
