@@ -1,3 +1,0 @@
-numpy==1.26.4
-PyYAML==6.0.2
-onnxruntime==1.18.1
