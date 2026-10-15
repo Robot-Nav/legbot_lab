@@ -1,7 +1,7 @@
 # `play.py` exports the CTS policy into <run>/exported/policy.pt.
 # Pass that file with: deploy_legbot.py --policy /path/to/policy.pt
 policy_path: "{ROOT_DIR}/deploy/pre_train/legbot/policy.pt"
-xml_path: "{ROOT_DIR}/resources/w1w_wf/legbot.xml"
+xml_path: "{ROOT_DIR}/resources/w1w_wf/legbot_mixed.xml"
 
 render_fps: 60
 video_fps: 60

@@ -16,6 +16,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 import robot_lab.tasks.go2.mdp as mdp
+from robot_lab.tasks.legbot.env import rewards as legbot_rewards
 from robot_lab.assets.legbot import LEGBOT_CFG, LEGBOT_LEG_JOINT_NAMES, LEGBOT_WHEEL_JOINT_NAMES
 from robot_lab.tasks.go2.mdp.terrains import TERRAIN_CFG
 
@@ -107,6 +108,10 @@ class CommandsCfg:
     def __post_init__(self):
         # The radio controller can request up to 3 m/s and 3.14 rad/s.
         # Introduce these commands after the easier inherited stages.
+        # Slightly more explicit standing practice; preserve the speed stages.
+        self.base_velocity.zero_command_curriculum = {
+            "start_iter": 0, "end_iter": 1500, "start_value": 0.0, "end_value": 0.15,
+        }
         self.base_velocity.command_range_curriculum = list(self.base_velocity.command_range_curriculum) + [
             {"iter": 75000, "lin_vel_x": [-3.0, 3.0], "lin_vel_y": [-1.0, 1.0], "ang_vel_yaw": [-3.14, 3.14]}
         ]
@@ -425,24 +430,59 @@ class RewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=LEGBOT_LEG_JOINT_NAMES)},
     )
     hip_pos_penalty_l1 = RewTerm(
-        func=mdp.hip_pos_penalty_l1,
-        weight=-0.05,
+        func=legbot_rewards.joint_pose_l1_standing_scaled,
+        weight=-0.08,
         params={
             "command_name": "base_velocity",
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*_hip_joint"),
-            "stand_still_scale": 1.0,
-            "command_threshold": 0.1,
+            "stand_still_scale": 2.0,
+            "linear_threshold": 0.1,
+            "yaw_threshold": 0.1,
+            "sensor_cfg": SceneEntityCfg("height_scanner_small"),
+            "flatness_std": 0.03,
         },
     )
     joint_pos_penalty_l1 = RewTerm(
-        func=mdp.joint_pos_penalty_l1,
+        func=legbot_rewards.joint_pose_l1_standing_scaled,
         weight=-0.01,
         params={
             "command_name": "base_velocity",
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*_(thigh|calf)_joint"),
-            "stand_still_scale": 1.0,
-            "velocity_threshold": 0.1,
-            "command_threshold": 0.1,
+            "stand_still_scale": 2.0,
+            "linear_threshold": 0.1,
+            "yaw_threshold": 0.1,
+            "sensor_cfg": SceneEntityCfg("height_scanner_small"),
+            "flatness_std": 0.03,
+        },
+    )
+    wheel_axis_alignment_l2 = RewTerm(
+        func=legbot_rewards.wheel_axis_alignment_l2,
+        weight=-0.6,
+        params={
+            "command_name": "base_velocity",
+            "asset_cfg": SceneEntityCfg("robot", body_names=FOOT_LINK_NAME),
+            "sensor_cfg": SceneEntityCfg("height_scanner_small"),
+            "std": 0.2,
+            "deadzone_degrees": 2.0,
+            "straight_scale": 0.25,
+            "linear_threshold": 0.1,
+            "yaw_threshold": 0.1,
+            "flatness_std": 0.03,
+        },
+    )
+    standing_joint_vel_l2 = RewTerm(
+        func=legbot_rewards.standing_joint_vel_l2,
+        weight=-0.02,
+        params={
+            "command_name": "base_velocity",
+            "asset_cfg": SceneEntityCfg("robot", joint_names=LEGBOT_LEG_JOINT_NAMES),
+            "wheel_asset_cfg": SceneEntityCfg("robot", joint_names=LEGBOT_WHEEL_JOINT_NAMES),
+            "sensor_cfg": SceneEntityCfg("height_scanner_small"),
+            "leg_std": 1.0,
+            "wheel_std": 5.0,
+            "linear_threshold": 0.1,
+            "yaw_threshold": 0.1,
+            "flatness_std": 0.03,
         },
     )
 

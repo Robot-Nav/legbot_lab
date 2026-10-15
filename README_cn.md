@@ -174,7 +174,7 @@ L^{student} = \left\| z_t - z_s \right\|_2^2 + \alpha\, L^{LB}
 | 最大回合长度 | 25秒，即1250个控制步 |
 | 保存间隔 / 默认最大轮数 | 每50轮 / 300000轮；此前运行通过命令行指定100000轮 |
 
-### 奖励函数：14项
+### 奖励函数：16项
 
 每个控制步 `r_t = 0.02 × Σ(w_i × f_i)`。下表计算内容为乘权重和时间步长之前的原始项；`q₀`为默认关节位置，`a`为动作管理器中的动作。
 
@@ -192,11 +192,15 @@ L^{student} = \left\| z_t - z_s \right\|_2^2 + \alpha\, L^{LB}
 | `action_smoothness_l2` | `Σ(aₜ−2aₜ₋₁+aₜ₋₂)²` | −0.01 | 抑制动作二阶变化；回合步数大于2时生效 |
 | `undesired_contacts` | 接触力超过5 N的大腿、小腿刚体数量 | −1.0 | 使用接触力历史最大值 |
 | `joint_pos_limits` | 超出软关节限位的距离之和 | −2.0 | 仅12个腿关节，不含轮子 |
-| `hip_pos_penalty_l1` | 4个髋关节相对q₀的绝对偏差和 | −0.05 | 限制髋关节偏移 |
-| `joint_pos_penalty_l1` | 8个大腿、小腿关节相对q₀的绝对偏差和 | −0.01 | 限制腿部偏离默认姿态 |
+| `hip_pos_penalty_l1` | 4个髋关节相对q₀的绝对偏差和 | −0.08 | 平地静止时最高2倍；采用实际关节反馈 |
+| `joint_pos_penalty_l1` | 8个大腿、小腿关节相对q₀的绝对偏差和 | −0.01 | 平地静止时最高2倍 |
+| `wheel_axis_alignment_l2` | 四轮轴的前向分量与世界竖直分量，扣除2°容差后平方并按0.2归一化 | −0.6 | 站立主约束、直行25%；横移/转向关闭，非平地减弱 |
+| `standing_joint_vel_l2` | 腿速度按1 rad/s、轮速按5 rad/s归一化后的平方均值之和 | −0.02 | 平地零指令时抑制关节抖动和空转 |
 
 - 离地高度由机身世界高度减去小范围扫描的平均地面高度计算。
-- 两个关节姿态偏差项的 `stand_still_scale=1`，静止和运动分支倍率相同。
+- 两个关节姿态偏差项采用 `stand_still_scale=2`；静止要求水平指令范数小于0.1 m/s且yaw指令小于0.1 rad/s，前向运动也参与判断。
+- 新站立约束用小扫描高度方差衰减（标准差尺度0.03 m），避免过度限制坡地/台阶；无效扫描关闭附加约束。
+- 轮轴项直接使用轮刚体姿态，轮旋转和左右轴正负不影响结果。
 - 大腿、小腿接触扣分；机身接触属于终止条件。
 - 当前未独立启用轮胎打滑、步态相位、抬脚高度或左右对称奖励。
 - `Episode return` 是回合总奖励；TensorBoard 的 `Episode_Reward/*` 是分项回合累计值除以最大回合时长25秒，统计口径不同。
@@ -337,7 +341,7 @@ base判定使用净接触力，没有进一步区分接触对象。
 | 50000～74999 | ±2.0 | ±1.0 | ±2.0 |
 | 75000及以后 | ±3.0 | ±1.0 | ±3.14 |
 
-不同地形还有进一步限速，以上是全局指令范围。
+不同地形还有进一步限速，以上是全局指令范围。零指令采样概率在前1500轮从0增至15%；其中仍有20%可能加入转向指令。
 
 | 地形 | 配置比例 |
 | --- | --- |
@@ -353,7 +357,7 @@ base判定使用净接触力，没有进一步区分接触对象。
 
 地形分为10级，初始最大等级5，根据运动完成情况升降级。固定任务条件下的学生独立评测、动作延迟、轮胎打滑以及速度课程跳变对训练的影响，仍是后续评估重点。
 
-配置来源：[环境配置](source/robot_lab/robot_lab/tasks/legbot/env_cfg.py)、[算法配置](source/robot_lab/robot_lab/tasks/legbot/rsl_rl_cfg.py)、[算法实现](source/rsl_rl/rsl_rl/algorithms/moe_cts.py)、[奖励实现](source/robot_lab/robot_lab/tasks/go2/mdp/rewards.py)、[观测对齐](source/robot_lab/robot_lab/tasks/legbot/env/observations.py)、[执行器配置](source/robot_lab/robot_lab/assets/legbot.py)、[地形配置](source/robot_lab/robot_lab/tasks/go2/mdp/terrains.py)。
+配置来源：[环境配置](source/robot_lab/robot_lab/tasks/legbot/env_cfg.py)、[算法配置](source/robot_lab/robot_lab/tasks/legbot/rsl_rl_cfg.py)、[算法实现](source/rsl_rl/rsl_rl/algorithms/moe_cts.py)、[通用奖励](source/robot_lab/robot_lab/tasks/go2/mdp/rewards.py)、[四轮足站立奖励](source/robot_lab/robot_lab/tasks/legbot/env/rewards.py)、[观测对齐](source/robot_lab/robot_lab/tasks/legbot/env/observations.py)、[执行器配置](source/robot_lab/robot_lab/assets/legbot.py)、[地形配置](source/robot_lab/robot_lab/tasks/go2/mdp/terrains.py)。
 
 ## 项目结构
 
@@ -452,7 +456,7 @@ python deploy/deploy_mujoco/deploy_legbot.py --validate
 python deploy/deploy_mujoco/deploy_legbot.py \
   --policy=/绝对路径/exported/policy.pt
 
-# 选择地形：flat（默认）、stairs、rough、mixed
+# 选择地形：mixed（默认）、flat、stairs、rough
 python deploy/deploy_mujoco/deploy_legbot.py \
   --terrain=mixed \
   --policy=/绝对路径/exported/policy.pt

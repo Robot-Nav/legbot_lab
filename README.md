@@ -174,7 +174,7 @@ The algorithm combines **PPO, concurrent teacher-student training, and a student
 | Maximum episode duration | 25 s, or 1250 control steps |
 | Save interval / default training limit | Every 50 iterations / 300000 iterations; the earlier run overrides the limit to 100000 |
 
-### Reward terms: 14
+### Reward terms: 16
 
 Each control step receives `r_t = 0.02 × Σ(w_i × f_i)`. The expressions below are evaluated before multiplying by the weight and time step. `q₀` denotes the default joint pose; `a` denotes the action manager's action.
 
@@ -192,11 +192,15 @@ Each control step receives `r_t = 0.02 × Σ(w_i × f_i)`. The expressions below
 | `action_smoothness_l2` | `Σ(aₜ−2aₜ₋₁+aₜ₋₂)²` | −0.01 | Penalize second differences; active when episode step count exceeds 2 |
 | `undesired_contacts` | Number of thigh/calf bodies with contact force above 5 N | −1.0 | Uses the maximum over contact history |
 | `joint_pos_limits` | Sum of distances beyond soft position limits | −2.0 | Only the 12 leg joints; excludes wheels |
-| `hip_pos_penalty_l1` | Sum of absolute deviations from q₀ for 4 hip joints | −0.05 | Limit hip displacement |
-| `joint_pos_penalty_l1` | Sum of absolute deviations from q₀ for 8 thigh/calf joints | −0.01 | Limit displacement from the default leg pose |
+| `hip_pos_penalty_l1` | Sum of measured absolute deviations from q₀ for 4 hip joints | −0.08 | Up to 2x during quiet standing on flat ground |
+| `joint_pos_penalty_l1` | Sum of measured deviations from q₀ for 8 thigh/calf joints | −0.01 | Up to 2x during quiet standing on flat ground |
+| `wheel_axis_alignment_l2` | Squared axle forward/vertical components beyond a 2-degree dead zone, normalized by 0.2 | −0.6 | Standing; 25% during straight motion; off for lateral/yaw commands; terrain gated |
+| `standing_joint_vel_l2` | Mean squared leg/wheel speeds normalized by 1/5 rad/s | −0.02 | Suppress unnecessary joint motion and wheel spin at rest |
 
 - Height above ground is base world height minus mean ground height from the small scanner.
-- Both pose-deviation terms use `stand_still_scale=1`; stationary and moving branches therefore have equal multipliers.
+- Both pose-deviation terms use `stand_still_scale=2`. Standing requires horizontal command norm below 0.1 m/s and yaw command below 0.1 rad/s, including forward motion in detection.
+- Auxiliary stance costs fade with local height variation (0.03 m standard-deviation scale); invalid scans disable those costs.
+- The axle cost uses wheel body orientations and is invariant to wheel spin and left/right axle signs.
 - Thigh/calf contacts incur penalties; base contacts can terminate the episode.
 - No separate wheel-slip, gait-phase, foot-clearance, or bilateral-symmetry reward is enabled.
 - `Episode return` is total episode reward. TensorBoard `Episode_Reward/*` divides each accumulated episode term by the maximum episode duration of 25 s; these are different statistics.
@@ -337,7 +341,7 @@ Base contact detection uses net force without distinguishing the contacting obje
 | 50000–74999 | ±2.0 | ±1.0 | ±2.0 |
 | 75000 onward | ±3.0 | ±1.0 | ±3.14 |
 
-These are global command ranges; individual terrains impose additional limits.
+These are global command ranges; individual terrains impose additional limits. Zero-command sampling ramps from 0 to 15% over the first 1500 iterations; 20% of those samples may still receive a yaw command.
 
 | Terrain | Configured proportion |
 | --- | --- |
@@ -353,7 +357,7 @@ These are global command ranges; individual terrains impose additional limits.
 
 There are 10 terrain levels, with initial levels capped at 5. Levels change according to locomotion progress. Further evaluation should cover student performance under fixed test conditions, action delay, wheel slip, and the effect of abrupt command-curriculum transitions.
 
-Sources: [environment](source/robot_lab/robot_lab/tasks/legbot/env_cfg.py), [algorithm configuration](source/robot_lab/robot_lab/tasks/legbot/rsl_rl_cfg.py), [algorithm implementation](source/rsl_rl/rsl_rl/algorithms/moe_cts.py), [rewards](source/robot_lab/robot_lab/tasks/go2/mdp/rewards.py), [observation alignment](source/robot_lab/robot_lab/tasks/legbot/env/observations.py), [actuators](source/robot_lab/robot_lab/assets/legbot.py), [terrain](source/robot_lab/robot_lab/tasks/go2/mdp/terrains.py).
+Sources: [environment](source/robot_lab/robot_lab/tasks/legbot/env_cfg.py), [algorithm configuration](source/robot_lab/robot_lab/tasks/legbot/rsl_rl_cfg.py), [algorithm implementation](source/rsl_rl/rsl_rl/algorithms/moe_cts.py), [general rewards](source/robot_lab/robot_lab/tasks/go2/mdp/rewards.py), [wheel-legged stance rewards](source/robot_lab/robot_lab/tasks/legbot/env/rewards.py), [observation alignment](source/robot_lab/robot_lab/tasks/legbot/env/observations.py), [actuators](source/robot_lab/robot_lab/assets/legbot.py), [terrain](source/robot_lab/robot_lab/tasks/go2/mdp/terrains.py).
 
 ## Project layout
 
@@ -450,7 +454,7 @@ python deploy/deploy_mujoco/deploy_legbot.py --validate
 python deploy/deploy_mujoco/deploy_legbot.py \
   --policy=/absolute/path/to/exported/policy.pt
 
-# Choose a terrain: flat (default), stairs, rough, mixed
+# Choose a terrain: mixed (default), flat, stairs, rough
 python deploy/deploy_mujoco/deploy_legbot.py \
   --terrain=mixed \
   --policy=/absolute/path/to/exported/policy.pt

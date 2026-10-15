@@ -50,7 +50,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--terrain",
         choices=tuple(TERRAIN_XMLS),
-        help="Override the MuJoCo scene: flat, stairs, rough, or mixed.",
+        help="Override the configured MuJoCo scene: flat, stairs, rough, or mixed (default legbot.yaml uses mixed).",
     )
     parser.add_argument("--validate", action="store_true", help="Validate model/config without opening a viewer.")
     parser.add_argument("--headless", action="store_true", help="Run without a viewer or real-time sleeping.")
