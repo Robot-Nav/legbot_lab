@@ -23,7 +23,7 @@ WF-CTS-MOE 用于训练 16 自由度的轮足四足机器人 **Legbot-WF**，使
 
 - 12 个腿部关节（髋 / 大腿 / 小腿 × 4 条腿），采用位置控制。
 - 4 个主动轮（每条腿末端一个），采用速度控制。
-- 单帧策略观测为 57 维，带 4 帧历史（共 228 维），与 W1W 部署控制器一致。
+- 单帧策略观测为 57 维，带 4 帧历史（共 228 维），与 Legbot 部署控制器一致。
 - 每步输出 16 维动作，按每条腿「髋、大腿、小腿、轮」排列（腿位置偏移 + 轮速）。
 
 项目中同时保留了 Go2 任务作为参考环境，两个机器人共用同一套算法核心。
@@ -142,7 +142,7 @@ L^{student} = \left\| z_t - z_s \right\|_2^2 + \alpha\, L^{LB}
 
 ## 四轮足训练配置详表
 
-以下按 2026-10-04 核对的当前代码整理，适用于 `RobotLab-Legbot-Simplified-v0` 和默认任务 `RobotLab-Legbot-v0`，模型为 `resources/w1w_wf/urdf/w1w_wf.urdf`。`RobotLab-Legbot-Original-v0` 使用原始网格模型。命令行覆盖以具体运行的 `params/env.yaml`、`params/agent.yaml` 为准。
+以下按 2026-10-04 核对的当前代码整理，适用于 `RobotLab-Legbot-Simplified-v0` 和默认任务 `RobotLab-Legbot-v0`，模型为 `resources/Legbot_wf/urdf/Legbot_wf.urdf`。`RobotLab-Legbot-Original-v0` 使用原始网格模型。命令行覆盖以具体运行的 `params/env.yaml`、`params/agent.yaml` 为准。
 
 ### 算法结构与训练参数
 
@@ -372,7 +372,7 @@ deploy/
   deploy_mujoco/          MuJoCo Sim2Sim 部署（Legbot 与 Go2）
 resources/
   go2/                    Go2 模型与场景（公开 Unitree 资产）
-  w1w_wf/                 Legbot-WF 模型与场景（本地私有资产，不纳入 Git）
+  Legbot_wf/                 Legbot-WF 模型与场景（本地私有资产，不纳入 Git）
 ```
 
 MoE-CTS 核心代码位于：
@@ -422,7 +422,7 @@ pip install mujoco pygame
 
 ### 训练
 
-默认任务 `RobotLab-Legbot-v0` 和显式任务 `RobotLab-Legbot-Simplified-v0` 均读取 `resources/w1w_wf/urdf/w1w_wf.urdf`，默认 2048 环境。原始网格模型仅由 `RobotLab-Legbot-Original-v0` 加载，日志单独存放。右前轮统一为 `fr_foot_joint`。此前原始模型的短测试只验证了程序能运行，不能证明策略有效；2048 环境也曾出现 CUDA 700，减少环境数量并非已验证的根治方法。
+默认任务 `RobotLab-Legbot-v0` 和显式任务 `RobotLab-Legbot-Simplified-v0` 均读取 `resources/Legbot_wf/urdf/Legbot_wf.urdf`，默认 2048 环境。原始网格模型仅由 `RobotLab-Legbot-Original-v0` 加载，日志单独存放。右前轮统一为 `fr_foot_joint`。此前原始模型的短测试只验证了程序能运行，不能证明策略有效；2048 环境也曾出现 CUDA 700，减少环境数量并非已验证的根治方法。
 
 ```bash
 python scripts/rsl_rl/train.py \
@@ -433,7 +433,7 @@ python scripts/rsl_rl/train.py \
   --run_name v1
 ```
 
-检查点保存在 `logs/rsl_rl/w1w_wf_moe_cts/<run>/model_<iter>.pt`。
+检查点保存在 `logs/rsl_rl/Legbot_wf_moe_cts/<run>/model_<iter>.pt`。
 
 ### 播放与导出
 
@@ -444,7 +444,7 @@ python scripts/rsl_rl/play.py \
   --checkpoint=/绝对路径/model_xxx.pt
 ```
 
-`play.py` 同时会把学生策略导出为 `<run>/exported/policy.pt` 与 `policy.onnx`。训练侧接口已与 `w1w_deploy` 对齐；旧检查点必须按新配置重新训练，导出的模型还需经过仿真与受支撑实机验证。
+`play.py` 同时会把学生策略导出为 `<run>/exported/policy.pt` 与 `policy.onnx`。训练侧接口已与 `Legbot_deploy` 对齐；旧检查点必须按新配置重新训练，导出的模型还需经过仿真与受支撑实机验证。
 
 ### MuJoCo Sim2Sim
 
@@ -486,10 +486,10 @@ python scripts/rsl_rl/play.py --task=RobotLab-Go2-v0
 
 Legbot-WF 模型为私有资产，本仓库**不包含**：
 
-- `resources/w1w_wf/`（URDF、网格、场景）已通过 `.gitignore` 排除。
+- `resources/Legbot_wf/`（URDF、网格、场景）已通过 `.gitignore` 排除。
 - 训练检查点与导出策略（`.pt`、`.onnx`、`.pth`、`.ckpt`）均已排除。
 
-如需使用 Legbot 任务，请将你自己的机器人模型放到 `resources/w1w_wf/` 后从零训练。W1W 部署源码已纳入 Git，但虚拟环境、构建产物和策略权重均不纳入。`resources/go2/` 下的 Go2 模型为公开 Unitree 资产，已包含在仓库中。
+如需使用 Legbot 任务，请将你自己的机器人模型放到 `resources/Legbot_wf/` 后从零训练。Legbot 部署源码已纳入 Git，但虚拟环境、构建产物和策略权重均不纳入。`resources/go2/` 下的 Go2 模型为公开 Unitree 资产，已包含在仓库中。
 
 ## 许可证
 
