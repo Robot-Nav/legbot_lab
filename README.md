@@ -23,7 +23,7 @@ The robot has:
 
 - 12 leg joints (hip / thigh / calf × 4 legs), controlled by position.
 - 4 active wheels (one per foot), controlled by velocity.
-- A single-frame policy observation of 57 values with a 4-frame history (228 inputs), matching the W1W controller.
+- A single-frame policy observation of 57 values with a 4-frame history (228 inputs), matching the Legbot controller.
 - 16 actions per step in hip, thigh, calf, wheel order for each leg (leg position offsets and wheel velocities).
 
 A Go2 task is also included as a reference environment. The core algorithm is shared between the two robots.
@@ -142,7 +142,7 @@ In the implementation, `alpha` is `load_balance_coef = 0.01`.
 
 ## Wheel-foot training configuration tables
 
-This section documents the code reviewed on 2026-10-04 for `RobotLab-Legbot-Simplified-v0` and the default `RobotLab-Legbot-v0`, using `resources/w1w_wf/urdf/w1w_wf.urdf`. `RobotLab-Legbot-Original-v0` uses the original mesh model. For command-line overrides, consult the run's `params/env.yaml` and `params/agent.yaml`.
+This section documents the code reviewed on 2026-10-04 for `RobotLab-Legbot-Simplified-v0` and the default `RobotLab-Legbot-v0`, using `resources/Legbot_wf/urdf/Legbot_wf.urdf`. `RobotLab-Legbot-Original-v0` uses the original mesh model. For command-line overrides, consult the run's `params/env.yaml` and `params/agent.yaml`.
 
 ### Algorithm and training parameters
 
@@ -372,7 +372,7 @@ deploy/
   deploy_mujoco/          MuJoCo Sim2Sim deployment (Legbot and Go2)
 resources/
   go2/                    Go2 model and scenes (public Unitree assets)
-  w1w_wf/                 Legbot-WF model and scenes (local private assets, excluded from Git)
+  Legbot_wf/                 Legbot-WF model and scenes (local private assets, excluded from Git)
 ```
 
 The MoE-CTS code lives in:
@@ -431,7 +431,7 @@ python scripts/rsl_rl/train.py \
   --run_name v1
 ```
 
-Checkpoints are written to `logs/rsl_rl/w1w_wf_moe_cts/<run>/model_<iter>.pt`.
+Checkpoints are written to `logs/rsl_rl/Legbot_wf_moe_cts/<run>/model_<iter>.pt`.
 
 ### Play and export
 
@@ -442,7 +442,7 @@ python scripts/rsl_rl/play.py \
   --checkpoint=/absolute/path/to/model_xxx.pt
 ```
 
-`play.py` also exports the student policy to `<run>/exported/policy.pt` and `policy.onnx`. The training interface now matches `w1w_deploy`; older checkpoints need retraining, and new exports still require simulation and supported-robot validation.
+`play.py` also exports the student policy to `<run>/exported/policy.pt` and `policy.onnx`. The training interface now matches `Legbot_deploy`; older checkpoints need retraining, and new exports still require simulation and supported-robot validation.
 
 ### MuJoCo Sim2Sim
 
@@ -484,10 +484,10 @@ Runtime overrides are available on the command line: `--num_envs`, `--max_iterat
 
 The Legbot-WF model is proprietary and is **not** included in this repository:
 
-- `resources/w1w_wf/` (URDF, meshes, scenes) is excluded by `.gitignore`.
+- `resources/Legbot_wf/` (URDF, meshes, scenes) is excluded by `.gitignore`.
 - Trained checkpoints and exported policies (`.pt`, `.onnx`, `.pth`, `.ckpt`) are excluded.
 
-To use the Legbot task, place your own robot model at `resources/w1w_wf/` and train from scratch. W1W deployment source is tracked; its virtual environment, build outputs, and policy weights are excluded. The Go2 model under `resources/go2/` is included and uses public Unitree assets.
+To use the Legbot task, place your own robot model at `resources/Legbot_wf/` and train from scratch. Legbot deployment source is tracked; its virtual environment, build outputs, and policy weights are excluded. The Go2 model under `resources/go2/` is included and uses public Unitree assets.
 
 ## License
 
@@ -509,4 +509,4 @@ Algorithm reference:
 
 - [CTS: Concurrent Teacher-Student Reinforcement Learning for Legged Locomotion](https://arxiv.org/abs/2405.10830)
 
-`RobotLab-Legbot-v0` and `RobotLab-Legbot-Simplified-v0` both use `resources/w1w_wf/urdf/w1w_wf.urdf`, with 2048 environments by default. `RobotLab-Legbot-Original-v0` retains the original mesh model and a separate log directory. The earlier original-model smoke test verified execution only, not policy quality. CUDA 700 has also occurred with 2048 environments; reducing concurrency is not a verified cure.
+`RobotLab-Legbot-v0` and `RobotLab-Legbot-Simplified-v0` both use `resources/Legbot_wf/urdf/Legbot_wf.urdf`, with 2048 environments by default. `RobotLab-Legbot-Original-v0` retains the original mesh model and a separate log directory. The earlier original-model smoke test verified execution only, not policy quality. CUDA 700 has also occurred with 2048 environments; reducing concurrency is not a verified cure.
