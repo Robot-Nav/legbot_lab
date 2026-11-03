@@ -15,6 +15,16 @@ Reinforcement learning for a 16-DOF wheel-foot quadruped, built on Isaac Lab and
 
 </div>
 
+---
+
+<img width="1920" height="540" alt="八地形画面检查" src="https://github.com/user-attachments/assets/fecdd3e2-8197-48c3-8b22-ea6be8135a51" />
+
+B站链接：https://www.bilibili.com/video/BV1T54362EpS/?vd_source=3e0503d2af778f71bc1d1405b8a87d65#reply322794845168
+
+---
+
+
+
 ## Overview
 
 WF-CTS-MOE trains a 16-DOF wheel-foot quadruped, **Legbot-WF**, to move over rough terrain with velocity commands. The learner is **MoE-CTS**: a Mixture-of-Experts version of Concurrent Teacher-Student (CTS) reinforcement learning, running on top of Isaac Lab and a modified RSL-RL.
