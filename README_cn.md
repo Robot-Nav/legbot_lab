@@ -15,6 +15,16 @@
 
 </div>
 
+---
+
+<img width="1920" height="540" alt="八地形画面检查" src="https://github.com/user-attachments/assets/fecdd3e2-8197-48c3-8b22-ea6be8135a51" />
+
+B站链接：https://www.bilibili.com/video/BV1T54362EpS/?vd_source=3e0503d2af778f71bc1d1405b8a87d65#reply322794845168
+
+
+---
+
+
 ## 项目概述
 
 WF-CTS-MOE 用于训练 16 自由度的轮足四足机器人 **Legbot-WF**，使其能根据速度指令在崎岖地形上运动。训练算法为 **MoE-CTS**：在 Concurrent Teacher-Student（CTS）强化学习基础上引入 Mixture-of-Experts（混合专家），运行于 Isaac Lab 与定制版 RSL-RL 之上。
