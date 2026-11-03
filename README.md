@@ -19,6 +19,10 @@ Reinforcement learning for a 16-DOF wheel-foot quadruped, built on Isaac Lab and
 
 <img width="1920" height="540" alt="八地形画面检查" src="https://github.com/user-attachments/assets/fecdd3e2-8197-48c3-8b22-ea6be8135a51" />
 
+
+<img width="1280" height="720" alt="terrain_park_solid_sage" src="https://github.com/user-attachments/assets/4aa41aaa-b510-483d-882e-fdecefd91cb1" />
+
+
 B站链接：https://www.bilibili.com/video/BV1T54362EpS/?vd_source=3e0503d2af778f71bc1d1405b8a87d65#reply322794845168
 
 ---
