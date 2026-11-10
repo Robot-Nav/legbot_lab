@@ -77,3 +77,8 @@ deploy/pre_train/
 # W1W deployment source is tracked; local environments and compiled executables are not.
 w1w_deploy/venv/
 w1w_deploy/elrs_service/elrs_service
+
+# Private C1 assets, policies, and local deployment bundles
+/resources/c1/
+/policy/
+/policy.zip

@@ -460,6 +460,8 @@ python scripts/rsl_rl/play.py \
 
 ### MuJoCo Sim2Sim
 
+C1 的八地形场景、固定 22 cm 楼梯、分区配色和手柄控制见 [C1 MuJoCo Sim2Sim](deploy/deploy_mujoco/README_C1.md)。模型权重、policy 部署包和私有 C1 URDF/网格由本机提供。
+
 ```bash
 # 仅校验模型与配置，不打开窗口
 python deploy/deploy_mujoco/deploy_legbot.py --validate

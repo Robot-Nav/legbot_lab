@@ -462,6 +462,8 @@ python scripts/rsl_rl/play.py \
 
 ### MuJoCo Sim2Sim
 
+The C1 eight-terrain scene, fixed 22 cm stairs, distinct terrain colors, and gamepad control are documented in [C1 MuJoCo Sim2Sim](deploy/deploy_mujoco/README_C1.md). Model weights, per-run policy bundles, and private C1 URDF/meshes are supplied locally.
+
 ```bash
 # Validate the model and config without opening a window
 python deploy/deploy_mujoco/deploy_legbot.py --validate
