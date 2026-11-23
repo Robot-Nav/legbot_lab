@@ -31,6 +31,30 @@ B站链接：https://www.bilibili.com/video/BV1T54362EpS/?vd_source=3e0503d2af77
 
 
 
+**Indicator**：
+
+| Training Speed Cap | Checkpoint | Measured Flat-Ground Speed | High-Speed Lateral Deviation | Drift at Standstill / After Braking | 24 cm Stair Ascent | 30° Uphill |
+|---|---|---:|---:|---:|---:|---:|
+| 1 m/s | **`46000` Best Overall** | 0.96 m/s | **6 cm** | **5.5 / 4.1 cm** | **3/3** | **3/3** |
+| 1 m/s | `29000` Flat-Ground Stopping | 0.96 m/s | **4 cm** | **2.0 / 0.7 cm** | 1/3 | 3/3 |
+| 1 m/s | `42000` Deployed Stair | 0.95 m/s | 11 cm | 33.1 / 17.9 cm | **3/3** | 3/3 |
+| 1 m/s | `49650` Deployed Slope | 0.98 m/s | 20 cm | 4.2 / 13.4 cm | 1/3 | 3/3 |
+| 1 m/s | `49850` Deployed Stop | 0.98 m/s | 13 cm | 6.7 / 3.3 cm | 0/3 | 3/3 |
+| 2 m/s | **`57000` Best Overall** | 2.08 m/s | 31 cm | **4.1 / 1.8 cm** | **3/3** | **3/3** |
+| 2 m/s | `56000` Flat-Ground Straight-Line Driving | **2.01 m/s** | **12 cm** | 15.3 / 8.1 cm | 1/3 | 3/3 |
+| 2 m/s | `65000` Stair Climbing | 1.95 m/s | 58 cm | 33.5 / 15.5 cm | **3/3** | 3/3 |
+| 3 m/s | **`76000` Best Overall** | **3.09 m/s** | 42 cm | **3.4 / 1.7 cm** | 2/3 | **3/3** |
+| 3 m/s | `98800` High-Speed Straight-Line Driving | **3.10 m/s** | **15 cm** | 9.2 / 4.5 cm | 0/3 | 3/3 |
+| 3 m/s | `91000` Stair Climbing | 2.94 m/s | 13 cm | 36.0 / 28.0 cm | **3/3** | **3/3** |
+| 3 m/s | `84000` Flat-Ground Straight-Line Reference | 2.90 m/s | **4 cm** | 4.8 / 5.1 cm | 3/3 | 3/3 |
+
+
+
+
+===
+
+
+
 ## Overview
 
 WF-CTS-MOE trains a 16-DOF wheel-foot quadruped, **Legbot-WF**, to move over rough terrain with velocity commands. The learner is **MoE-CTS**: a Mixture-of-Experts version of Concurrent Teacher-Student (CTS) reinforcement learning, running on top of Isaac Lab and a modified RSL-RL.
